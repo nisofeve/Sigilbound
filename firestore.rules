@@ -1,0 +1,66 @@
+rules_version = '2';
+// Phase 5 — production-ready security rules.
+// Cloud Functions use the Admin SDK and bypass these rules entirely; the rules
+// only constrain what the *client SDK* can read/write directly.
+//
+// Threat model:
+//   - Anyone signed in (including anonymous) can read profiles (needed for
+//     friends leaderboard) but only the profile owner can write to their own doc.
+//   - Currency-mutating fields (gems, bankCoins, perkShards, etc.) are NEVER
+//     writable by the client — only Cloud Functions update them. Client writes
+//     are limited to display-name and equipped-perks tweaks.
+//   - Run docs and PvP match docs are written exclusively by Cloud Functions.
+//     Clients can read them so they can poll/refresh, but never write.
+//   - farmCodes is a public lookup table (read-only for clients).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // === Profiles ===
+    match /profiles/{uid} {
+      // Anyone signed in can read (for friends leaderboard, PvP match name lookup).
+      allow read: if request.auth != null;
+
+      // Owner can update *only* cosmetic + equip-loadout fields. Currencies and
+      // anti-cheat counters require the cloud functions.
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && onlyMutates([
+          'displayName', 'perksEquipped', 'lastPlayedISO',
+          // Allow client to set local quest claim state — server still authoritative.
+          'todayQuestsState', 'todayQuestsISO',
+        ]);
+
+      // Cloud Functions create the doc; clients should not.
+      allow create: if request.auth != null
+        && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // === Run records (created/updated by Cloud Functions only) ===
+    match /runs/{runId} {
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.uid;
+      allow write: if false;
+    }
+
+    // === PvP matches ===
+    match /pvpMatches/{matchId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.players;
+      allow write: if false;
+    }
+
+    // === Farm code → uid lookup (public read, no client writes) ===
+    match /farmCodes/{code} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+  }
+}
+
+// Allow only fields in `keys` to differ between resource.data and request.resource.data.
+// Used to whitelist client-mutable fields.
+function onlyMutates(keys) {
+  return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "event.perfect_weather",
+    "kind": "boon",
+    "name": "Perfect Weather",
+    "icon": "🌤️",
+    "description": "All seeds advance 1 extra growth tick.",
+    "effect": { "type": "advance_all_seeds", "value": 1 }
+  },
+  {
+    "id": "event.harvest_festival",
+    "kind": "boon",
+    "name": "Harvest Festival",
+    "icon": "🎪",
+    "description": "All harvests this round earn +25%.",
+    "effect": { "type": "round_sale_mult", "value": 0.25 }
+  },
+  {
+    "id": "event.lucky_bloom",
+    "kind": "boon",
+    "name": "Lucky Bloom",
+    "icon": "🍀",
+    "description": "Find 20 coins in the soil!",
+    "effect": { "type": "free_coins", "value": 20 }
+  },
+  {
+    "id": "event.pest_outbreak",
+    "kind": "hazard",
+    "name": "Pest Outbreak",
+    "icon": "🐛",
+    "description": "A random growing seed loses 1 growth tick.",
+    "effect": { "type": "random_seed_setback", "value": 1 }
+  },
+  {
+    "id": "event.tax_season",
+    "kind": "hazard",
+    "name": "Tax Season",
+    "icon": "💸",
+    "description": "Pay 50 coins to the kingdom.",
+    "effect": { "type": "pay_coins", "value": 50 }
+  },
+  {
+    "id": "event.drought",
+    "kind": "hazard",
+    "name": "Drought",
+    "icon": "☀️",
+    "description": "No seeds grow this round (but harvest still resolves).",
+    "effect": { "type": "no_growth_this_round" }
+  }
+]

@@ -1,0 +1,22 @@
+[
+  { "id": "seed.humble_carrot", "type": "seed", "name": "Humble Carrot", "crop": "carrot", "rarity": "common", "growRounds": 1, "sellPrice": 8, "emoji": "🥕" },
+  { "id": "seed.lettuce_leaf", "type": "seed", "name": "Lettuce Leaf", "crop": "lettuce", "rarity": "common", "growRounds": 1, "sellPrice": 6, "emoji": "🥬" },
+  { "id": "seed.radish_pop", "type": "seed", "name": "Radish Pop", "crop": "radish", "rarity": "common", "growRounds": 1, "sellPrice": 7, "emoji": "🥒" },
+  { "id": "seed.golden_corn", "type": "seed", "name": "Golden Corn", "crop": "corn", "rarity": "common", "growRounds": 2, "sellPrice": 15, "emoji": "🌽" },
+  { "id": "seed.bean_sprout", "type": "seed", "name": "Bean Sprout", "crop": "bean", "rarity": "common", "growRounds": 1, "sellPrice": 5, "effect": "2 grow into 1 plot at harvest (+12c)", "emoji": "🌱" },
+  { "id": "seed.pea_pod", "type": "seed", "name": "Pea Pod", "crop": "pea", "rarity": "common", "growRounds": 2, "sellPrice": 12, "emoji": "🟢" },
+  { "id": "seed.sunburst_tomato", "type": "seed", "name": "Sunburst Tomato", "crop": "tomato", "rarity": "uncommon", "growRounds": 3, "sellPrice": 28, "emoji": "🍅" },
+  { "id": "seed.fire_pepper", "type": "seed", "name": "Fire Pepper", "crop": "pepper", "rarity": "uncommon", "growRounds": 3, "sellPrice": 22, "effect": "+2c on adjacent harvests same round", "emoji": "🌶️" },
+  { "id": "seed.jumbo_pumpkin", "type": "seed", "name": "Jumbo Pumpkin", "crop": "pumpkin", "rarity": "uncommon", "growRounds": 3, "sellPrice": 32, "effect": "+10c if Autumn season active", "emoji": "🎃" },
+  { "id": "seed.honey_melon", "type": "seed", "name": "Honey Melon", "crop": "melon", "rarity": "uncommon", "growRounds": 3, "sellPrice": 30, "effect": "+5c if Garden Variety triggered same round", "emoji": "🍈" },
+  { "id": "seed.wheat_stalk", "type": "seed", "name": "Wheat Stalk", "crop": "wheat", "rarity": "uncommon", "growRounds": 2, "sellPrice": 18, "effect": "Stack of 5 in deck = +5 starting coins", "emoji": "🌾" },
+  { "id": "seed.eggplant", "type": "seed", "name": "Eggplant", "crop": "eggplant", "rarity": "uncommon", "growRounds": 3, "sellPrice": 25, "emoji": "🍆" },
+  { "id": "seed.starberry", "type": "seed", "name": "Starberry", "crop": "berry", "rarity": "rare", "growRounds": 2, "sellPrice": 20, "effect": "Two harvests (regrows once for 40c)", "emoji": "🍓" },
+  { "id": "seed.frost_grape", "type": "seed", "name": "Frost Grape", "crop": "grape", "rarity": "rare", "growRounds": 5, "sellPrice": 65, "effect": "+5c per Tool in discard at harvest", "emoji": "🍇" },
+  { "id": "seed.mystic_mushroom", "type": "seed", "name": "Mystic Mushroom", "crop": "mushroom", "rarity": "rare", "growRounds": 4, "sellPrice": 50, "effect": "If 2+ in same round → +30 bonus", "emoji": "🍄" },
+  { "id": "seed.royal_cabbage", "type": "seed", "name": "Royal Cabbage", "crop": "cabbage", "rarity": "rare", "growRounds": 4, "sellPrice": 55, "emoji": "🥬" },
+  { "id": "seed.solar_sunflower", "type": "seed", "name": "Solar Sunflower", "crop": "sunflower", "rarity": "epic", "growRounds": 6, "sellPrice": 120, "effect": "+10c per round it grew", "emoji": "🌻" },
+  { "id": "seed.crystal_truffle", "type": "seed", "name": "Crystal Truffle", "crop": "truffle", "rarity": "epic", "growRounds": 5, "sellPrice": 150, "effect": "Cannot be planted in greenhouse", "emoji": "🍫" },
+  { "id": "seed.titan_sunflower", "type": "seed", "name": "Titan Sunflower", "crop": "titanflower", "rarity": "legendary", "growRounds": 12, "sellPrice": 0, "effect": "End-of-season cash multiplier (= season earnings)", "emoji": "🌻" },
+  { "id": "seed.phoenix_pepper", "type": "seed", "name": "Phoenix Pepper", "crop": "phoenix", "rarity": "mythic", "growRounds": 4, "sellPrice": 75, "effect": "Returns to deck after harvest", "emoji": "🔥" }
+]

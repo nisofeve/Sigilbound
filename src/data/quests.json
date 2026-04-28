@@ -1,0 +1,29 @@
+[
+  {
+    "id": "quest.play_one",
+    "name": "Daily Farmer",
+    "description": "Play 1 season today.",
+    "icon": "🌾",
+    "kind": "seasons",
+    "goal": 1,
+    "rewardGems": 10
+  },
+  {
+    "id": "quest.coin_collector",
+    "name": "Coin Collector",
+    "description": "Earn 200 coins in a single season.",
+    "icon": "💰",
+    "kind": "coins",
+    "goal": 200,
+    "rewardGems": 15
+  },
+  {
+    "id": "quest.triple_combo",
+    "name": "Triple Threat",
+    "description": "Trigger all 3 combos in one season.",
+    "icon": "✨",
+    "kind": "triple_combo",
+    "goal": 1,
+    "rewardGems": 25
+  }
+]

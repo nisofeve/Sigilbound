@@ -1,0 +1,537 @@
+@import "tailwindcss";
+
+:root {
+  --pb-green: #3a7d44;
+  --pb-green-light: #6ab47b;
+  --pb-green-dark: #1e4d2b;
+  --pb-green-pale: #e8f5e9;
+  --pb-gold: #f9a825;
+  --pb-gold-light: #ffd54f;
+  --pb-gold-dark: #c17900;
+  --pb-wood: #6d4c2a;
+  --pb-wood-dark: #4a321b;
+  --pb-wood-light: #8b6238;
+  --pb-parchment: #f5e8c8;
+  --pb-parchment-dark: #d8c79a;
+  --pb-bg: #fafaf7;
+  --pb-shadow: 0 6px 0 rgba(0,0,0,0.18), 0 10px 22px rgba(0,0,0,0.25);
+  --pb-shadow-press: 0 2px 0 rgba(0,0,0,0.18), 0 4px 10px rgba(0,0,0,0.25);
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: var(--pb-bg);
+  font-family: 'Nunito', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+  /* Mobile: prevent pull-to-refresh, double-tap zoom, and overscroll bounce so
+     gameplay drag gestures don't accidentally scroll the page. */
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Honor iOS notch / Android nav bar safe areas. Use env(safe-area-inset-*). */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+.fredoka {
+  font-family: 'Fredoka One', cursive;
+}
+
+/* ============================================================
+ *  GAME-LOOK PRIMITIVES
+ *  Reusable classes that give every screen a consistent, tactile,
+ *  game-like feel. Use these instead of generic Tailwind cards.
+ * ============================================================ */
+
+/* Big, glossy 3D-feeling button. The bottom shadow makes it look like
+   it's sitting on the page; .pb-btn:active translates it down so it
+   reads as being pressed.
+
+   Use --pb-btn-bg / --pb-btn-bg-end to override the gradient color. */
+.pb-btn {
+  --pb-btn-bg: #4caf50;
+  --pb-btn-bg-end: #2e7d32;
+  --pb-btn-rim: rgba(255,255,255,0.35);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Fredoka One', cursive;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.25);
+  background: linear-gradient(180deg, var(--pb-btn-bg) 0%, var(--pb-btn-bg-end) 100%);
+  border: 2px solid var(--pb-btn-rim);
+  border-radius: 18px;
+  box-shadow: var(--pb-shadow), inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -3px 0 rgba(0,0,0,0.15);
+  cursor: pointer;
+  transform: translateY(0);
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out, filter 120ms;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+.pb-btn::before {
+  /* Glossy highlight strip across the top half. */
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 100%);
+  border-radius: 16px 16px 50% 50% / 16px 16px 100% 100%;
+  pointer-events: none;
+}
+.pb-btn:hover { filter: brightness(1.06); }
+.pb-btn:active {
+  transform: translateY(4px);
+  box-shadow: var(--pb-shadow-press), inset 0 2px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.15);
+}
+.pb-btn:disabled {
+  filter: saturate(0.4) brightness(0.85);
+  cursor: not-allowed;
+}
+
+.pb-btn-lg { padding: 1rem 2rem; font-size: 1.25rem; border-radius: 22px; min-height: 52px; }
+.pb-btn-md { padding: 0.7rem 1.4rem; font-size: 1rem; min-height: 44px; }
+.pb-btn-sm { padding: 0.45rem 0.9rem; font-size: 0.8rem; border-radius: 14px; min-height: 36px; }
+
+/* Portrait mobile (< 720px wide): bump minimum tap targets to satisfy
+   the iOS/Android 44px guideline and make the small "back" buttons
+   genuinely thumb-friendly. */
+@media (max-width: 719px) {
+  .pb-btn-sm { min-height: 40px; padding: 0.55rem 1rem; font-size: 0.85rem; }
+  .pb-btn-md { min-height: 48px; padding: 0.85rem 1.5rem; font-size: 1rem; }
+  .pb-btn-lg { min-height: 60px; padding: 1.15rem 2rem; font-size: 1.35rem; }
+}
+
+/* Gold variant — primary CTA. */
+.pb-btn-gold {
+  --pb-btn-bg: #ffd54f;
+  --pb-btn-bg-end: #f9a825;
+  --pb-btn-rim: rgba(255,243,176,0.55);
+  color: #4a2e00;
+  text-shadow: 0 2px 0 rgba(255,255,255,0.35);
+}
+/* Wood/brown variant — secondary actions, farmstead feel. */
+.pb-btn-wood {
+  --pb-btn-bg: #a37247;
+  --pb-btn-bg-end: #6d4c2a;
+  --pb-btn-rim: rgba(255,217,170,0.4);
+}
+/* Parchment variant — subtle navigation. */
+.pb-btn-cream {
+  --pb-btn-bg: #fff5d8;
+  --pb-btn-bg-end: #d8c79a;
+  --pb-btn-rim: rgba(120,80,30,0.35);
+  color: #4a321b;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+}
+.pb-btn-blue {
+  --pb-btn-bg: #64b5f6;
+  --pb-btn-bg-end: #1976d2;
+  --pb-btn-rim: rgba(200,230,255,0.4);
+}
+.pb-btn-pink {
+  --pb-btn-bg: #f48fb1;
+  --pb-btn-bg-end: #c2185b;
+  --pb-btn-rim: rgba(255,200,220,0.45);
+}
+
+/* Wood-frame panel with parchment interior — a "sign nailed to the
+   wall" look that reads as a game UI element, not an HTML card. */
+.pb-panel {
+  position: relative;
+  background:
+    linear-gradient(180deg, var(--pb-parchment) 0%, var(--pb-parchment-dark) 100%);
+  border: 4px solid var(--pb-wood);
+  border-radius: 18px;
+  box-shadow:
+    var(--pb-shadow),
+    inset 0 0 0 2px var(--pb-wood-light),
+    inset 0 0 26px rgba(140,100,40,0.18);
+  color: #3e2723;
+}
+.pb-panel-dark {
+  background: linear-gradient(180deg, rgba(20,40,25,0.92) 0%, rgba(10,25,15,0.95) 100%);
+  border: 3px solid #2e7d32;
+  border-radius: 16px;
+  box-shadow: var(--pb-shadow), inset 0 0 0 1px rgba(106,180,123,0.4);
+  color: #e8f5e9;
+}
+
+/* Title type with chunky outline. */
+.pb-title {
+  font-family: 'Fredoka One', cursive;
+  color: #fff;
+  text-shadow:
+    -2px 0 0 #1b3a1f, 2px 0 0 #1b3a1f, 0 -2px 0 #1b3a1f, 0 2px 0 #1b3a1f,
+    -2px -2px 0 #1b3a1f, 2px -2px 0 #1b3a1f, -2px 2px 0 #1b3a1f, 2px 2px 0 #1b3a1f,
+    0 6px 0 rgba(0,0,0,0.35);
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+ *  ANIMATIONS
+ * ============================================================ */
+
+@keyframes pb-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-8px) rotate(1deg); }
+}
+.pb-bob { animation: pb-bob 3.4s ease-in-out infinite; transform-origin: center bottom; }
+
+@keyframes pb-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,213,79,0.6), var(--pb-shadow), inset 0 2px 0 rgba(255,255,255,0.3); }
+  50%      { box-shadow: 0 0 0 18px rgba(255,213,79,0), var(--pb-shadow), inset 0 2px 0 rgba(255,255,255,0.3); }
+}
+.pb-pulse { animation: pb-pulse-glow 1.8s ease-in-out infinite; }
+
+@keyframes pb-drift-x {
+  0%   { transform: translateX(-12vw); }
+  100% { transform: translateX(112vw); }
+}
+.pb-cloud { animation: pb-drift-x linear infinite; }
+
+@keyframes pb-sun-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.pb-sun-spin { animation: pb-sun-spin 60s linear infinite; }
+
+@keyframes pb-leaf-fall {
+  0%   { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.8; }
+  90%  { opacity: 0.8; }
+  100% { transform: translateY(110vh) translateX(40px) rotate(360deg); opacity: 0; }
+}
+.pb-leaf { animation: pb-leaf-fall linear infinite; }
+
+@keyframes pb-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.pb-fade-up { animation: pb-fade-up 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes pb-pop-in {
+  0%   { opacity: 0; transform: scale(0.7); }
+  60%  { opacity: 1; transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.pb-pop-in { animation: pb-pop-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes pb-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.pb-shimmer {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.35) 50%,
+    rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: pb-shimmer 2.4s linear infinite;
+  pointer-events: none;
+}
+
+/* ============================================================
+ *  SCENERY — used by the AnimatedBackground component.
+ *  These are static gradients; clouds/leaves are spawned in TSX.
+ * ============================================================ */
+.pb-sky {
+  background:
+    radial-gradient(ellipse at 80% 12%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 50%),
+    linear-gradient(180deg, #87ceeb 0%, #b8e8ff 35%, #f5e8c8 60%, #98e4a0 80%, #4a7c59 100%);
+}
+
+/* Field row: a strip of repeating darker green to suggest crop rows. */
+.pb-field-rows {
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(40,80,40,0.0) 0px,
+      rgba(40,80,40,0.0) 18px,
+      rgba(20,60,30,0.18) 18px,
+      rgba(20,60,30,0.18) 22px);
+}
+
+/* ============================================================
+ *  SIGILBOUND — Medieval Fantasy Heraldic theme
+ *  Used by the combat flow (CombatHomeScreen, CombatView, CombatScene
+ *  via inline styles, CombatResultScreen). Plotbound's farming UI
+ *  keeps the older `.pb-*` classes above.
+ * ============================================================ */
+
+:root {
+  /* Core palette — jewel tones over a smoke-and-iron backdrop. */
+  --sb-crimson:        #b91c1c;
+  --sb-crimson-light:  #dc2626;
+  --sb-crimson-dark:   #7f1d1d;
+  --sb-blood:          #5b0e0e;
+  --sb-steel:          #475569;
+  --sb-steel-light:    #64748b;
+  --sb-steel-dark:     #1e293b;
+  --sb-shadow:         #0f0a07;
+  --sb-shadow-2:       #18120e;
+
+  /* Action / accent palette */
+  --sb-gold:           #fbbf24;
+  --sb-gold-light:     #fde68a;
+  --sb-gold-dark:      #92400e;
+  --sb-bronze:         #b45309;
+  --sb-bronze-dark:    #78350f;
+
+  /* Damage type colors (mirrored in CombatScene helpers) */
+  --sb-pyre:           #fca5a5;
+  --sb-frost:          #93c5fd;
+  --sb-arcane:         #c4b5fd;
+  --sb-pierce:         #fde68a;
+
+  /* Parchment + leather (used for cards + result-screen scrolls) */
+  --sb-parchment:      #efe2c0;
+  --sb-parchment-dark: #d4c08a;
+  --sb-parchment-edge: #8b6238;
+  --sb-leather:        #2a1810;
+  --sb-leather-dark:   #1a0f0a;
+
+  /* Typography */
+  --sb-font-display: 'Cinzel', 'Cinzel Decorative', serif;
+  --sb-font-body:    'Nunito', system-ui, sans-serif;
+  --sb-font-mono:    'JetBrains Mono', monospace;
+
+  /* Heraldic shadows (deeper than pb's) */
+  --sb-shadow-lg: 0 8px 24px rgba(0,0,0,0.55), 0 2px 4px rgba(0,0,0,0.35);
+  --sb-shadow-md: 0 4px 14px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.3);
+  --sb-shadow-sm: 0 2px 6px rgba(0,0,0,0.45);
+  --sb-glow-gold: 0 0 14px rgba(251,191,36,0.45);
+  --sb-glow-crimson: 0 0 18px rgba(220,38,38,0.55);
+}
+
+.sb-display {
+  font-family: var(--sb-font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sb-mono {
+  font-family: var(--sb-font-mono);
+}
+
+/* The standard backdrop for combat-flow screens — smoky leather with a
+   subtle vignette and a dim heraldic radial behind the content. */
+.sb-bg {
+  background-color: var(--sb-leather-dark);
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(185,28,28,0.18) 0%, rgba(185,28,28,0) 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, var(--sb-shadow) 0%, var(--sb-leather) 50%, var(--sb-shadow) 100%);
+  color: var(--sb-gold-light);
+}
+
+/* Subtle stone-block tile pattern. Layered as a low-alpha overlay so it
+   reads as texture rather than as an outright pattern. */
+.sb-bg-stone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    /* Long horizontal mortar lines */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 38px,
+      rgba(255,200,140,0.22) 38px,
+      rgba(255,200,140,0.22) 39px),
+    /* Brick offsets */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 80px,
+      rgba(255,200,140,0.16) 80px,
+      rgba(255,200,140,0.16) 81px);
+  z-index: 0;
+}
+
+/* Parchment surface — used for cards, panels, the result scroll. */
+.sb-parchment {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0) 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, var(--sb-parchment) 0%, var(--sb-parchment-dark) 100%);
+  color: #2c1810;
+  border: 2px solid var(--sb-parchment-edge);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,235,180,0.35),
+    inset 0 0 18px rgba(120,80,30,0.25),
+    var(--sb-shadow-md);
+  border-radius: 6px;
+}
+
+/* Leather panel — dark variant used for HUD chips + side rails. */
+.sb-leather {
+  background:
+    linear-gradient(180deg, #2c1810 0%, var(--sb-leather-dark) 100%);
+  color: var(--sb-gold-light);
+  border: 1.5px solid var(--sb-bronze-dark);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,200,140,0.15),
+    var(--sb-shadow-sm);
+}
+
+/* Iron banner — for top bars, stage titles, victory banners. */
+.sb-banner-iron {
+  background:
+    linear-gradient(180deg, #3a2a1c 0%, #1a120a 50%, #3a2a1c 100%);
+  border: 2px solid var(--sb-bronze);
+  border-radius: 2px;
+  color: var(--sb-gold-light);
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,180,0.25),
+    inset 0 -1px 0 rgba(0,0,0,0.4),
+    var(--sb-shadow-md);
+}
+
+/* Crimson banner — for boss titles, defeat banner, hardcore badge. */
+.sb-banner-crimson {
+  background:
+    linear-gradient(180deg, var(--sb-crimson) 0%, var(--sb-crimson-dark) 50%, var(--sb-blood) 100%);
+  border: 2px solid var(--sb-gold);
+  color: var(--sb-gold-light);
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,180,0.3),
+    inset 0 -2px 0 rgba(0,0,0,0.4),
+    var(--sb-shadow-md);
+}
+
+/* Heraldic primary button — the BEGIN BATTLE / Next Stage / Replay CTA. */
+.sb-btn {
+  --sb-btn-bg: var(--sb-crimson);
+  --sb-btn-bg-end: var(--sb-crimson-dark);
+  --sb-btn-rim: var(--sb-gold);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  font-family: var(--sb-font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--sb-gold-light);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+  background: linear-gradient(180deg, var(--sb-btn-bg) 0%, var(--sb-btn-bg-end) 100%);
+  border: 2px solid var(--sb-btn-rim);
+  border-radius: 4px;
+  padding: 12px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,180,0.3),
+    inset 0 -2px 0 rgba(0,0,0,0.4),
+    0 4px 0 rgba(0,0,0,0.45),
+    0 8px 18px rgba(0,0,0,0.5);
+}
+.sb-btn:hover { filter: brightness(1.08); }
+.sb-btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,235,180,0.25),
+    inset 0 -2px 0 rgba(0,0,0,0.5),
+    0 2px 0 rgba(0,0,0,0.4),
+    0 4px 10px rgba(0,0,0,0.5);
+}
+.sb-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: saturate(0.5);
+}
+
+/* Steel/dark variant — for secondary actions (Home, Replay, Cancel). */
+.sb-btn-steel {
+  --sb-btn-bg: var(--sb-steel);
+  --sb-btn-bg-end: var(--sb-steel-dark);
+  --sb-btn-rim: var(--sb-bronze);
+}
+
+/* Gold variant — for currency/XP claim buttons. */
+.sb-btn-gold {
+  --sb-btn-bg: var(--sb-gold);
+  --sb-btn-bg-end: var(--sb-bronze);
+  --sb-btn-rim: var(--sb-gold-light);
+}
+
+/* HUD chip — small leather pill used for currency / stamina counters. */
+.sb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--sb-font-mono);
+  background: linear-gradient(180deg, #2c1810 0%, var(--sb-leather-dark) 100%);
+  border: 1.5px solid var(--sb-bronze-dark);
+  border-radius: 999px;
+  color: var(--sb-gold-light);
+  box-shadow: inset 0 1px 0 rgba(255,200,140,0.18), 0 1px 2px rgba(0,0,0,0.4);
+}
+.sb-chip-gold { border-color: var(--sb-gold); color: var(--sb-gold-light); }
+.sb-chip-crimson { border-color: var(--sb-crimson); color: #fecaca; }
+
+/* Card-frame border by rarity — applied as a 2px border + outer glow. */
+.sb-rarity-common    { border-color: var(--sb-steel-light) !important; }
+.sb-rarity-uncommon  { border-color: #4ade80 !important; box-shadow: 0 0 6px rgba(74,222,128,0.35), inset 0 0 0 1px rgba(255,255,255,0.05); }
+.sb-rarity-rare      { border-color: #60a5fa !important; box-shadow: 0 0 8px rgba(96,165,250,0.4), inset 0 0 0 1px rgba(255,255,255,0.05); }
+.sb-rarity-epic      { border-color: #a78bfa !important; box-shadow: 0 0 10px rgba(167,139,250,0.45), inset 0 0 0 1px rgba(255,255,255,0.06); }
+.sb-rarity-legendary { border-color: var(--sb-gold) !important; box-shadow: 0 0 14px rgba(251,191,36,0.55), inset 0 0 0 1px rgba(255,235,180,0.1); }
+.sb-rarity-mythic    { border-color: #ec4899 !important; box-shadow: 0 0 16px rgba(236,72,153,0.6), inset 0 0 0 1px rgba(255,255,255,0.08); }
+
+/* Damage-type text color */
+.sb-dmg-steel  { color: #cbd5e1; }
+.sb-dmg-pierce { color: var(--sb-pierce); }
+.sb-dmg-pyre   { color: var(--sb-pyre); }
+.sb-dmg-frost  { color: var(--sb-frost); }
+.sb-dmg-arcane { color: var(--sb-arcane); }
+
+/* Subtle floating heraldic mote — a slow ember drift that gives the combat
+   bg life without being distracting. Applied to the .sb-bg container. */
+@keyframes sb-ember {
+  0%   { transform: translateY(0) scale(1); opacity: 0.0; }
+  10%  { opacity: 0.5; }
+  100% { transform: translateY(-220px) scale(0.4); opacity: 0; }
+}
+.sb-ember {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,200,80,0.9) 0%, rgba(255,140,40,0) 70%);
+  pointer-events: none;
+  animation: sb-ember 4s ease-out infinite;
+}
+
+/* Pulsing crimson ring — used for selected stage cells / important CTAs. */
+@keyframes sb-pulse-crimson {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
+  50%      { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+}
+.sb-pulse-crimson { animation: sb-pulse-crimson 1.6s ease-out infinite; }
+
+/* Fade-up on screen entry */
+@keyframes sb-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sb-fade-up { animation: sb-fade-up 0.35s ease-out both; }
+
+/* Slow vertical bob for hero icon. */
+@keyframes sb-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+

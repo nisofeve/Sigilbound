@@ -1,0 +1,25 @@
+[
+  { "id": "upg.land.plot_1", "zone": "land", "tier": 1, "name": "Plot Expansion I", "description": "+1 plot slot (4 total).", "cost": 50, "prerequisite": null, "effect": { "type": "plot_count_delta", "value": 1 } },
+  { "id": "upg.land.plot_2", "zone": "land", "tier": 2, "name": "Plot Expansion II", "description": "+1 plot slot (5 total).", "cost": 200, "prerequisite": "upg.land.plot_1", "effect": { "type": "plot_count_delta", "value": 1 } },
+  { "id": "upg.land.plot_3", "zone": "land", "tier": 3, "name": "Plot Expansion III", "description": "+1 plot slot (6 total).", "cost": 600, "prerequisite": "upg.land.plot_2", "effect": { "type": "plot_count_delta", "value": 1 } },
+  { "id": "upg.land.perk_2", "zone": "land", "tier": 4, "name": "Perk Slot II", "description": "Unlocks 3rd perk slot.", "cost": 1500, "prerequisite": "upg.land.plot_3", "effect": { "type": "perk_slots_delta", "value": 1 } },
+  { "id": "upg.land.perk_3", "zone": "land", "tier": 5, "name": "Perk Slot III", "description": "Unlocks 4th perk slot (max).", "cost": 4000, "prerequisite": "upg.land.perk_2", "effect": { "type": "perk_slots_delta", "value": 1 } },
+
+  { "id": "upg.barn.hand_1", "zone": "barn", "tier": 1, "name": "Bigger Hand I", "description": "+1 hand size.", "cost": 50, "prerequisite": null, "effect": { "type": "hand_size_delta", "value": 1 } },
+  { "id": "upg.barn.deck_3", "zone": "barn", "tier": 2, "name": "Starting Cards +3", "description": "+3 cards in starting deck.", "cost": 200, "prerequisite": null, "effect": { "type": "starting_deck_extra", "value": 3 } },
+  { "id": "upg.barn.draft_1", "zone": "barn", "tier": 3, "name": "Draft +1", "description": "Draft offers 4 cards instead of 3.", "cost": 600, "prerequisite": "upg.barn.deck_3", "effect": { "type": "draft_count_delta", "value": 1 } },
+  { "id": "upg.barn.hand_2", "zone": "barn", "tier": 4, "name": "Bigger Hand II", "description": "+1 hand size (7 total).", "cost": 1500, "prerequisite": "upg.barn.hand_1", "effect": { "type": "hand_size_delta", "value": 1 } },
+  { "id": "upg.barn.vault", "zone": "barn", "tier": 5, "name": "Card Vault", "description": "Skip a draft = save the slot. (Phase 3)", "cost": 4000, "prerequisite": "upg.barn.draft_1", "effect": { "type": "noop" } },
+
+  { "id": "upg.greenhouse.built", "zone": "greenhouse", "tier": 1, "name": "Greenhouse Built", "description": "First seed planted each round grows -1 round.", "cost": 50, "prerequisite": null, "effect": { "type": "first_seed_grow_delta", "value": -1 } },
+  { "id": "upg.greenhouse.irrigation", "zone": "greenhouse", "tier": 2, "name": "Auto-Irrigation", "description": "+1 Watering Can in starting deck.", "cost": 200, "prerequisite": "upg.greenhouse.built", "effect": { "type": "starting_deck_extra_card", "cardId": "tool.watering_can", "value": 1 } },
+  { "id": "upg.greenhouse.lamps", "zone": "greenhouse", "tier": 3, "name": "Grow Lamps", "description": "First seed each round grows another -1 round (-2 total with Greenhouse).", "cost": 600, "prerequisite": "upg.greenhouse.irrigation", "effect": { "type": "first_seed_grow_delta", "value": -1 } },
+  { "id": "upg.greenhouse.lab", "zone": "greenhouse", "tier": 4, "name": "Hybrid Lab", "description": "+1 Fertilizer Bag in starting deck.", "cost": 1500, "prerequisite": "upg.greenhouse.lamps", "effect": { "type": "starting_deck_extra_card", "cardId": "tool.fertilizer_bag", "value": 1 } },
+  { "id": "upg.greenhouse.diamond", "zone": "greenhouse", "tier": 5, "name": "Diamond Plot", "description": "+15% all sales (stacks with market upgrades).", "cost": 4000, "prerequisite": "upg.greenhouse.lab", "effect": { "type": "global_sale_mult", "value": 0.15 } },
+
+  { "id": "upg.market.intel", "zone": "market", "tier": 1, "name": "Price Intel", "description": "See sale prices in hand. (Phase 3)", "cost": 50, "prerequisite": null, "effect": { "type": "noop" } },
+  { "id": "upg.market.merchant", "zone": "market", "tier": 2, "name": "Merchant Contacts", "description": "Travelling Merchant 25% more often. (Phase 3)", "cost": 200, "prerequisite": "upg.market.intel", "effect": { "type": "noop" } },
+  { "id": "upg.market.farm_stand", "zone": "market", "tier": 3, "name": "Farm Stand", "description": "+5% all sales.", "cost": 600, "prerequisite": "upg.market.merchant", "effect": { "type": "global_sale_mult", "value": 0.05 } },
+  { "id": "upg.market.export", "zone": "market", "tier": 4, "name": "Export Contract", "description": "+10% all sales.", "cost": 1500, "prerequisite": "upg.market.farm_stand", "effect": { "type": "global_sale_mult", "value": 0.10 } },
+  { "id": "upg.market.rich_soil", "zone": "market", "tier": 5, "name": "Rich Soil", "description": "+15% all sales (caps stacking).", "cost": 4000, "prerequisite": "upg.market.export", "effect": { "type": "global_sale_mult", "value": 0.15 } }
+]

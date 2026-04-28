@@ -1,0 +1,12 @@
+[
+  { "id": "parry",              "type": "reaction", "name": "Parry",               "rarity": "common",    "trigger": "onAttackIncoming", "description": "Negate up to 6 damage from one incoming attack.",         "emoji": "🤺" },
+  { "id": "dodge",              "type": "reaction", "name": "Dodge",               "rarity": "common",    "trigger": "onAttackIncoming", "description": "Avoid 50% of one incoming attack.",                       "emoji": "💨" },
+  { "id": "counterstrike",      "type": "reaction", "name": "Counterstrike",       "rarity": "uncommon",  "trigger": "onBlockApplied",   "description": "Reflect 4 damage when an attack is blocked.",             "emoji": "⚔️" },
+  { "id": "bloodthirst",        "type": "reaction", "name": "Bloodthirst",         "rarity": "uncommon",  "trigger": "onKill",           "description": "Heal 3 HP each time you kill an enemy.",                  "emoji": "🩸" },
+  { "id": "power_surge",        "type": "reaction", "name": "Power Surge",         "rarity": "rare",      "trigger": "onCombo",          "description": "Gain 1 stamina when you trigger a combo.",                "emoji": "⚡" },
+  { "id": "sigil_echo",         "type": "reaction", "name": "Sigil Echo",          "rarity": "rare",      "trigger": "onCombo",          "description": "Repeat one sigil slot when you trigger a combo.",         "emoji": "🔁" },
+  { "id": "last_stand",         "type": "reaction", "name": "Last Stand",          "rarity": "epic",      "trigger": "onLowHp",          "description": "+50% damage while HP is below 25%.",                       "emoji": "🩸" },
+  { "id": "phoenix_heart",      "type": "reaction", "name": "Phoenix Heart",       "rarity": "epic",      "trigger": "onLethal",         "description": "Survive lethal damage at 1 HP, once per stage.",          "emoji": "🪶" },
+  { "id": "soulbond",           "type": "reaction", "name": "Soulbond",            "rarity": "rare",      "trigger": "onHeal",           "description": "Banks +25% damage onto your next attack when you heal.",  "emoji": "💜" },
+  { "id": "sigilbinders_will",  "type": "reaction", "name": "Sigilbinder's Will",  "rarity": "legendary", "trigger": "onStageStart",     "description": "Bind any 1 card to a sigil slot pre-turn-1, gain 4 block.",  "emoji": "👑" }
+]

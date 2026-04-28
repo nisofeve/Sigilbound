@@ -1,0 +1,3016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sigilbound — Game Design Document v1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&family=Cinzel:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Medieval fantasy palette — replaces Plotbound's farm palette */
+  --crimson: #b91c1c;        /* primary brand — banner red, knightly */
+  --crimson-light: #ef4444;
+  --crimson-pale: #fee2e2;
+  --steel: #475569;          /* armour steel, secondary brand */
+  --steel-light: #64748b;
+  --steel-pale: #f1f5f9;
+  --gold: #d97706;           /* warm gold — coins, royalty */
+  --gold-light: #f59e0b;
+  --gold-pale: #fef3c7;
+  --bronze: #92400e;         /* leather, equipment accents */
+  --bronze-light: #b45309;
+  --bronze-pale: #fef3c7;
+  --emerald: #059669;        /* health, healing */
+  --emerald-light: #10b981;
+  --emerald-pale: #d1fae5;
+  --arcane: #7c3aed;         /* magic, arcane combos */
+  --arcane-light: #a78bfa;
+  --arcane-pale: #ede9fe;
+  --frost: #0284c7;          /* frost element, info */
+  --frost-light: #38bdf8;
+  --frost-pale: #e0f2fe;
+  --shadow: #1e293b;         /* deep shadow, undead */
+  --shadow-pale: #334155;
+  --pink: #be185d;           /* legendary, mythic */
+  --pink-pale: #fce7f3;
+  --orange: #ea580c;
+  --orange-pale: #fff7ed;
+  --teal: #0f766e;
+  --teal-pale: #ccfbf1;
+
+  --bg: #fbf6ed;             /* parchment cream */
+  --surface: #ffffff;
+  --border: #e7decf;         /* aged parchment border */
+  --text: #1c1917;
+  --text-muted: #78716c;
+  --sidebar-w: 270px;
+  --radius: 12px;
+  --shadow-soft: 0 2px 8px rgba(28,25,23,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  min-height: 100vh;
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1.5px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-logo {
+  padding: 20px 18px 16px;
+  border-bottom: 1.5px solid var(--border);
+  background: linear-gradient(135deg, #fff 0%, var(--crimson-pale) 100%);
+}
+.game-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--crimson);
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+}
+.game-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-top: 3px;
+}
+.sidebar-version {
+  font-size: 10px;
+  background: var(--gold-pale);
+  color: var(--bronze);
+  padding: 2px 7px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-top: 6px;
+  font-weight: 700;
+}
+.nav-section { padding: 10px 10px 4px; }
+.nav-section-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  padding: 0 8px;
+  margin-bottom: 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: all 0.12s;
+}
+.nav-item:hover { background: var(--bg); color: var(--text); }
+.nav-item.active { background: var(--crimson-pale); color: var(--crimson); }
+.nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+/* MAIN */
+#main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  padding: 28px 40px 60px;
+  max-width: 1100px;
+}
+.section { display: none; }
+.section.active { display: block; }
+.section-header {
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border);
+}
+.section-tag {
+  display: inline-block;
+  background: var(--crimson-pale);
+  color: var(--crimson);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.section-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+.section-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-soft);
+}
+.card-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+@media (max-width: 900px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+/* PILLS */
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.pill-crimson { background: var(--crimson-pale); color: var(--crimson); }
+.pill-steel { background: var(--steel-pale); color: var(--steel); }
+.pill-gold { background: var(--gold-pale); color: var(--bronze); }
+.pill-bronze { background: var(--bronze-pale); color: var(--bronze); }
+.pill-emerald { background: var(--emerald-pale); color: var(--emerald); }
+.pill-arcane { background: var(--arcane-pale); color: var(--arcane); }
+.pill-frost { background: var(--frost-pale); color: var(--frost); }
+.pill-pink { background: var(--pink-pale); color: var(--pink); }
+.pill-orange { background: var(--orange-pale); color: var(--orange); }
+.pill-shadow { background: var(--steel-pale); color: var(--shadow); }
+.pill-mythic {
+  background: linear-gradient(90deg, #fce7f3, #ede9fe, #fef3c7);
+  color: var(--pink);
+}
+
+/* TABLES */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data-table th {
+  background: var(--bg);
+  text-align: left;
+  padding: 8px 10px;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--border);
+}
+.data-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table code {
+  background: var(--steel-pale);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* INFO BOXES */
+.info-box {
+  background: var(--frost-pale);
+  border-left: 4px solid var(--frost);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+.success-box {
+  background: var(--emerald-pale);
+  border-left: 4px solid var(--emerald);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+.danger-box {
+  background: var(--crimson-pale);
+  border-left: 4px solid var(--crimson);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+.highlight-box {
+  background: var(--gold-pale);
+  border: 1.5px solid var(--gold-light);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 12px 0;
+}
+
+/* STAT BOXES */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+@media (max-width: 900px) { .stat-grid { grid-template-columns: repeat(3, 1fr); } }
+.stat-box {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 8px;
+  text-align: center;
+}
+.stat-val { font-family: 'Cinzel', serif; font-weight: 700; font-size: 24px; }
+.stat-lbl { font-size: 10px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+/* TIMELINE */
+.timeline { position: relative; padding-left: 22px; }
+.timeline::before {
+  content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px;
+  width: 2px; background: var(--border);
+}
+.timeline-item { position: relative; margin-bottom: 14px; }
+.timeline-dot {
+  position: absolute; left: -22px; top: 4px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--crimson);
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1.5px var(--border);
+}
+.timeline-title { font-weight: 700; font-size: 13px; }
+.timeline-body { font-size: 12px; color: var(--text-muted); margin-top: 2px; line-height: 1.5; }
+
+/* GAME CARD VISUAL */
+.game-card {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+  position: relative;
+  font-size: 11px;
+}
+.game-card-type {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.game-card-icon {
+  font-size: 32px;
+  display: block;
+  margin: 4px 0;
+}
+.game-card-name {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.game-card-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  min-height: 30px;
+  line-height: 1.4;
+}
+.game-card-stats {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.game-card-stat {
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--bg);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+.card-perk-common { border-color: var(--emerald-light); }
+.card-perk-uncommon { border-color: var(--frost-light); }
+.card-perk-rare { border-color: var(--arcane-light); }
+.card-perk-epic { border-color: var(--orange); }
+.card-perk-legendary { border-color: var(--gold-light); background: linear-gradient(135deg, #fff, var(--gold-pale)); }
+
+/* COMBO BOX BIG */
+.combo-box-big {
+  border: 2.5px solid;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+.combo-rule {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+.combo-explain {
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+.combo-formula {
+  display: inline-block;
+  background: rgba(255,255,255,0.6);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  margin: 4px 0;
+}
+.combo-example {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* TAB BAR */
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-family: 'Nunito', sans-serif;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--crimson); border-bottom-color: var(--crimson); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* PLATFORM BOX */
+.platform-box {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+.platform-icon { font-size: 28px; }
+.platform-name { font-family: 'Cinzel', serif; font-weight: 700; margin-top: 4px; font-size: 14px; }
+.platform-desc { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+
+/* MILESTONE */
+.milestone {
+  border-left: 3px solid var(--crimson);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: var(--surface);
+  border-radius: 0 10px 10px 0;
+  border-top: 1.5px solid var(--border);
+  border-right: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+}
+.milestone-quarter {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--crimson);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
+}
+.milestone-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+.milestone-list {
+  font-size: 12px;
+  line-height: 1.7;
+  padding-left: 18px;
+  color: var(--text-muted);
+}
+
+/* DAMAGE TYPE BADGES */
+.dmg-steel { background: var(--steel-pale); color: var(--steel); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.dmg-pierce { background: var(--bronze-pale); color: var(--bronze); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.dmg-pyre { background: var(--crimson-pale); color: var(--crimson); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.dmg-frost { background: var(--frost-pale); color: var(--frost); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.dmg-arcane { background: var(--arcane-pale); color: var(--arcane); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+
+/* DIFF BOX FOR MIGRATION */
+.diff-box {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 10px 0;
+}
+.diff-old { color: var(--crimson); text-decoration: line-through; }
+.diff-new { color: var(--emerald); font-weight: 700; }
+.diff-arrow { color: var(--text-muted); margin: 0 6px; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="game-title">⚔ SIGILBOUND</div>
+    <div class="game-subtitle">A Roguelike Deckbuilder</div>
+    <div class="sidebar-version">GDD v1.0 · Built on Plotbound v2.1</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Overview</div>
+    <a class="nav-item active" onclick="showSection(event,'overview')"><span class="nav-icon">⚔️</span> Game Overview</a>
+    <a class="nav-item" onclick="showSection(event,'pillars')"><span class="nav-icon">🏛️</span> Design Pillars</a>
+    <a class="nav-item" onclick="showSection(event,'art')"><span class="nav-icon">🎨</span> Art Direction</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Core Gameplay</div>
+    <a class="nav-item" onclick="showSection(event,'gameplay')"><span class="nav-icon">🃏</span> Gameplay Loop</a>
+    <a class="nav-item" onclick="showSection(event,'stages')"><span class="nav-icon">🪜</span> Stage Progression</a>
+    <a class="nav-item" onclick="showSection(event,'enemies')"><span class="nav-icon">👹</span> Enemy System</a>
+    <a class="nav-item" onclick="showSection(event,'combos')"><span class="nav-icon">✨</span> Core Combos (3)</a>
+    <a class="nav-item" onclick="showSection(event,'cards')"><span class="nav-icon">🗡️</span> Card System</a>
+    <a class="nav-item" onclick="showSection(event,'sigil-slots')"><span class="nav-icon">🔯</span> Sigil Slots & Combat</a>
+    <a class="nav-item" onclick="showSection(event,'character')"><span class="nav-icon">🛡️</span> Character & Stats</a>
+    <a class="nav-item" onclick="showSection(event,'equipment')"><span class="nav-icon">⚒️</span> Equipment System</a>
+    <a class="nav-item" onclick="showSection(event,'perks')"><span class="nav-icon">💎</span> Talents (20)</a>
+    <a class="nav-item" onclick="showSection(event,'stronghold')"><span class="nav-icon">🏰</span> Stronghold & Upgrades</a>
+    <a class="nav-item" onclick="showSection(event,'run-structure')"><span class="nav-icon">🍂</span> Run Structure</a>
+    <a class="nav-item" onclick="showSection(event,'result-screen')"><span class="nav-icon">🏁</span> Result Screen</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Animation & Feel</div>
+    <a class="nav-item" onclick="showSection(event,'animation')"><span class="nav-icon">🎬</span> Card Animation Spec</a>
+    <a class="nav-item" onclick="showSection(event,'card-art')"><span class="nav-icon">🎴</span> Card Art & Design</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Data Tables</div>
+    <a class="nav-item" onclick="showSection(event,'card-data')"><span class="nav-icon">📊</span> Cards Data</a>
+    <a class="nav-item" onclick="showSection(event,'equipment-data')"><span class="nav-icon">📊</span> Equipment Data</a>
+    <a class="nav-item" onclick="showSection(event,'achievements')"><span class="nav-icon">🏆</span> 999 Achievements</a>
+    <a class="nav-item" onclick="showSection(event,'upgrade-data')"><span class="nav-icon">🏗️</span> Upgrade Data</a>
+    <a class="nav-item" onclick="showSection(event,'economy')"><span class="nav-icon">💰</span> Player Economy</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Social & Meta</div>
+    <a class="nav-item" onclick="showSection(event,'social')"><span class="nav-icon">👥</span> Social & Leaderboard</a>
+    <a class="nav-item" onclick="showSection(event,'pvp')"><span class="nav-icon">⚔️</span> 1v1 Duel Mode</a>
+    <a class="nav-item" onclick="showSection(event,'profile')"><span class="nav-icon">🪪</span> Profile & Customization</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Monetization</div>
+    <a class="nav-item" onclick="showSection(event,'monetization')"><span class="nav-icon">💎</span> Monetization Model</a>
+    <a class="nav-item" onclick="showSection(event,'battlepass')"><span class="nav-icon">🎫</span> Battle Pass</a>
+    <a class="nav-item" onclick="showSection(event,'currencies')"><span class="nav-icon">🪙</span> Currency Design</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Technical & UI</div>
+    <a class="nav-item" onclick="showSection(event,'ux-flow')"><span class="nav-icon">🗺️</span> UI/UX Flow</a>
+    <a class="nav-item" onclick="showSection(event,'ui-mobile')"><span class="nav-icon">📱</span> Mobile UI/UX</a>
+    <a class="nav-item" onclick="showSection(event,'ui-browser')"><span class="nav-icon">🖥️</span> Browser UI/UX</a>
+    <a class="nav-item" onclick="showSection(event,'tech')"><span class="nav-icon">⚙️</span> Technical Architecture</a>
+    <a class="nav-item" onclick="showSection(event,'vfx')"><span class="nav-icon">✨</span> VFX & SFX Spec</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">⭐ Production (READ FIRST)</div>
+    <a class="nav-item" onclick="showSection(event,'migration')" style="background:var(--gold-pale);color:var(--bronze);font-weight:800;"><span class="nav-icon">🔧</span> Migration from Plotbound</a>
+    <a class="nav-item" onclick="showSection(event,'milestones')"><span class="nav-icon">🗓️</span> Development Roadmap</a>
+  </div>
+</div>
+
+<div id="main">
+
+<!-- ======= OVERVIEW ======= -->
+<section class="section active" id="sec-overview">
+  <div class="section-header">
+    <div class="section-tag">Game Design Document v1.0</div>
+    <div class="section-title">⚔ Sigilbound</div>
+    <div class="section-desc">A single-player roguelike deck-building card game about turn-based fantasy combat. Clear 100+ hand-tuned dungeon stages, master 3 simple combos, slay enemies and bosses, and forge your legendary stronghold — one battle at a time.</div>
+  </div>
+
+  <div class="info-box"><strong>Why "Sigilbound"?</strong> The name evokes both the literal <em>sigils</em> (magical marks) bound to your combat slots and a knight's <em>oath-bound</em> journey through the dungeons. The title is verified clean for video games — no major competing IP — and pairs naturally with <strong>Plotbound</strong> for portfolio cohesion. The core in-game term <em>"Sigil Slots"</em> elegantly carries the slot-based combo mechanic forward from Plotbound's plot system.</div>
+
+  <div class="card" style="border-top:3px solid var(--gold);">
+    <div class="card-title">⚙️ Built on the Plotbound Foundation</div>
+    <p style="font-size:13px;line-height:1.7;">Sigilbound is a structural sibling of <strong>Plotbound v2.1</strong>. It reuses the same gameplay backbone — slot-based card placement, 3 universal combos, 100-stage progression, 20 perks/talents, 4×5 meta-upgrade tree, 999 achievements, identical battle pass scaffold, identical PvP framework, identical tech stack — and re-themes it as turn-based combat. The <a onclick="showSection(event,'migration')" style="color:var(--crimson);text-decoration:underline;cursor:pointer;font-weight:700;">Migration from Plotbound</a> section gives the engineering team a literal find-and-replace map plus the small set of additive systems (HP, equipment, enemy AI) needed to convert the existing build.</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-box"><div class="stat-val" style="color:var(--crimson)">F2P</div><div class="stat-lbl">Business Model</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--frost)">📱🖥️</div><div class="stat-lbl">Mobile + Browser</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--gold)">8–15<span style="font-size:14px">min</span></div><div class="stat-lbl">Battle Length</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--arcane)">3</div><div class="stat-lbl">Core Combos</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--emerald)">20</div><div class="stat-lbl">Talents</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--bronze)">999</div><div class="stat-lbl">Achievements</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🎮 High Concept</div>
+      <p style="font-size:13px;line-height:1.7;">Sigilbound is a tense yet readable roguelike deck-builder where each run is a single dungeon descent. Players draw Action and Tactic cards from their growing deck, place charging Actions into Sigil Slots, and time them to land devastating combo strikes. Three simple universal combos drive every battle decision. Equipped Talents and forged Equipment layer additional strategy. Enemies attack between your turns with telegraphed intent. Every stage cleared upgrades your permanent stronghold and brings you closer to the Lord of Ashes at floor 100.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🎯 Target Audience</div>
+      <div class="timeline" style="margin-top:8px;">
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-title">Core: Combat Deck-Builder Fans</div>
+          <div class="timeline-body">Ages 16–35, fans of Slay the Spire, Monster Train, Inscryption, Wildfrost. 15+ min daily play.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-title">Secondary: Mobile RPG Tacticians</div>
+          <div class="timeline-body">Ages 18–45, fans of turn-based mobile RPGs, dungeon crawlers, autoplay tolerant. Short commute sessions.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--gold)"></div>
+          <div class="timeline-title">Whales: Competitive Duelists</div>
+          <div class="timeline-body">Leaderboard climbers and PvP players seeking cosmetic prestige and Talent + Equipment power.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🌟 Unique Selling Points</div>
+    <div class="grid-4" style="margin-top:8px;">
+      <div style="background:var(--crimson-pale);border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">3️⃣</div>
+        <div style="font-size:12px;font-weight:700;color:var(--crimson);">3 Universal Combos</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Anyone can master the combat in their first session.</div>
+      </div>
+      <div style="background:var(--gold-pale);border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">🔯</div>
+        <div style="font-size:12px;font-weight:700;color:var(--bronze);">Sigil Slot Combat</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Charge attacks across turns, time them to combo. A unique twist on deck-builder pacing.</div>
+      </div>
+      <div style="background:var(--frost-pale);border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">🎬</div>
+        <div style="font-size:12px;font-weight:700;color:var(--frost);">Life-Like Cards</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Every card movement is meticulously animated — drawing, placing, hovering, striking.</div>
+      </div>
+      <div style="background:var(--arcane-pale);border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:24px;margin-bottom:6px;">⚔️</div>
+        <div style="font-size:12px;font-weight:700;color:var(--arcane);">Async PvP Duels</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Same enemies, same draws — best play wins. No real-time pressure.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Platform & Release</div>
+    <div class="grid-3">
+      <div class="platform-box">
+        <div class="platform-icon">📱</div>
+        <div class="platform-name">Android</div>
+        <div class="platform-desc">Google Play Store<br>Android 8.0+ / API 26+</div>
+        <div style="margin-top:8px;"><span class="pill pill-crimson">Primary</span></div>
+      </div>
+      <div class="platform-box">
+        <div class="platform-icon">🍎</div>
+        <div class="platform-name">iOS</div>
+        <div class="platform-desc">App Store<br>iOS 14.0+</div>
+        <div style="margin-top:8px;"><span class="pill pill-crimson">Primary</span></div>
+      </div>
+      <div class="platform-box">
+        <div class="platform-icon">🌐</div>
+        <div class="platform-name">HTML5 Web</div>
+        <div class="platform-desc">Browser PWA<br>Chrome, Safari, Firefox, Edge</div>
+        <div style="margin-top:8px;"><span class="pill pill-frost">Primary</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= PILLARS ======= -->
+<section class="section" id="sec-pillars">
+  <div class="section-header">
+    <div class="section-tag">Design Philosophy</div>
+    <div class="section-title">🏛️ Design Pillars</div>
+    <div class="section-desc">Five core principles that every gameplay decision must answer to. Inherited from Plotbound and adapted for combat.</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card" style="border-left:4px solid var(--crimson);">
+      <div class="card-title">⚔️ 1. Simple to Learn, Deep to Master</div>
+      <p style="font-size:13px;line-height:1.7;">Three universal combos are taught in the first 90 seconds of tutorial. Every other strategic depth comes from Talents, Equipment, deck composition, and enemy pattern reading. First session feels natural; hundredth session reveals new Talent/Gear synergies.</p>
+      <div class="highlight-box" style="margin-top:10px;font-size:12px;">Test: A 12-year-old can name all 3 combos and explain enemy intent telegraphs after one tutorial run.</div>
+    </div>
+    <div class="card" style="border-left:4px solid var(--gold);">
+      <div class="card-title">⏱️ 2. Respect Player Time</div>
+      <p style="font-size:13px;line-height:1.7;">A complete dungeon stage takes 8–15 minutes. Every turn must feel purposeful. No idle waiting. Interruption possible at any turn boundary — the run state pauses cleanly.</p>
+      <div class="highlight-box" style="margin-top:10px;font-size:12px;">Design rule: If a mechanic can't produce a decision in under 5 seconds, simplify it.</div>
+    </div>
+    <div class="card" style="border-left:4px solid var(--frost);">
+      <div class="card-title">🎬 3. Cards Feel Alive</div>
+      <p style="font-size:13px;line-height:1.7;">Every card movement — drawing, hovering, placing into a sigil slot, charging, striking, discarding — has weight, momentum, and personality. Cards bend, bounce, glow, settle. Animation is not decoration; it is feedback.</p>
+      <div class="highlight-box" style="margin-top:10px;font-size:12px;">Hard rule: No card ever teleports. Every transform is a tweened motion at 60fps.</div>
+    </div>
+    <div class="card" style="border-left:4px solid var(--arcane);">
+      <div class="card-title">📦 4. Built For Expansion</div>
+      <p style="font-size:13px;line-height:1.7;">Every system is modular. New enemy families, new Talents, new gear sets, new dungeon themes — all added without touching core loop. Quarterly content drops keep engagement peaks. The 3-combo backbone never changes.</p>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--emerald);">
+    <div class="card-title">💸 5. Fair-Tilted Monetization</div>
+    <p style="font-size:13px;line-height:1.7;">Cosmetics are pure choice. Talent packs and high-tier Equipment are gated behind Battle Pass and direct purchase — they ARE pay-to-progress, but limited by equip slots so only 2–4 talents and 6 equipment pieces are active in a session. Free players still earn talents and gear slowly; paying players accelerate. PvP matchmaking accounts for total loadout strength.</p>
+    <div class="danger-box" style="margin-top:10px;font-size:12px;"><strong>Hard rules:</strong> No energy walls during sessions. No paywalled core gameplay or stages. Any Talent and any Equipment piece can be earned through play given sufficient time. Matchmaking ensures pay-to-win does not crush new players.</div>
+  </div>
+</section>
+
+<!-- ======= ART DIRECTION ======= -->
+<section class="section" id="sec-art">
+  <div class="section-header">
+    <div class="section-tag">Visual Identity</div>
+    <div class="section-title">🎨 Art Direction</div>
+    <div class="section-desc">Bold heraldic medieval fantasy with a clean, readable, mobile-first aesthetic. Distinct from Plotbound's cozy farm world, but built on the same Flat Pop foundation so engineering can reuse rendering and shader work.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎨 Art Style Overview</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:12px;">Sigilbound uses a <strong>2D Flat Pop Heraldic</strong> aesthetic — bold outlines, saturated jewel-tone colours, minimal shading, painted texture accents on cards and gear. Characters and monsters have a chunky, expressive silhouette quality. UI is clean with rounded corners, gentle drop shadows, and engraved metallic accents on buttons. The world feels like an illuminated manuscript brought to life on your phone or in your browser.</p>
+    <div class="grid-3">
+      <div style="background:var(--crimson-pale);border-radius:10px;padding:14px;">
+        <div style="font-weight:700;margin-bottom:6px;font-size:13px;color:var(--crimson);">Combat Palette</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div style="width:28px;height:28px;border-radius:6px;background:#b91c1c;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#475569;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#1e293b;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#7f1d1d;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#334155;"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">Banner red, steel, shadow black</div>
+      </div>
+      <div style="background:var(--gold-pale);border-radius:10px;padding:14px;">
+        <div style="font-weight:700;margin-bottom:6px;font-size:13px;color:var(--bronze);">UI / Action Palette</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div style="width:28px;height:28px;border-radius:6px;background:#d97706;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#f59e0b;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#92400e;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#0284c7;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#7c3aed;"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">Royal gold, bronze, frost blue, arcane purple</div>
+      </div>
+      <div style="background:var(--pink-pale);border-radius:10px;padding:14px;">
+        <div style="font-weight:700;margin-bottom:6px;font-size:13px;color:var(--pink);">Accent / Rare Palette</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div style="width:28px;height:28px;border-radius:6px;background:#be185d;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#a78bfa;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#10b981;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#f59e0b;"></div>
+          <div style="width:28px;height:28px;border-radius:6px;background:#38bdf8;"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">Mythic pink, arcane lilac, emerald, gold, frost</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">✍️ Typography</div>
+      <div style="margin-bottom:10px;">
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:28px;color:var(--crimson);">CINZEL BOLD</div>
+        <div style="font-size:11px;color:var(--text-muted);">Display / Card Names / Section Titles — Engraved Roman serif, heraldic feel</div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div style="font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;">Nunito Bold</div>
+        <div style="font-size:11px;color:var(--text-muted);">UI Labels, Stats, Navigation — Warm geometric sans-serif (kept identical to Plotbound)</div>
+      </div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--crimson);">JetBrains Mono</div>
+        <div style="font-size:11px;color:var(--text-muted);">Damage values, card effect numbers, debug overlay</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎭 Character & Enemy Style</div>
+      <ul style="font-size:13px;line-height:1.9;padding-left:18px;">
+        <li>Player avatar is a hooded knight silhouette — armour and weapon visuals shift with equipped gear</li>
+        <li>Enemies have chunky, expressive silhouettes (goblins, drakes, undead, demons, golems)</li>
+        <li>Each enemy has 2 idle frames + telegraph pose + attack pose + hurt flash</li>
+        <li>Bosses are 2× scale with multi-stage health bars and unique attack telegraphs</li>
+        <li>No realistic gore — wounds are stylised cracks of light, not blood</li>
+        <li>UI elements have subtle bounce animations, like Plotbound</li>
+        <li>Cards have rounded corners with a tactile foiled border (rarity-tinted)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📐 Card Visual Anatomy</div>
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="background:white;border:2.5px solid var(--crimson-light);border-radius:16px;padding:16px;width:150px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;color:var(--crimson);margin-bottom:4px;">ACTION</div>
+        <div style="font-size:28px;margin-bottom:6px;">⚔️</div>
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:14px;margin-bottom:6px;">Cleaving Strike</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;min-height:30px;">Charges 2 turns. Deals 18 Steel damage to one enemy.</div>
+        <div style="display:flex;justify-content:center;gap:4px;">
+          <span style="background:var(--gold-pale);color:var(--bronze);font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;">⏱ 2</span>
+          <span style="background:var(--steel-pale);color:var(--steel);font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;">⚔ 18</span>
+        </div>
+      </div>
+      <div style="flex:1;min-width:200px;">
+        <div style="font-size:13px;line-height:1.9;">
+          <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;"><span class="pill pill-crimson">Header Strip</span> Card type label (ACTION / TACTIC / REACTION)</div>
+          <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;"><span class="pill pill-gold">Art Zone</span> 64×64px animated sprite (weapon/spell), centered</div>
+          <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;"><span class="pill pill-frost">Name Bar</span> Cinzel Bold, 14px, attack/spell name</div>
+          <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;"><span class="pill pill-arcane">Effect Text</span> Max 2 lines, 10px Nunito Regular</div>
+          <div style="display:flex;gap:8px;align-items:center;"><span class="pill pill-bronze">Stat Pills</span> Charge time ⏱, Damage ⚔, Damage type icon, Rarity ★</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= GAMEPLAY LOOP ======= -->
+<section class="section" id="sec-gameplay">
+  <div class="section-header">
+    <div class="section-tag">Core Mechanics</div>
+    <div class="section-title">🃏 Gameplay Loop</div>
+    <div class="section-desc">The full cycle from stage entry to victory or defeat, designed to be satisfying in 8–15 minutes.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔄 The Core Loop (Macro)</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="background:var(--gold-pale);border:1.5px solid var(--gold);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;">🪜 Pick Stage</div>
+      <span style="color:var(--text-muted)">→</span>
+      <div style="background:var(--crimson-pale);border:1.5px solid var(--crimson-light);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;">👹 Inspect Enemies</div>
+      <span style="color:var(--text-muted)">→</span>
+      <div style="background:var(--arcane-pale);border:1.5px solid var(--arcane);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;">💎 Equip Talents + Gear</div>
+      <span style="color:var(--text-muted)">→</span>
+      <div style="background:var(--frost-pale);border:1.5px solid var(--frost-light);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;">🃏 Draw Hand</div>
+      <span style="color:var(--text-muted)">→</span>
+      <div style="background:var(--gold-pale);border:1.5px solid var(--gold-light);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;">🔯 Place in Sigil Slots</div>
+      <span style="color:var(--text-muted)">→</span>
+      <div style="background:var(--teal-pale);border:1.5px solid var(--teal);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;">⏩ End Turn</div>
+      <span style="color:var(--text-muted)">→</span>
+      <div style="background:var(--crimson-pale);border:1.5px solid var(--crimson);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;">⚔️ Resolve + Combos</div>
+      <span style="color:var(--text-muted)">→</span>
+      <div style="background:var(--shadow-pale);border:1.5px solid var(--shadow);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;color:white;">👹 Enemy Turn</div>
+      <span style="color:var(--text-muted)">→</span>
+      <div style="background:var(--emerald-pale);border:1.5px solid var(--emerald);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;">⭐ Stars + Loot</div>
+      <span style="color:var(--text-muted)">→</span>
+      <div style="background:var(--bronze-pale);border:1.5px solid var(--bronze-light);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;">🏰 Upgrade Stronghold</div>
+    </div>
+    <p style="font-size:12px;line-height:1.6;color:var(--text-muted);margin-top:10px;"><strong>Note:</strong> The default flow is <em>stage-driven</em> — enemies and bonus objectives are fixed per stage, and a 1/2/3-star rating gates currency, XP, equipment drops, and talents. A separate "Free Skirmish" entry preserves a random-encounter draft for casual variety, mirroring Plotbound's "Free Play" mode.</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🎮 Turn Structure</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--frost)"></div>
+          <div class="timeline-title">1. Draw Phase</div>
+          <div class="timeline-body">Draw cards up to hand limit (default: 5). Cards animate one at a time from deck onto the hand bar. Reaction cards may also trigger here.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--crimson)"></div>
+          <div class="timeline-title">2. Plan Phase</div>
+          <div class="timeline-body">Player drags Action cards into open Sigil Slots; plays Tactic cards directly (instant effect). No turn time limit. Free target selection — drag Tactics onto enemy or self.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--gold)"></div>
+          <div class="timeline-title">3. Charge Phase</div>
+          <div class="timeline-body">All slotted Actions tick down by 1 charge on End Turn tap. Visual: charge bars deplete with a satisfying "wind-up" animation.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--crimson-light)"></div>
+          <div class="timeline-title">4. Resolution Phase</div>
+          <div class="timeline-body">Mature Actions (charge = 0) fire in slot order. <strong>Core combos check</strong> runs here. Combo bonuses apply. Damage flies to targets, status effects apply, slot clears for the next Action.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--shadow)"></div>
+          <div class="timeline-title">5. Enemy Turn</div>
+          <div class="timeline-body">Each living enemy executes its <em>telegraphed intent</em> shown last turn (attack, defend, summon, debuff). Player HP reduces if hit lands. Defense reduces incoming damage.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:var(--arcane)"></div>
+          <div class="timeline-title">6. Status Tick</div>
+          <div class="timeline-body">DoTs (burn, bleed) apply. HoTs (regen) apply. Buffs/debuffs decrement. Enemy intents update for next turn — telegraphs visible to player.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Battle Rules</div>
+      <table class="data-table">
+        <tr><th>Parameter</th><th>Base Value</th></tr>
+        <tr><td>Max Turns per Stage</td><td><span class="pill pill-crimson">15 turns (soft)</span></td></tr>
+        <tr><td>Starting Hand Size</td><td>5 cards</td></tr>
+        <tr><td>Starting Sigil Slots</td><td>3 slots</td></tr>
+        <tr><td>Starting Deck Size</td><td>12 cards</td></tr>
+        <tr><td>Max Talent Slots</td><td>2 (upgradeable to 4)</td></tr>
+        <tr><td>Equipment Slots</td><td>6 (always all available)</td></tr>
+        <tr><td>Win Condition</td><td>All enemies defeated, player HP &gt; 0</td></tr>
+        <tr><td>Fail Condition</td><td>Player HP reaches 0, OR turn limit exceeded with enemies alive</td></tr>
+        <tr><td>Mid-Run Loot</td><td>After every defeated enemy: chance to drop a card / shard / consumable</td></tr>
+      </table>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;"><strong>Soft turn limit:</strong> Stages aren't strictly turn-capped, but a 3★ bonus objective often demands speed. Turn 16+ in a stage simply means no Speed star — the fight continues until win/loss.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔯 Sigil Slot System (replaces Plot Slots)</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:12px;">Sigil Slots are physical spaces below the player's hand where Action cards are placed to charge. Slots are limited and represent your tactical capacity. The combat view shows 3 (to 6) glowing rune slots arranged in a row. Each slot can hold one charging Action at a time.</p>
+    <div class="grid-3">
+      <div style="background:var(--steel-pale);border-radius:10px;padding:14px;text-align:center;border:2px dashed var(--steel-light);">
+        <div style="font-size:20px;margin-bottom:6px;">⬡</div>
+        <div style="font-size:12px;font-weight:700;color:var(--steel);">Empty Slot</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Drop an Action card to bind.</div>
+      </div>
+      <div style="background:var(--gold-pale);border-radius:10px;padding:14px;text-align:center;border:2px solid var(--gold-light);">
+        <div style="font-size:20px;margin-bottom:6px;">⏳</div>
+        <div style="font-size:12px;font-weight:700;color:var(--bronze);">Charging</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Charge bar fills over turns. Glowing rune.</div>
+      </div>
+      <div style="background:var(--crimson-pale);border-radius:10px;padding:14px;text-align:center;border:2px solid var(--crimson-light);">
+        <div style="font-size:20px;margin-bottom:6px;">⚡</div>
+        <div style="font-size:12px;font-weight:700;color:var(--crimson);">Ready to Strike</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Auto-resolves next Resolution Phase.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= STAGE PROGRESSION ======= -->
+<section class="section" id="sec-stages">
+  <div class="section-header">
+    <div class="section-tag">Main Mode</div>
+    <div class="section-title">🪜 Stage Progression</div>
+    <div class="section-desc">100+ hand-tuned dungeon stages form the default flow. Each stage has a fixed enemy roster, a difficulty band, and a 1/2/3-star clear rating that gates rewards and unlocks the next stage. Mirrors Plotbound's stage system 1:1.</div>
+  </div>
+
+  <div class="info-box"><strong>Why stages?</strong> A stable progression curve gives players a goal to work toward and a reason to upgrade specific cards and gear. Fixed enemy rosters per stage make community guides possible (stage N always has the same fight), while seeded RNG keeps in-run variance for combos and draft picks.</div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">📈 Difficulty Curve (Stages 1–100)</div>
+      <table class="data-table" style="font-size:12px;">
+        <tr><th>Range</th><th>Enemies/Stage</th><th>Mix</th></tr>
+        <tr><td>1–5</td><td>1–2</td><td>Easy goblins, slimes</td></tr>
+        <tr><td>6–15</td><td>2–3</td><td>Easy + first elite</td></tr>
+        <tr><td>16–30</td><td>2–3</td><td>Easy + Medium</td></tr>
+        <tr><td>31–45</td><td>3</td><td>Easy + Medium ×2</td></tr>
+        <tr><td>46–60</td><td>3–4</td><td>Medium ×2 + Hard</td></tr>
+        <tr><td>61–75</td><td>4</td><td>Medium ×2 + Hard ×2</td></tr>
+        <tr><td>76–90</td><td>4–5</td><td>Medium + Hard ×3</td></tr>
+        <tr><td>91–99</td><td>5</td><td>Medium + Hard ×4</td></tr>
+        <tr><td>100</td><td>5+ (multi-phase)</td><td>The Lord of Ashes (Final Boss)</td></tr>
+        <tr><td>101+</td><td>5</td><td>Plateau (mild scaling)</td></tr>
+      </table>
+      <p style="font-size:12px;line-height:1.6;color:var(--text-muted);margin-top:10px;">Every 5th stage (5, 10, 15, …, 100) is a <strong>Boss</strong> — a single elite enemy or 1 boss + 2 minions, with unique mechanics and a richer first-clear chest. Stages above 100 plateau but stay playable indefinitely so endless climbers always have something to grind.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">⭐ Star Rating</div>
+      <table class="data-table" style="font-size:13px;">
+        <tr><th>Stars</th><th>Condition</th><th>Result</th></tr>
+        <tr><td>★★★</td><td>Win + all bonus objectives + HP &gt; 50%</td><td>Perfect — top reward chest</td></tr>
+        <tr><td>★★</td><td>Win + ≥ 1 bonus objective met OR HP &gt; 50%</td><td>Pass — mid chest tier</td></tr>
+        <tr><td>★</td><td>Win (any HP &gt; 0)</td><td>Pass — base chest tier</td></tr>
+        <tr><td>0</td><td>HP reaches 0 (defeat)</td><td>Failed — 50% gold consolation, no unlock</td></tr>
+      </table>
+      <p style="font-size:12px;line-height:1.6;color:var(--text-muted);margin-top:10px;"><strong>Unlock rule:</strong> ≥ 1 star unlocks the next stage. Players can replay any cleared stage to upgrade their star count.</p>
+      <p style="font-size:12px;line-height:1.6;color:var(--text-muted);margin-top:6px;"><strong>First-clear chests</strong> are paid only once per (stage, star tier). Going from 1★ → 3★ later pays the gap up to 3★. Pure replays at the same or lower tier earn currency only (~50% of base).</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎁 Reward Chest (Per Star Tier)</div>
+    <table class="data-table" style="font-size:12px;">
+      <tr><th>Reward Type</th><th>★</th><th>★★</th><th>★★★</th><th>Notes</th></tr>
+      <tr><td>Gold</td><td>50% base</td><td>80% base</td><td>100% base</td><td>Base = 40 + stage·8 (boss adds 200 + stage·4)</td></tr>
+      <tr><td>Player XP</td><td>50% base</td><td>80% base</td><td>100% base</td><td>Base = 20 + stage·4 (boss + 80)</td></tr>
+      <tr><td>Crystals</td><td>—</td><td>50% base</td><td>100% base</td><td>Boss-tier crystal amounts noticeably higher</td></tr>
+      <tr><td>Soul Shards</td><td>—</td><td>—</td><td>Boss + late game</td><td>Ramp at stage 12+; boss stages always</td></tr>
+      <tr><td>Card</td><td>—</td><td>From stage 10+</td><td>From stage 3+</td><td>Card ID is fixed per stage (stable RNG)</td></tr>
+      <tr><td>Equipment</td><td>—</td><td>Boss + late stages</td><td>Boss + every 5 stages from 10</td><td>Gear quality scales with stage tier</td></tr>
+      <tr><td>Talent charges</td><td>—</td><td>—</td><td>Boss stages, off-boss stage 20+</td><td>Boss stages 50+ grant 3 charges; 25–49 grant 2; otherwise 1</td></tr>
+    </table>
+    <p style="font-size:12px;line-height:1.6;color:var(--text-muted);margin-top:10px;">All reward picks are <strong>seeded by stage number</strong> — every player gets the same chest at stage N. This stabilises guides and lets the player target specific stages for specific cards or gear.</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🗂️ Stage Info Modal</div>
+      <p style="font-size:13px;line-height:1.7;">Tapping <strong>Stage N</strong> on the home screen opens a modal showing the stage's title (e.g., "Crypt of Whispers"), difficulty band, fixed enemy roster (with type + HP + telegraphed special), bonus objectives, and the three reward tiers. Tiers already claimed are dimmed with a "✓ Claimed" tag. <em>Begin Battle</em> launches into the talent + equipment loadout pipeline.</p>
+      <ul style="font-size:12px;line-height:1.7;padding-left:20px;color:var(--text-muted);margin-top:8px;">
+        <li>Best-stars pip and "X/3 stars" caption surface progress at a glance</li>
+        <li>Boss stages show a 👑 banner and a crimson/black header treatment</li>
+        <li>"Stages" button beside the CTA opens the full Stage Select grid</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">🔢 Stage Select Screen</div>
+      <p style="font-size:13px;line-height:1.7;">Paginated 2–3 column grid of cards. Each card shows: stage number, enemy count, star rating, and a 🔒 lock icon for stages above the player's <code>currentStage</code>. The player's current stage gets a gold-bordered "Current" badge so the natural target is obvious.</p>
+      <ul style="font-size:12px;line-height:1.7;padding-left:20px;color:var(--text-muted);margin-top:8px;">
+        <li>Pages of 20 stages; defaults to the page containing the player's current stage</li>
+        <li>Boss stages tinted crimson so they pop in the grid</li>
+        <li>Locked stages are visible but un-tappable, so players can preview the road ahead</li>
+        <li>Themed dungeon arcs visible on the grid: Stages 1–20 Forest, 21–40 Crypts, 41–60 Frostpeak, 61–80 Volcanic Forge, 81–100 The Ashen Citadel</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======= ENEMY SYSTEM (replaces Order System) ======= -->
+<section class="section" id="sec-enemies">
+  <div class="section-header">
+    <div class="section-tag">Run Objectives — REPLACES Plotbound's Order System</div>
+    <div class="section-title">👹 Enemy System</div>
+    <div class="section-desc">Enemies replace Plotbound's "order cards" as the run-defining presence. In stage mode they're <strong>fixed per stage</strong>; in Free Skirmish, players draft from a randomised encounter pool. Each enemy has HP, an attack pattern, telegraphed intents, and a difficulty-scaled gold drop on defeat.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🩸 Enemy Card Anatomy</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:10px;">Every enemy is rendered as a small portrait card on the battlefield (mirroring how Plotbound renders order cards). Each enemy card displays:</p>
+    <ul style="font-size:13px;line-height:1.8;padding-left:20px;">
+      <li><strong>Sprite + name plate</strong> (top): chunky silhouette, name in Cinzel, type pill</li>
+      <li><strong>HP bar</strong>: red-to-gold gradient, current/max numeric overlay, tweens smoothly on damage</li>
+      <li><strong>Intent telegraph</strong> (under HP): icon + number showing what the enemy will do <em>next</em> turn — e.g. ⚔ 12 (will attack for 12), 🛡 8 (will block 8), 💀 (will summon), ⏳ (charging multi-turn ability)</li>
+      <li><strong>Status icons</strong>: burn, bleed, frozen, marked, vulnerable, weakened, stunned</li>
+      <li><strong>Resistance/weakness pills</strong>: small icons showing damage type modifiers (e.g., +50% to Pyre, immune to Frost)</li>
+    </ul>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🎯 The 7 Enemy Archetypes</div>
+      <table class="data-table" style="font-size:12px;">
+        <tr><th>Archetype</th><th>Behaviour</th><th>Easy / Med / Hard HP</th></tr>
+        <tr><td><code>brute</code></td><td>High HP, slow strong attacks</td><td>30 / 60 / 110</td></tr>
+        <tr><td><code>skirmisher</code></td><td>Low HP, fast multi-attacks</td><td>14 / 28 / 50</td></tr>
+        <tr><td><code>caster</code></td><td>Ranged elemental damage, debuffs</td><td>20 / 40 / 70</td></tr>
+        <tr><td><code>tank</code></td><td>High block, retaliation</td><td>40 / 80 / 140</td></tr>
+        <tr><td><code>summoner</code></td><td>Spawns minions every 2 turns</td><td>22 / 45 / 80</td></tr>
+        <tr><td><code>elite</code></td><td>Boss minion, hybrid kit</td><td>50 / 100 / 180</td></tr>
+        <tr><td><code>boss</code></td><td>Multi-phase, unique mechanics</td><td>120 / 250 / 500</td></tr>
+      </table>
+      <p style="font-size:12px;line-height:1.6;color:var(--text-muted);margin-top:10px;">Difficulty defines HP <em>and</em> damage output. Hard skirmishers hit fast; hard brutes hit slow but cripple unprepared decks. Each archetype has 4–8 visual sub-variants by dungeon biome (e.g., Forest Brute = troll, Crypt Brute = shambling giant).</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🎯 Bonus Objectives (replaces Plotbound's Order Objectives)</div>
+      <p style="font-size:13px;line-height:1.7;margin-bottom:8px;">Each stage has 1–3 bonus objectives that grant extra gold, XP, and contribute to the 3★ rating. Same 7-type system as Plotbound's order objectives — direct rename map:</p>
+      <table class="data-table" style="font-size:11px;">
+        <tr><th>Type</th><th>What it asks</th><th>E / M / H</th></tr>
+        <tr><td><code>defeat_type</code></td><td>Defeat N enemies of a type (goblin, undead…)</td><td>2 / 4 / 7</td></tr>
+        <tr><td><code>defeat_any</code></td><td>Defeat N enemies total</td><td>4 / 8 / 14</td></tr>
+        <tr><td><code>damage_type</code></td><td>Deal N damage of a specific type</td><td>30 / 60 / 110</td></tr>
+        <tr><td><code>damage_any</code></td><td>Deal N total damage</td><td>60 / 120 / 220</td></tr>
+        <tr><td><code>tactic_use</code></td><td>Use any Tactic N times</td><td>3 / 6 / 10</td></tr>
+        <tr><td><code>combo</code></td><td>Trigger N of a specific combo</td><td>1 / 3 / 5</td></tr>
+        <tr><td><code>no_damage</code></td><td>Take no damage for N consecutive turns</td><td>2 / 4 / 7</td></tr>
+      </table>
+      <p style="font-size:12px;line-height:1.6;color:var(--text-muted);margin-top:8px;">Difficulty rewards: Easy = 60g, Medium = 140g, Hard = 280g (paid on top of stage clear loot).</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📝 Flavor System</div>
+    <p style="font-size:13px;line-height:1.7;">Every stage ships with a 1–2 sentence in-world story (<em>"The Crypt of Whispers stirs again. Bring back what does not belong to it."</em>) plus a snarky one-liner from the village elder, captain, or merchant who sent you. Enemy-specific stages pull from per-archetype flavor pools (goblin, undead, drake, demon, golem, witch, bandit have hand-written casts); generic types use general flavor pools (Forgotten Tomb, Ironwood Ambush, Frost Hollow Patrol, etc.). Flavor is rolled deterministically from the stage seed so repeat clears stay consistent — identical to Plotbound's flavor system.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚔️ Enemy Intent System</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:8px;">Inspired by Slay the Spire, every enemy <strong>telegraphs its next action</strong> at the start of the player's turn. The telegraph is a single icon + number above the enemy's HP bar:</p>
+    <table class="data-table" style="font-size:12px;">
+      <tr><th>Icon</th><th>Meaning</th><th>Example</th></tr>
+      <tr><td>⚔ 12</td><td>Single-target attack for 12 damage</td><td>Goblin Slasher</td></tr>
+      <tr><td>⚔⚔ 4×3</td><td>Multi-hit attack (4 dmg ×3 hits)</td><td>Skirmisher</td></tr>
+      <tr><td>🛡 8</td><td>Defends — gains 8 block next turn</td><td>Tank, low HP brute</td></tr>
+      <tr><td>💀</td><td>Summons a minion</td><td>Summoner</td></tr>
+      <tr><td>🌀 X</td><td>Debuffs player (mark, weaken, vuln)</td><td>Caster</td></tr>
+      <tr><td>⏳ (with countdown)</td><td>Charging a multi-turn special</td><td>Boss phase, elite caster</td></tr>
+      <tr><td>❓</td><td>Hidden / random — Mythic enemies only</td><td>Lord of Ashes phase 3</td></tr>
+    </table>
+    <div class="info-box" style="margin-top:10px;font-size:12px;"><strong>Why telegraph?</strong> It removes guess-the-attack RNG, lets players plan combo timing meaningfully, and makes the 3★ "no damage taken for N turns" objective achievable through skill rather than luck. Talents like <em>Aegis</em> add a one-time exception.</div>
+  </div>
+</section>
+
+<!-- ======= 3 CORE COMBOS ======= -->
+<section class="section" id="sec-combos">
+  <div class="section-header">
+    <div class="section-tag">Strategic Spine — Direct Rename of Plotbound Combos</div>
+    <div class="section-title">✨ The 3 Core Combos</div>
+    <div class="section-desc">Three universal combo rules form the entire damage-bonus system. Taught in the first 90 seconds of tutorial. Universal across all damage types, instantly understandable, easy to remember. <strong>Mathematically identical to Plotbound's three combos</strong> — just re-themed: replace "crop type" with "damage type" and "harvest" with "resolve".</div>
+  </div>
+
+  <div class="success-box"><strong>Why 3 combos?</strong> Cognitive load. Players hold 3 rules in working memory effortlessly. Every Resolution Phase asks two questions: "Can I stack the same damage type for a bigger bonus? Can I keep my single-type streak alive from last turn?" Those two instincts — focus and discipline — are the game's strategic spine. Combo 2 rewards the contrarian who diversifies.</div>
+
+  <div class="combo-box-big" style="background:linear-gradient(135deg,var(--crimson-pale),#fecaca);border-color:var(--crimson);">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+      <div>
+        <div class="combo-rule" style="color:var(--crimson);">⚔️ Combo 1 — Onslaught</div>
+        <div class="combo-explain">Resolve <strong>2 or more Actions of the same damage type</strong> in the same Resolution Phase. The more you stack, the bigger the percentage bonus on every one of those Actions.</div>
+        <div class="combo-formula" style="display:block;">2 same → +10% &nbsp;|&nbsp; 3 same → +20% &nbsp;|&nbsp; 4 same → +35%<br>5 same → +50% &nbsp;|&nbsp; 6+ same → +70%</div>
+        <div class="combo-example">Example: Three Steel Actions resolve together → each one deals +20% damage (18 → 21.6 each, 65 total instead of 54). Plan your slot timings so multiple same-type Actions ripen together.</div>
+      </div>
+      <div style="font-size:52px;">⚔️⚔️⚔️</div>
+    </div>
+  </div>
+
+  <div class="combo-box-big" style="background:linear-gradient(135deg,var(--gold-pale),#fde68a);border-color:var(--gold);">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+      <div>
+        <div class="combo-rule" style="color:var(--bronze);">🌈 Combo 2 — Triadic Strike</div>
+        <div class="combo-explain">Resolve <strong>3 different damage types</strong> in the same Resolution Phase.</div>
+        <div class="combo-formula">+10 flat damage on top of all 3 strikes + draw 1 next turn</div>
+        <div class="combo-example">Example: A Steel slash, a Pyre fireball, and a Frost shard all resolve → each gets +10 flat damage AND you draw +1 card next turn. Best with mixed-charge-time decks.</div>
+      </div>
+      <div style="font-size:64px;">⚔️🔥❄️</div>
+    </div>
+  </div>
+
+  <div class="combo-box-big" style="background:linear-gradient(135deg,var(--arcane-pale),#ddd6fe);border-color:var(--arcane);">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+      <div>
+        <div class="combo-rule" style="color:var(--arcane);">🔁 Combo 3 — Relentless</div>
+        <div class="combo-explain"><strong>Resolve only one damage type</strong> each turn to build a compounding damage bonus — but only if every Action that turn is that single type. Mix in a different type and the streak breaks immediately, resetting the bonus to 0.</div>
+        <div class="combo-formula" style="display:block;">Resolve 1 type only → next turn that type deals +10%<br>Stack the streak: +10% per consecutive single-type turn, max +50%<br>⚠️ Resolve any different type in a turn → bonus resets to 0</div>
+        <div class="combo-example">Example: Resolve only Pyre on turn 4 (+10%), only Pyre turn 5 (+20%), only Pyre turn 6 (+30%). Slip a Steel hit in on turn 7 — bonus resets to 0 next turn.</div>
+      </div>
+      <div style="font-size:48px;">🔁🔥📈</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚠️ Combos 1 &amp; 3 Are Now Opposites — Choose Your Strategy</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:12px;">Combos 1 and 3 create a meaningful strategic tension. <strong>Combo 1 (Onslaught)</strong> rewards resolving as many of <em>the same</em> damage type in one turn as possible. <strong>Combo 3 (Relentless)</strong> rewards resolving <em>only one type</em> across consecutive turns. <strong>Combo 2 (Triadic Strike)</strong> rewards the opposite — mixing types. You can't max all three simultaneously: build your deck and time your slot placements accordingly.</p>
+    <div class="highlight-box" style="font-size:13px;">
+      <strong>Worked example — Onslaught + Relentless path:</strong> Player charges 5 Pyre Actions to resolve on turn 6.
+      <ul style="margin-top:6px;padding-left:18px;line-height:1.8;">
+        <li><strong>Onslaught:</strong> 5 Pyre → +50% on all 5 (12 damage × 1.5 = 18 each = 90 total vs 60 base)</li>
+        <li>Turn 5 was also Pyre-only → <strong>Relentless</strong> streak is at +20% ALSO active</li>
+        <li>Combined: 12 × 1.5 (Onslaught) × 1.2 (Relentless) = 21.6 per Pyre → 108 total damage</li>
+        <li>Note: Triadic Strike does NOT trigger — only one type this turn</li>
+      </ul>
+    </div>
+    <div class="highlight-box" style="background:var(--frost-pale);border-color:var(--frost);font-size:13px;margin-top:8px;">
+      <strong>Worked example — Triadic Strike path:</strong> Player resolves 1 Steel + 1 Pyre + 1 Arcane (3 types) on turn 6.
+      <ul style="margin-top:6px;padding-left:18px;line-height:1.8;">
+        <li><strong>Triadic Strike:</strong> 3 different types → +10 flat damage on each + draw 1 next turn</li>
+        <li>Onslaught: only 1 of each — does NOT trigger (need ≥2 same)</li>
+        <li>Relentless: multiple types this turn → bonus resets to 0 next turn</li>
+        <li>Net: base damage + 30 flat + tempo from extra card. Strong when slot timings are forced apart.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📚 Tutorial Sequence (First Run)</div>
+    <table class="data-table">
+      <tr><th>Turn</th><th>Tutorial Beat</th><th>Combo Taught</th></tr>
+      <tr><td>1</td><td>Place 3 Steel Slash Actions in 3 sigil slots simultaneously (game forces this). Charge time = 1.</td><td>Setup phase</td></tr>
+      <tr><td>2</td><td>3 Steel Slashes resolve. Game pauses, shows ⚔⚔⚔ popup, "+20% each because you resolved 3 of the same!" Damage popup shown.</td><td>⚔️ <strong>Onslaught</strong></td></tr>
+      <tr><td>3</td><td>Game nudges: "They were all Steel again! Your Relentless streak begins." Place 3 more Steel Actions.</td><td>Setup phase</td></tr>
+      <tr><td>4</td><td>Steel resolves again. Game shows "+20% Onslaught + +10% Relentless = double bonus!"</td><td>🔁 <strong>Relentless</strong> intro</td></tr>
+      <tr><td>5</td><td>Game introduces a new scenario: 3 different Action types to place (Steel, Pyre, Frost)</td><td>Setup phase</td></tr>
+      <tr><td>6</td><td>3 different Actions resolve. Game pauses, "+10 flat each — Triadic Strike! But your streak just reset." Player sees the trade-off.</td><td>🌈 <strong>Triadic Strike</strong> + streak reset demo</td></tr>
+      <tr><td>End</td><td>Tutorial badge "Combo Trio Awakened" awarded. Combo cheat sheet available in pause menu. "Build wide or build deep?"</td><td>All 3 reinforced</td></tr>
+    </table>
+  </div>
+
+  <div class="info-box"><strong>Talents layer on top.</strong> Some Talents modify these 3 combos (e.g., Onslaught starts at 1 Action instead of 2; Relentless cap raised to +70%; Triadic Strike fires with only 2 types). Some Talents add their own bonus goals. The 3 universal combos remain the foundation; Talents are the strategic specialisation.</div>
+</section>
+
+<!-- ======= CARD SYSTEM ======= -->
+<section class="section" id="sec-cards">
+  <div class="section-header">
+    <div class="section-tag">Cards</div>
+    <div class="section-title">🗡️ Card System</div>
+    <div class="section-desc">Three card types form the player's deck during a battle: Actions (placed in Sigil Slots), Tactics (instant effects), and Reactions (auto-trigger). Talents are equipped before the run (separate system). <strong>Direct rename of Plotbound's Seed/Tool/Event cards.</strong></div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(event,'cards','action')">⚔️ Action Cards</button>
+    <button class="tab-btn" onclick="switchTab(event,'cards','tactic')">🧪 Tactic Cards</button>
+    <button class="tab-btn" onclick="switchTab(event,'cards','reaction')">⚡ Reaction Cards</button>
+  </div>
+
+  <div class="tab-content active" id="cards-action">
+    <div class="info-box">Action cards are placed into Sigil Slots. They charge over multiple turns and auto-resolve as strikes, debuffs, or effects. Higher rarity = bigger payoff, slower charge, more impactful combo potential. <strong>Maps directly to Plotbound Seed cards.</strong></div>
+    <div class="grid-3" style="margin-top:16px;">
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--emerald);">⚔️ ACTION — COMMON</div>
+        <span class="game-card-icon">🗡️</span>
+        <div class="game-card-name">Quick Slash</div>
+        <div class="game-card-desc">The reliable starter. Fast charge, steady damage. Perfect for Onslaught and Relentless stacking.</div>
+        <div class="game-card-stats">
+          <span class="game-card-stat">⏱ 1 turn</span>
+          <span class="game-card-stat dmg-steel">⚔ 8</span>
+        </div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--emerald);">⚔️ ACTION — COMMON</div>
+        <span class="game-card-icon">🏹</span>
+        <div class="game-card-name">Hunter's Shot</div>
+        <div class="game-card-desc">Mid-charge ranged Pierce. Higher base damage than slash.</div>
+        <div class="game-card-stats">
+          <span class="game-card-stat">⏱ 2 turns</span>
+          <span class="game-card-stat dmg-pierce">⚔ 15</span>
+        </div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--emerald);">⚔️ ACTION — COMMON</div>
+        <span class="game-card-icon">🔥</span>
+        <div class="game-card-name">Spark</div>
+        <div class="game-card-desc">Cheap, fast Pyre filler. Great for Onslaught — place 3+ for instant fire combo.</div>
+        <div class="game-card-stats">
+          <span class="game-card-stat">⏱ 1 turn</span>
+          <span class="game-card-stat dmg-pyre">⚔ 6</span>
+        </div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--frost);">⚔️ ACTION — UNCOMMON</div>
+        <span class="game-card-icon">⚡</span>
+        <div class="game-card-name">Lightning Bolt</div>
+        <div class="game-card-desc">Slower charge with juicy Arcane damage. Mid-tier core Action.</div>
+        <div class="game-card-stats">
+          <span class="game-card-stat">⏱ 3 turns</span>
+          <span class="game-card-stat dmg-arcane">⚔ 28</span>
+        </div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--frost);">⚔️ ACTION — UNCOMMON</div>
+        <span class="game-card-icon">❄️</span>
+        <div class="game-card-name">Frost Lance</div>
+        <div class="game-card-desc">Adds Slowed (-1 enemy intent damage) to target on hit.</div>
+        <div class="game-card-stats">
+          <span class="game-card-stat">⏱ 3 turns</span>
+          <span class="game-card-stat dmg-frost">⚔ 22</span>
+        </div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--frost);">⚔️ ACTION — UNCOMMON</div>
+        <span class="game-card-icon">💥</span>
+        <div class="game-card-name">Greatcleave</div>
+        <div class="game-card-desc">Slow but high-damage Steel. AoE — hits 2 adjacent enemies.</div>
+        <div class="game-card-stats">
+          <span class="game-card-stat">⏱ 3 turns</span>
+          <span class="game-card-stat dmg-steel">⚔ 32</span>
+        </div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">⚔️ ACTION — RARE</div>
+        <span class="game-card-icon">🌟</span>
+        <div class="game-card-name">Twin Star</div>
+        <div class="game-card-desc">Fires twice. Second strike deals 2× damage of the first.</div>
+        <div class="game-card-stats">
+          <span class="game-card-stat">⏱ 2+2 turns</span>
+          <span class="game-card-stat dmg-arcane">⚔ 20+40</span>
+        </div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">⚔️ ACTION — RARE</div>
+        <span class="game-card-icon">🩸</span>
+        <div class="game-card-name">Crimson Pact</div>
+        <div class="game-card-desc">+5 damage per Tactic in discard at resolution. Steel.</div>
+        <div class="game-card-stats">
+          <span class="game-card-stat">⏱ 5 turns</span>
+          <span class="game-card-stat dmg-steel">⚔ 65</span>
+        </div>
+      </div>
+      <div class="game-card card-perk-legendary">
+        <div class="game-card-type" style="color:var(--bronze);">⚔️ ACTION — LEGENDARY</div>
+        <span class="game-card-icon">☄️</span>
+        <div class="game-card-name">Meteor Sigil</div>
+        <div class="game-card-desc">Charges all 12 turns of a stage. Deals damage equal to total damage dealt this stage. Pyre + Arcane.</div>
+        <div class="game-card-stats">
+          <span class="game-card-stat">⏱ 12 turns</span>
+          <span class="game-card-stat">⚔ Stage ×</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="cards-tactic">
+    <div class="info-box">Tactic cards are played from hand and have an immediate effect. They go to discard after use. Some tactics persist (marked 🔁). <strong>Maps directly to Plotbound Tool cards.</strong></div>
+    <div class="grid-3" style="margin-top:16px;">
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON</div>
+        <span class="game-card-icon">⚡</span>
+        <div class="game-card-name">Quickdraw</div>
+        <div class="game-card-desc">Advances one charging Sigil by 1 turn.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+1 charge</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON</div>
+        <span class="game-card-icon">💚</span>
+        <div class="game-card-name">Healing Salve</div>
+        <div class="game-card-desc">Restore 8 HP.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+8 HP</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON</div>
+        <span class="game-card-icon">🛡️</span>
+        <div class="game-card-name">Brace</div>
+        <div class="game-card-desc">Gain 6 Block (absorbs damage this turn only).</div>
+        <div class="game-card-stats"><span class="game-card-stat">🛡 6</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — UNCOMMON</div>
+        <span class="game-card-icon">🔮</span>
+        <div class="game-card-name">Sigil Vault</div>
+        <div class="game-card-desc">Open a temporary Sigil Slot for 2 turns. Draw 1 extra card.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+1 slot</span><span class="game-card-stat">+1 draw</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — UNCOMMON</div>
+        <span class="game-card-icon">📜</span>
+        <div class="game-card-name">Echo Scroll</div>
+        <div class="game-card-desc">Duplicate the top discarded Action to your hand.</div>
+        <div class="game-card-stats"><span class="game-card-stat">🔁 Duplicate</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🧪 TACTIC — RARE</div>
+        <span class="game-card-icon">⚗️</span>
+        <div class="game-card-name">Catalyst Vial</div>
+        <div class="game-card-desc">Instantly fully charges one Sigil. Resolves immediately.</div>
+        <div class="game-card-stats"><span class="game-card-stat">⚡ Instant</span></div>
+      </div>
+      <div class="game-card card-perk-legendary">
+        <div class="game-card-type" style="color:var(--bronze);">🧪 TACTIC — LEGENDARY</div>
+        <span class="game-card-icon">🌈</span>
+        <div class="game-card-name">Aether Conduit</div>
+        <div class="game-card-desc">🔁 Persistent. All charging Sigils advance +1 turn every turn.</div>
+        <div class="game-card-stats"><span class="game-card-stat">🔁 Permanent</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="cards-reaction">
+    <div class="info-box">Reaction cards are drawn from a separate Reaction Deck (not the player's deck). They auto-trigger at certain moments (on hit, on combo, on enemy death). <strong>Maps directly to Plotbound Event cards.</strong></div>
+    <div class="grid-3" style="margin-top:16px;">
+      <div class="game-card" style="border-color:var(--gold-light);">
+        <div class="game-card-type" style="color:var(--bronze);">⚡ REACTION — BOON</div>
+        <span class="game-card-icon">✨</span>
+        <div class="game-card-name">Inspired</div>
+        <div class="game-card-desc">After a critical hit: draw 1 card.</div>
+      </div>
+      <div class="game-card" style="border-color:var(--gold-light);">
+        <div class="game-card-type" style="color:var(--bronze);">⚡ REACTION — BOON</div>
+        <span class="game-card-icon">🧙</span>
+        <div class="game-card-name">Wandering Mage</div>
+        <div class="game-card-desc">Stage offers 1 of 3 cards free at end of turn 5.</div>
+      </div>
+      <div class="game-card" style="border-color:var(--crimson);">
+        <div class="game-card-type" style="color:var(--crimson);">⚡ REACTION — HAZARD</div>
+        <span class="game-card-icon">🩸</span>
+        <div class="game-card-name">Bloodletting</div>
+        <div class="game-card-desc">Take 4 damage. Draw 2 cards.</div>
+      </div>
+      <div class="game-card" style="border-color:var(--gold-light);">
+        <div class="game-card-type" style="color:var(--bronze);">⚡ REACTION — BOON</div>
+        <span class="game-card-icon">🏆</span>
+        <div class="game-card-name">Battle Frenzy</div>
+        <div class="game-card-desc">All damage this turn +25%.</div>
+      </div>
+      <div class="game-card" style="border-color:var(--frost);">
+        <div class="game-card-type" style="color:var(--frost);">⚡ REACTION — CHOICE</div>
+        <span class="game-card-icon">🌙</span>
+        <div class="game-card-name">Shrine Vigil</div>
+        <div class="game-card-desc">Heal 12 HP OR skip plan phase for +20 gold.</div>
+      </div>
+      <div class="game-card" style="border-color:var(--arcane);">
+        <div class="game-card-type" style="color:var(--arcane);">⚡ REACTION — SPECIAL</div>
+        <span class="game-card-icon">🌟</span>
+        <div class="game-card-name">Blessed Ground</div>
+        <div class="game-card-desc">One Sigil Slot: 2× charge speed for 3 turns.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= SIGIL SLOTS & COMBAT ======= -->
+<section class="section" id="sec-sigil-slots">
+  <div class="section-header">
+    <div class="section-tag">Combat Mechanics — REPLACES Plotbound Plot Slots</div>
+    <div class="section-title">🔯 Sigil Slots & Combat</div>
+    <div class="section-desc">The slot mechanic is the gameplay's heart. Sigil Slots are inscribed magical ranks where Action cards bind, charge, and unleash. Identical placement, charge, and resolve mechanics to Plotbound's plot system — re-themed and aimed at enemies instead of selling crops.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚙️ How a Slot Works</div>
+    <ol style="font-size:13px;line-height:1.9;padding-left:20px;">
+      <li><strong>Bind:</strong> Drag an Action from hand into an empty slot. Card snaps in, glows in its damage type colour.</li>
+      <li><strong>Charge:</strong> Each turn the player ends, all bound Sigils tick down by 1. A radial charge ring fills clockwise.</li>
+      <li><strong>Resolve:</strong> When charge reaches 0, the Action fires at start of Resolution Phase. Slots resolve <strong>left to right</strong>. Damage popups float up from each enemy.</li>
+      <li><strong>Combo Check:</strong> After all slots resolve, the engine evaluates Onslaught (count same types), Triadic Strike (count distinct types), and Relentless streak (compare to last turn's set).</li>
+      <li><strong>Clear:</strong> Resolved Action moves to discard. Slot is empty and bind-ready next turn.</li>
+    </ol>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🎯 Targeting Rules</div>
+      <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+        <li>By default, Actions auto-target the leftmost living enemy when bound</li>
+        <li>Target can be reassigned by tapping the Sigil → tap an enemy</li>
+        <li>AoE Actions hit all enemies (or N adjacent) — no manual target needed</li>
+        <li>Enemy death during resolution: remaining Actions targeting the dead enemy <em>cascade</em> to the next leftmost living enemy</li>
+        <li>If no enemies remain mid-resolution, remaining Actions are wasted (still count toward combo / objectives)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">🛡️ Block & Defense</div>
+      <p style="font-size:13px;line-height:1.7;margin-bottom:8px;">Damage taken is reduced by Block, then Defense, then dealt to HP:</p>
+      <div class="diff-box" style="font-family:'JetBrains Mono',monospace;">
+        damage_to_hp = max(0, raw_damage - block - defense)
+      </div>
+      <ul style="font-size:13px;line-height:1.8;padding-left:18px;margin-top:8px;">
+        <li><strong>Block</strong> resets at end of player turn (must reapply each turn)</li>
+        <li><strong>Defense</strong> is a permanent stat from Equipment + Talents (always active)</li>
+        <li>Block above damage: excess Block discarded (doesn't carry over)</li>
+        <li>Some enemies pierce Block (telegraph icon: 🗡 piercing)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚔️ Damage Types</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:10px;">Five damage types form the combo and resistance system. Every Action has exactly one damage type; some Tactics inflict status that interacts with types.</p>
+    <table class="data-table">
+      <tr><th>Type</th><th>Theme</th><th>Common Status</th><th>Typical Resistance</th></tr>
+      <tr><td><span class="dmg-steel">⚔ Steel</span></td><td>Martial — slash, blunt, swords</td><td>Bleed (4 dmg/turn for 2 turns)</td><td>Armoured undead, golems</td></tr>
+      <tr><td><span class="dmg-pierce">🏹 Pierce</span></td><td>Precision — bow, throw, lance</td><td>Marked (next hit +50%)</td><td>Tanks, drakes</td></tr>
+      <tr><td><span class="dmg-pyre">🔥 Pyre</span></td><td>Fire / heat / burn</td><td>Burn (3 dmg/turn for 3 turns)</td><td>Fire elementals, demons</td></tr>
+      <tr><td><span class="dmg-frost">❄️ Frost</span></td><td>Cold / slow / shatter</td><td>Frozen (skip next attack)</td><td>Ice golems, undead</td></tr>
+      <tr><td><span class="dmg-arcane">✨ Arcane</span></td><td>Magic / holy / shadow (single bucket)</td><td>Weakened (-25% enemy dmg)</td><td>Witches, casters</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:10px;"><strong>Why 5 types?</strong> Three is too few for combo richness; seven creates analysis paralysis. Five gives every dungeon biome a "favoured" and "weak" type without bloating the deck-builder math. Future expansions can split Arcane into Holy / Shadow as a Talent or Equipment-driven choice without breaking the combo engine.</p>
+  </div>
+</section>
+
+<!-- ======= CHARACTER & STATS ======= -->
+<section class="section" id="sec-character">
+  <div class="section-header">
+    <div class="section-tag">NEW SYSTEM — Not in Plotbound</div>
+    <div class="section-title">🛡️ Character & Stats</div>
+    <div class="section-desc">Sigilbound introduces a persistent character with HP, stats, and a level. Stats come from <strong>base level</strong> + <strong>Equipment</strong> + <strong>Talents</strong> + temporary run buffs. HP reaching 0 ends the stage as a defeat.</div>
+  </div>
+
+  <div class="info-box"><strong>This is the single biggest delta from Plotbound.</strong> Plotbound has no HP — runs end at a fixed turn count and are graded by coins earned. Sigilbound has HP — runs can fail mid-stage. The HUD must show HP prominently. The result screen must show damage taken / HP remaining. The Migration section explicitly calls out the new <code>player.hp</code> field on PlayerProfile and the new <code>damage_taken</code> entries in SessionRecord.</div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">📊 Player Stats</div>
+      <table class="data-table">
+        <tr><th>Stat</th><th>Base (Lv 1)</th><th>Cap (Lv 50)</th><th>Source</th></tr>
+        <tr><td><strong>HP</strong></td><td>50</td><td>~250</td><td>Level + Armor + Helm + Talents</td></tr>
+        <tr><td><strong>Attack</strong></td><td>+0</td><td>+30</td><td>Weapon + Talents (flat damage modifier)</td></tr>
+        <tr><td><strong>Defense</strong></td><td>0</td><td>+25</td><td>Armor + Off-hand + Talents (flat damage reduction)</td></tr>
+        <tr><td><strong>Crit Chance</strong></td><td>5%</td><td>30%</td><td>Ring + Talents (chance to deal +50% damage)</td></tr>
+        <tr><td><strong>Speed</strong></td><td>1.0</td><td>1.5</td><td>Boots/Helm + Talents (affects card draw extras and dodge)</td></tr>
+        <tr><td><strong>Stamina</strong></td><td>3</td><td>6</td><td>Amulet + Talents (consumed by some Tactics)</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">📈 Player Leveling</div>
+      <p style="font-size:13px;line-height:1.7;margin-bottom:8px;">Player gains XP from stage clears, achievements, and PvP wins. Each level grants a small permanent stat bump. Leveling is gradual — the strategic depth is in deck and gear, not raw stats.</p>
+      <table class="data-table" style="font-size:12px;">
+        <tr><th>Lv</th><th>HP</th><th>Atk</th><th>XP to next</th></tr>
+        <tr><td>1</td><td>50</td><td>0</td><td>100</td></tr>
+        <tr><td>5</td><td>70</td><td>+2</td><td>500</td></tr>
+        <tr><td>10</td><td>95</td><td>+5</td><td>1,500</td></tr>
+        <tr><td>20</td><td>140</td><td>+10</td><td>5,000</td></tr>
+        <tr><td>30</td><td>180</td><td>+18</td><td>12,000</td></tr>
+        <tr><td>40</td><td>215</td><td>+24</td><td>22,000</td></tr>
+        <tr><td>50 (cap)</td><td>250</td><td>+30</td><td>—</td></tr>
+      </table>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Cap holds at 50; PvP HR replaces level as the late-game prestige axis (mirrors Plotbound).</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">❤️ HP & Healing Rules</div>
+    <ul style="font-size:13px;line-height:1.9;padding-left:18px;">
+      <li><strong>HP carries between stages within a "run" (when in dungeon arc mode)</strong> but resets to full when the player leaves a stage and returns to the home screen, OR after using the campsite (a consumable).</li>
+      <li><strong>Default mode:</strong> Each stage is independent. Player enters every stage at full HP. This keeps stages roguelike-friendly and avoids permadeath frustration on commute play.</li>
+      <li><strong>Optional mode (toggle):</strong> "Hardcore Run" — HP carries across an entire 5-stage dungeon arc. Failure resets the arc. Higher rewards.</li>
+      <li>Healing sources: Healing Salve Tactic (8 HP), Aegis talent (1-time), Lifesteal weapon traits, end-of-stage HP refill (default mode), Reaction cards.</li>
+      <li><strong>HP UI:</strong> Top-left HUD bar. Pulses red below 25% HP. Shake animation on damage. Brief screen tint on hits over 20% max HP.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🩹 Status Effects (Player)</div>
+    <table class="data-table" style="font-size:12px;">
+      <tr><th>Status</th><th>Effect</th><th>Source</th></tr>
+      <tr><td>🔥 Burn</td><td>3 dmg/turn for 3 turns</td><td>Pyre enemy attacks</td></tr>
+      <tr><td>🩸 Bleed</td><td>4 dmg/turn for 2 turns</td><td>Brute enemies</td></tr>
+      <tr><td>❄️ Frozen</td><td>Skip Plan Phase next turn (Actions still resolve!)</td><td>Frost casters</td></tr>
+      <tr><td>🌀 Weakened</td><td>-25% damage dealt for 2 turns</td><td>Witches, hex casters</td></tr>
+      <tr><td>👁 Marked</td><td>Next attack against you +50%</td><td>Boss telegraphs</td></tr>
+      <tr><td>💚 Regen</td><td>+3 HP/turn for N turns</td><td>Self via Tactics, allies</td></tr>
+      <tr><td>🛡 Block</td><td>Absorbs damage this turn (resets EOT)</td><td>Brace, Reactions</td></tr>
+      <tr><td>⚡ Hasted</td><td>+1 charge to all Sigils end of turn</td><td>Talents, rare Reactions</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ======= EQUIPMENT SYSTEM ======= -->
+<section class="section" id="sec-equipment">
+  <div class="section-header">
+    <div class="section-tag">NEW MAJOR SYSTEM — Not in Plotbound</div>
+    <div class="section-title">⚒️ Equipment System</div>
+    <div class="section-desc">Equipment is the second loadout layer alongside Talents. 6 gear slots provide stats, deck additions, and special triggers. Gear is found in stages, crafted, looted from bosses, or earned through Battle Pass / Crystal store. <strong>Inspired by ARPG gear systems but kept readable and slot-limited like Plotbound's perks.</strong></div>
+  </div>
+
+  <div class="info-box"><strong>Why Equipment in addition to Talents?</strong> Talents are pre-run modifiers (combo bends, passives). Equipment is your <em>character build</em> — what kind of fighter you are. A Pyre-focused build wears a Flame Brand weapon + Cinder Crown helm + Phoenix Ring; a Frost build wears Glacier Spear + Heart of Winter amulet. This dual layer (talent + equipment) gives the game the combinatorial depth needed to keep late-game builds fresh, without bloating the perk count beyond Plotbound's 20.</div>
+
+  <div class="card">
+    <div class="card-title">🎽 The 6 Equipment Slots</div>
+    <table class="data-table">
+      <tr><th>Slot</th><th>Primary Role</th><th>Common Bonuses</th><th>Notes</th></tr>
+      <tr><td>⚔️ <strong>Weapon</strong></td><td>Damage type & attack stat</td><td>+Atk, +Crit, deck adds 2-4 specific Action cards</td><td>Defines your "main" damage type</td></tr>
+      <tr><td>🛡️ <strong>Off-hand</strong></td><td>Defense or extra utility</td><td>+Def, +Block, may add Reaction cards</td><td>Some classes 2H weapons disable off-hand</td></tr>
+      <tr><td>🪖 <strong>Helm</strong></td><td>Tactical bonus</td><td>+HP, +1 hand size, +1 sigil slot at L+</td><td>Often the "decision" piece — subtle but huge</td></tr>
+      <tr><td>🥋 <strong>Armor</strong></td><td>HP & resistance</td><td>+HP, +Def, damage type resistance</td><td>Heaviest stat slot</td></tr>
+      <tr><td>💍 <strong>Ring</strong></td><td>Magical effect</td><td>+Crit%, +5% damage type, gold find</td><td>Two ring slots? <em>Decision: 1 ring slot for v1.0</em> — keep tight</td></tr>
+      <tr><td>📿 <strong>Amulet</strong></td><td>Build-defining trinket</td><td>+1 Stamina, +heal on combo, double first crit</td><td>Often Legendary tier swings build identity</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💎 Equipment Rarity</div>
+    <table class="data-table" style="font-size:12px;">
+      <tr><th>Rarity</th><th>Count at Launch</th><th>Stat Range</th><th>Special Ability?</th><th>Acquisition</th></tr>
+      <tr><td><span class="pill pill-emerald">Common</span></td><td>~30</td><td>Small (1-2 stats, low values)</td><td>—</td><td>Stage drops 1-30, basic crafting</td></tr>
+      <tr><td><span class="pill pill-frost">Uncommon</span></td><td>~25</td><td>Modest (2-3 stats)</td><td>Minor passive</td><td>Stage drops 10-50, daily quests</td></tr>
+      <tr><td><span class="pill pill-arcane">Rare</span></td><td>~20</td><td>Strong (3 stats, mid values)</td><td>1 conditional trigger</td><td>Stage drops 30+, Battle Pass, 300 crystals</td></tr>
+      <tr><td><span class="pill pill-orange">Epic</span></td><td>~12</td><td>Powerful (3-4 stats, high)</td><td>2 conditional triggers</td><td>Boss stages 25+, Battle Pass T30+, 800 crystals</td></tr>
+      <tr><td><span class="pill pill-gold">Legendary</span></td><td>~6</td><td>Build-defining (3-4 stats, top values)</td><td>Unique mechanic</td><td>Boss stages 50+, Premium Battle Pass, 5,000 crystals</td></tr>
+      <tr><td><span class="pill pill-mythic">Mythic</span></td><td>~3 (seasonal)</td><td>Game-changing</td><td>Set bonus when paired</td><td>Limited seasonal events only — drop-only, never sold</td></tr>
+    </table>
+    <div class="info-box" style="margin-top:10px;font-size:12px;">Total at launch: ~96 pieces. Plenty of build variety without choice paralysis. Add ~10 pieces per quarterly content drop.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🗡️ Sample Equipment</div>
+    <div class="grid-3">
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--emerald);">⚔️ WEAPON · COMMON</div>
+        <span class="game-card-icon">🗡️</span>
+        <div class="game-card-name">Iron Shortsword</div>
+        <div class="game-card-desc">+2 Atk. Adds 2× <em>Quick Slash</em> to deck.</div>
+        <div class="game-card-stats"><span class="game-card-stat dmg-steel">Steel</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--frost);">⚔️ WEAPON · UNCOMMON</div>
+        <span class="game-card-icon">🔥</span>
+        <div class="game-card-name">Ember Brand</div>
+        <div class="game-card-desc">+4 Atk, +5% crit. Adds 3× <em>Spark</em>, 1× <em>Ignite</em> to deck.</div>
+        <div class="game-card-stats"><span class="game-card-stat dmg-pyre">Pyre</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">⚔️ WEAPON · RARE</div>
+        <span class="game-card-icon">❄️</span>
+        <div class="game-card-name">Glacier Spear</div>
+        <div class="game-card-desc">+8 Atk. All Frost Actions cost 1 less charge. Adds 4× Frost cards.</div>
+        <div class="game-card-stats"><span class="game-card-stat dmg-frost">Frost</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🛡️ OFF-HAND · RARE</div>
+        <span class="game-card-icon">🛡️</span>
+        <div class="game-card-name">Bulwark Aegis</div>
+        <div class="game-card-desc">+10 Def. Add 2× <em>Brace</em> Tactics. Once per stage: negate one hit.</div>
+        <div class="game-card-stats"><span class="game-card-stat">🛡 +10</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--frost);">🪖 HELM · UNCOMMON</div>
+        <span class="game-card-icon">🪖</span>
+        <div class="game-card-name">Strategist's Coif</div>
+        <div class="game-card-desc">+15 HP. Hand size +1.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+15 HP</span><span class="game-card-stat">+1 hand</span></div>
+      </div>
+      <div class="game-card card-perk-epic">
+        <div class="game-card-type" style="color:var(--orange);">🥋 ARMOR · EPIC</div>
+        <span class="game-card-icon">🥋</span>
+        <div class="game-card-name">Drakehide Plate</div>
+        <div class="game-card-desc">+40 HP, +8 Def, 50% Pyre resistance. Heal 5 HP each Onslaught trigger.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+40 HP</span><span class="game-card-stat">🛡 8</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">💍 RING · RARE</div>
+        <span class="game-card-icon">💍</span>
+        <div class="game-card-name">Phoenix Signet</div>
+        <div class="game-card-desc">+5% Crit. All Pyre damage +10%.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+5% crit</span></div>
+      </div>
+      <div class="game-card card-perk-legendary">
+        <div class="game-card-type" style="color:var(--bronze);">📿 AMULET · LEGENDARY</div>
+        <span class="game-card-icon">📿</span>
+        <div class="game-card-name">Heart of the Sigilkeeper</div>
+        <div class="game-card-desc">+1 Sigil Slot for the entire run. Stacks with talent. <strong>Build-defining.</strong></div>
+        <div class="game-card-stats"><span class="game-card-stat">+1 SLOT</span></div>
+      </div>
+      <div class="game-card card-perk-legendary">
+        <div class="game-card-type" style="color:var(--bronze);">⚔️ WEAPON · LEGENDARY</div>
+        <span class="game-card-icon">⚔️</span>
+        <div class="game-card-name">Sigilbreaker</div>
+        <div class="game-card-desc">+15 Atk. All Onslaught tiers +1 level higher (matches Talent #11 — does not stack but unlocks deeper synergies).</div>
+        <div class="game-card-stats"><span class="game-card-stat dmg-steel">Steel</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔨 Crafting & Upgrading</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Soul Shard cost</strong> to craft: Common 50, Uncommon 100, Rare 250, Epic 500, Legendary 1,000 — <em>identical scale to Plotbound's Perk Shard pricing</em>.</li>
+      <li><strong>Upgrade tiers:</strong> Each piece can be upgraded +1 to +5 using gold (50 → 200 → 600 → 1500 → 4000) and 1-3 dust shards. Upgraded gear has higher numeric stats but the same special ability — keeps balance predictable.</li>
+      <li><strong>Salvage:</strong> Unwanted gear → soul shards + dust shards. Common = 5 shards, Legendary = 80 shards.</li>
+      <li><strong>Set bonuses (Mythic only):</strong> Pairing 2+ pieces of the same Mythic set unlocks a bonus (e.g., "Phoenix Set 2pc: revive once per stage at 25% HP").</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📦 Equipment vs. Talents — How They Differ</div>
+    <table class="data-table">
+      <tr><th>Aspect</th><th>Equipment</th><th>Talents</th></tr>
+      <tr><td>Slots per run</td><td>6 (always)</td><td>2 base, up to 4</td></tr>
+      <tr><td>Effect type</td><td>Stats + deck additions + on-hit triggers</td><td>Combo modifiers, passives, bonus goals</td></tr>
+      <tr><td>Combat presence</td><td>Visual on character — affects sprite</td><td>Off-screen — listed in HUD top strip</td></tr>
+      <tr><td>Acquisition</td><td>Drops, crafting, vendors, BP cosmetics</td><td>Daily quests, Battle Pass, achievements</td></tr>
+      <tr><td>Per-run state</td><td>Same gear all stages until changed</td><td>Pre-run loadout, locked once started</td></tr>
+      <tr><td>Pay-to-win risk</td><td>Higher — direct stat boosts</td><td>Modest — combo bends gated by skill</td></tr>
+    </table>
+    <div class="danger-box" style="margin-top:10px;font-size:12px;"><strong>Pay-to-win mitigation:</strong> PvP matchmaking computes a <em>combined Power Score</em> = (Talent Power × 1) + (Equipment Power × 0.6). Whales match against whales, free players match against free players. Stages have no matchmaking — they scale to a fixed difficulty regardless of loadout.</div>
+  </div>
+</section>
+
+<!-- ======= TALENTS (PERKS) ======= -->
+<section class="section" id="sec-perks">
+  <h1 class="section-title">💎 Talents — The 20 Run-Defining Modifiers</h1>
+  <p class="section-subtitle">Pre-run loadout selections that bend the rules of combat. Distribution mirrors Plotbound's perk model exactly.</p>
+
+  <div class="info-box">
+    <strong>Plotbound parity:</strong> Same 20-perk count, same 5/5/5/3/2 rarity distribution, same drop curve, same loadout-locking rule. Only the <em>names and effects</em> are reframed for combat. Engineering can reuse <code>PerkRegistry.js</code> by swapping the data file.
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Talent Distribution</div>
+    <table class="data-table">
+      <tr><th>Rarity</th><th>Count</th><th>Slot Eligibility</th><th>Drop %</th></tr>
+      <tr><td><span class="pill pill-steel">Common</span></td><td>5</td><td>Any slot</td><td>40%</td></tr>
+      <tr><td><span class="pill pill-emerald">Uncommon</span></td><td>5</td><td>Any slot</td><td>30%</td></tr>
+      <tr><td><span class="pill pill-arcane">Rare</span></td><td>5</td><td>Any slot</td><td>20%</td></tr>
+      <tr><td><span class="pill pill-pink">Epic</span></td><td>3</td><td>Max 1 per run</td><td>8%</td></tr>
+      <tr><td><span class="pill pill-mythic">Legendary</span></td><td>2</td><td>Max 1 per run · mutually exclusive with Epic</td><td>2%</td></tr>
+    </table>
+    <p style="font-size:12px;margin-top:8px;color:var(--text-muted);"><strong>Slot scaling:</strong> Base 2 slots → +1 from "Bigger Hand" Uncommon → +1 from "Extra Sigil" Uncommon → +1 from "Heart of the Sigilkeeper" Legendary amulet. Theoretical max 4 active talents in one run.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚪ Common Talents (5)</div>
+    <div class="game-card-grid">
+      <div class="game-card card-perk-common">
+        <div class="game-card-type">⚔️ COMMON · #1</div>
+        <span class="game-card-icon">📯</span>
+        <div class="game-card-name">Battlecry</div>
+        <div class="game-card-desc">First Action card played each turn deals +25% damage.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+25% first hit</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type">⚔️ COMMON · #2</div>
+        <span class="game-card-icon">💪</span>
+        <div class="game-card-name">Vigorous</div>
+        <div class="game-card-desc">+10 max HP. Heal +5 HP at the start of every stage.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+10 HP</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type">⚔️ COMMON · #3</div>
+        <span class="game-card-icon">🏹</span>
+        <div class="game-card-name">Quick Draw</div>
+        <div class="game-card-desc">Draw 1 extra card on turn 1 of each stage.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+1 card T1</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type">⚔️ COMMON · #4</div>
+        <span class="game-card-icon dmg-steel">⚒</span>
+        <div class="game-card-name">Steel Specialist</div>
+        <div class="game-card-desc">All <span class="dmg-steel">Steel</span> damage you deal +15%. Mirrors "Vegetable Specialist" in Plotbound.</div>
+        <div class="game-card-stats"><span class="game-card-stat dmg-steel">+15% Steel</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type">⚔️ COMMON · #5</div>
+        <span class="game-card-icon dmg-pyre">🔥</span>
+        <div class="game-card-name">Pyre Specialist</div>
+        <div class="game-card-desc">All <span class="dmg-pyre">Pyre</span> damage you deal +15%. Mirrors "Fruit Specialist".</div>
+        <div class="game-card-stats"><span class="game-card-stat dmg-pyre">+15% Pyre</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🟢 Uncommon Talents (5)</div>
+    <div class="game-card-grid">
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--emerald);">🟢 UNCOMMON · #6</div>
+        <span class="game-card-icon">🎯</span>
+        <div class="game-card-name">Tactician's Mark</div>
+        <div class="game-card-desc">Tactic cards cost 1 less stamina. Reveals 1 enemy intent at start of stage.</div>
+        <div class="game-card-stats"><span class="game-card-stat">−1 stamina</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--emerald);">🟢 UNCOMMON · #7</div>
+        <span class="game-card-icon">🛡️</span>
+        <div class="game-card-name">Iron Discipline</div>
+        <div class="game-card-desc">Block carries over to the next turn (capped at 20). Normally block resets.</div>
+        <div class="game-card-stats"><span class="game-card-stat">Carry block</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--emerald);">🟢 UNCOMMON · #8</div>
+        <span class="game-card-icon">🃏</span>
+        <div class="game-card-name">Bigger Hand</div>
+        <div class="game-card-desc">Hand size +1 (default 5 → 6). Direct port of Plotbound talent of same effect.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+1 hand</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--emerald);">🟢 UNCOMMON · #9</div>
+        <span class="game-card-icon">🔯</span>
+        <div class="game-card-name">Extra Sigil</div>
+        <div class="game-card-desc">Start each stage with one extra Sigil Slot bound. Stacks with default 3 slots.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+1 slot</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--emerald);">🟢 UNCOMMON · #10</div>
+        <span class="game-card-icon">💚</span>
+        <div class="game-card-name">Swift Recovery</div>
+        <div class="game-card-desc">Heal 5 HP at the end of each turn you take no damage.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+5 HP/clean</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔵 Rare Talents (5)</div>
+    <div class="game-card-grid">
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🔵 RARE · #11</div>
+        <span class="game-card-icon">📈</span>
+        <div class="game-card-name">Onslaught Amplifier</div>
+        <div class="game-card-desc">Onslaught combo bonus +10% per tier (T1: 30%, T2: 60%, T3: 110%). Exact mirror of Plotbound's "Abundance Amplifier".</div>
+        <div class="game-card-stats"><span class="game-card-stat">Combo↑</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🔵 RARE · #12</div>
+        <span class="game-card-icon">🍀</span>
+        <div class="game-card-name">Warrior's Fortune</div>
+        <div class="game-card-desc">Gold rewards +25% from defeated enemies and stage clears.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+25% gold</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🔵 RARE · #13</div>
+        <span class="game-card-icon">⚡</span>
+        <div class="game-card-name">Quick Reflexes</div>
+        <div class="game-card-desc">Speed +20%. You always go first against enemies of equal speed.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+20% speed</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🔵 RARE · #14</div>
+        <span class="game-card-icon">📜</span>
+        <div class="game-card-name">Tactic Master</div>
+        <div class="game-card-desc">Tactic effects scale +30%. (Heals heal more, blocks block more, Soulburn ticks longer.)</div>
+        <div class="game-card-stats"><span class="game-card-stat">+30% tactics</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🔵 RARE · #15</div>
+        <span class="game-card-icon">🛡️</span>
+        <div class="game-card-name">Aegis</div>
+        <div class="game-card-desc">First time per stage your HP would drop below 20%, gain 25 block instead.</div>
+        <div class="game-card-stats"><span class="game-card-stat">Auto-shield</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🟣 Epic Talents (3) — Max 1 per run</div>
+    <div class="game-card-grid">
+      <div class="game-card card-perk-epic">
+        <div class="game-card-type" style="color:var(--pink);">🟣 EPIC · #16</div>
+        <span class="game-card-icon">🌊</span>
+        <div class="game-card-name">Combo Cascade</div>
+        <div class="game-card-desc">Triggering any combo refunds 1 Stamina + draws 1 card. Defines a "spam combos" build.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+stam+draw</span></div>
+      </div>
+      <div class="game-card card-perk-epic">
+        <div class="game-card-type" style="color:var(--pink);">🟣 EPIC · #17</div>
+        <span class="game-card-icon">⚡</span>
+        <div class="game-card-name">Triple Threat</div>
+        <div class="game-card-desc">Triadic Strike combo damage +50%. (Replaces Plotbound's "Variety Master".)</div>
+        <div class="game-card-stats"><span class="game-card-stat">+50% Triad</span></div>
+      </div>
+      <div class="game-card card-perk-epic">
+        <div class="game-card-type" style="color:var(--pink);">🟣 EPIC · #18</div>
+        <span class="game-card-icon">🎲</span>
+        <div class="game-card-name">Lucky Streak</div>
+        <div class="game-card-desc">Crit chance +15% baseline. Crits restore 2 HP.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+15% crit</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🟠 Legendary Talents (2) — Max 1 per run</div>
+    <div class="game-card-grid">
+      <div class="game-card card-perk-legendary">
+        <div class="game-card-type" style="color:var(--bronze);">🟠 LEGENDARY · #19</div>
+        <span class="game-card-icon">⚔️</span>
+        <div class="game-card-name">Sigilbound Master</div>
+        <div class="game-card-desc">All combo damage bonuses doubled. Onslaught becomes 40/80/160. Triadic and Relentless also double.<br><strong>Build-defining</strong>.</div>
+        <div class="game-card-stats"><span class="game-card-stat">Combo×2</span></div>
+      </div>
+      <div class="game-card card-perk-legendary">
+        <div class="game-card-type" style="color:var(--bronze);">🟠 LEGENDARY · #20</div>
+        <span class="game-card-icon">🌌</span>
+        <div class="game-card-name">Astral Convergence</div>
+        <div class="game-card-desc">Every card you play has a 10% chance to fully replicate itself (free copy resolves immediately, also rolls combos).</div>
+        <div class="game-card-stats"><span class="game-card-stat">10% double</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= STRONGHOLD ======= -->
+<section class="section" id="sec-stronghold">
+  <h1 class="section-title">🏰 Stronghold — The 4×5 Meta-Progression Tree</h1>
+  <p class="section-subtitle">Permanent upgrades purchased with gold between runs. Direct port of Plotbound's Farmstead, with renamed zones and combat-flavored buffs.</p>
+
+  <div class="info-box">
+    <strong>Plotbound parity:</strong> 4 zones × 5 tiers each = 20 upgrades. Cost progression <strong>50 → 200 → 600 → 1,500 → 4,000</strong> gold per tier (identical scale). Total cost to fully max stronghold: <strong>25,400 gold</strong>. Same prereq model: tier N requires tier N-1 in same zone.
+  </div>
+
+  <div class="card">
+    <div class="card-title">🗺️ Zone Map</div>
+    <table class="data-table">
+      <tr><th>Zone</th><th>Plotbound Equivalent</th><th>Theme</th><th>Affects</th></tr>
+      <tr><td><strong>Keep</strong></td><td>Land</td><td>Sigil slots, base hand</td><td>Combat capacity</td></tr>
+      <tr><td><strong>Archive</strong></td><td>Barn</td><td>Card storage, deck size cap</td><td>Run flexibility</td></tr>
+      <tr><td><strong>Armory</strong></td><td>Greenhouse</td><td>Equipment quality drops</td><td>Gear ceiling</td></tr>
+      <tr><td><strong>Treasury</strong></td><td>Market</td><td>Gold gain, vendor access</td><td>Run economy</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏰 Keep — Combat Capacity</div>
+    <table class="data-table">
+      <tr><th>Tier</th><th>Name</th><th>Effect</th><th>Cost</th></tr>
+      <tr><td>1</td><td>Watchtower</td><td>Base hand size 5 → 6</td><td>50g</td></tr>
+      <tr><td>2</td><td>Inner Wall</td><td>Base Sigil Slots 3 → 4</td><td>200g</td></tr>
+      <tr><td>3</td><td>Citadel Floor</td><td>+10 max HP permanently</td><td>600g</td></tr>
+      <tr><td>4</td><td>War Room</td><td>Start each run with one free Tactic card in hand</td><td>1,500g</td></tr>
+      <tr><td>5</td><td>Throne Hall</td><td>Base Sigil Slots 4 → 5 (run cap = 6 with talents)</td><td>4,000g</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📚 Archive — Card & Deck</div>
+    <table class="data-table">
+      <tr><th>Tier</th><th>Name</th><th>Effect</th><th>Cost</th></tr>
+      <tr><td>1</td><td>Card Vault</td><td>Deck size cap 15 → 18</td><td>50g</td></tr>
+      <tr><td>2</td><td>Scribe's Desk</td><td>+1 reroll per run for vendor offers</td><td>200g</td></tr>
+      <tr><td>3</td><td>Tome of Lore</td><td>Reveal all bonus objectives at stage start</td><td>600g</td></tr>
+      <tr><td>4</td><td>Spellforge</td><td>Unlock card upgrade slot in vendor (1 card per stage)</td><td>1,500g</td></tr>
+      <tr><td>5</td><td>Grand Library</td><td>Deck size cap 18 → 22, +1 card draw on turn 1</td><td>4,000g</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚒️ Armory — Equipment Tier</div>
+    <table class="data-table">
+      <tr><th>Tier</th><th>Name</th><th>Effect</th><th>Cost</th></tr>
+      <tr><td>1</td><td>Forge Hut</td><td>Common equipment drop rate +10%</td><td>50g</td></tr>
+      <tr><td>2</td><td>Anvil House</td><td>Uncommon drop rate +15%</td><td>200g</td></tr>
+      <tr><td>3</td><td>Master Forge</td><td>Rare drops unlock from boss stages</td><td>600g</td></tr>
+      <tr><td>4</td><td>Enchantment Hall</td><td>Vendor sells +1 / +2 upgrade items</td><td>1,500g</td></tr>
+      <tr><td>5</td><td>Mythic Forge</td><td>Legendary equipment can drop. Mythic crafting unlocked at lv30.</td><td>4,000g</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💰 Treasury — Economy</div>
+    <table class="data-table">
+      <tr><th>Tier</th><th>Name</th><th>Effect</th><th>Cost</th></tr>
+      <tr><td>1</td><td>Counting House</td><td>+10% gold from stage clears</td><td>50g</td></tr>
+      <tr><td>2</td><td>Trade Post</td><td>Vendor stocks +1 item per visit</td><td>200g</td></tr>
+      <tr><td>3</td><td>Royal Bank</td><td>+25% gold from boss stages</td><td>600g</td></tr>
+      <tr><td>4</td><td>Merchant Guild</td><td>Vendor prices −15%</td><td>1,500g</td></tr>
+      <tr><td>5</td><td>Vault Eternal</td><td>+1 free vendor reroll. +50% gold on win streaks (3+).</td><td>4,000g</td></tr>
+    </table>
+  </div>
+
+  <div class="highlight-box">
+    <strong>Engineering note:</strong> The upgrade tree data structure in Plotbound (<code>FarmsteadTree.js</code>) maps directly. Rename keys: <code>land → keep, barn → archive, greenhouse → armory, market → treasury</code>. Effect handlers stay structurally identical; only the modifier targets change (e.g., <code>+1 plot</code> → <code>+1 sigil_slot</code>).
+  </div>
+</section>
+
+<!-- ======= RUN STRUCTURE ======= -->
+<section class="section" id="sec-run-structure">
+  <h1 class="section-title">🍂 Run Structure — Themed Dungeon Arcs</h1>
+  <p class="section-subtitle">100 stages divided into 5 thematic biomes. Each biome has unique enemy art, music, and modifiers. Replaces Plotbound's 4-season cycle.</p>
+
+  <div class="card">
+    <div class="card-title">🗺️ The Five Biomes</div>
+    <table class="data-table">
+      <tr><th>Biome</th><th>Stages</th><th>Theme</th><th>Common Enemies</th><th>Boss</th><th>Damage Bias</th></tr>
+      <tr><td><span class="pill pill-emerald">Whispering Forest</span></td><td>1–20</td><td>Tutorial woodland</td><td>Goblins, Sprites, Wolves</td><td>The Antlered King</td><td>Steel/Pierce</td></tr>
+      <tr><td><span class="pill pill-shadow">Sunken Crypts</span></td><td>21–40</td><td>Undead catacombs</td><td>Skeletons, Wraiths, Liches</td><td>The Bone Tyrant</td><td>Arcane/Pierce</td></tr>
+      <tr><td><span class="pill pill-frost">Frostpeak Hollows</span></td><td>41–60</td><td>Mountain snowscape</td><td>Yetis, Ice Drakes, Frost Giants</td><td>Ymir the Glacier-Born</td><td>Frost</td></tr>
+      <tr><td><span class="pill pill-orange">Volcanic Forge</span></td><td>61–80</td><td>Magma-veined ruins</td><td>Salamanders, Ifrits, Forge Wardens</td><td>Vulkar the Eternal Flame</td><td>Pyre</td></tr>
+      <tr><td><span class="pill pill-mythic">Ashen Citadel</span></td><td>81–100</td><td>Endgame demon fortress</td><td>Demonkin, Voidspawn, Reapers</td><td>The Sigilbreaker</td><td>All types</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📅 Biome Modifiers</div>
+    <p style="font-size:13px;">Each biome applies a global combat modifier across its 20 stages. These replace Plotbound's seasonal weather effects.</p>
+    <table class="data-table">
+      <tr><th>Biome</th><th>Modifier</th></tr>
+      <tr><td>Whispering Forest</td><td>+10% gold drops · enemies have −15% HP (gentle ramp)</td></tr>
+      <tr><td>Sunken Crypts</td><td>Enemies inflict <span class="pill pill-shadow">Curse</span> on hit (−1 stamina) · +15% Soul Shard drops</td></tr>
+      <tr><td>Frostpeak Hollows</td><td>All enemies apply <span class="pill pill-frost">Frostbite</span> · player block −10%</td></tr>
+      <tr><td>Volcanic Forge</td><td>Burn damage +25% from both sides · stage start: 5 fire damage</td></tr>
+      <tr><td>Ashen Citadel</td><td>All enemies +20% HP · all enemy intents hidden until charge complete · 2x equipment drops</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚔️ Boss Stage Pattern</div>
+    <p style="font-size:13px;line-height:1.7;">Every <strong>5th stage</strong> is a boss (matches Plotbound's "Big Order" cadence). Bosses have:</p>
+    <ul style="font-size:13px;line-height:1.7;padding-left:18px;">
+      <li><strong>3× HP</strong> of a regular enemy at the same stage tier</li>
+      <li><strong>Multi-phase</strong> — at 50% HP, intent set rotates and a new mechanic activates (e.g., summons adds, gains a buff)</li>
+      <li><strong>Guaranteed equipment drop</strong> — minimum Uncommon, scaling with stage</li>
+      <li><strong>Chance for biome-specific Mythic</strong> at the biome-ending boss (stages 20, 40, 60, 80, 100)</li>
+      <li><strong>Star bonuses worth 2×</strong> — boss bonus objectives award double the gold/shard rewards</li>
+    </ul>
+  </div>
+
+  <div class="info-box">
+    <strong>Stage 100 — The Sigilbreaker:</strong> The capstone boss. 3-phase fight: humanoid form (steel/pyre) → ascended form (arcane/frost) → true form (all damage types alternating each turn). Defeat unlocks New Game+ ("Trial of the Sigilbound") with +50% enemy stats and access to Mythic-only loot pool.
+  </div>
+</section>
+
+<!-- ======= RESULT SCREEN ======= -->
+<section class="section" id="sec-result-screen">
+  <h1 class="section-title">🏁 Result Screen — Stage Cleared & Defeated</h1>
+  <p class="section-subtitle">Same banner / breakdown / CTA structure as Plotbound's Order Complete screen, with combat-specific stats added.</p>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">✅ Victory Screen Layout</div>
+      <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+        <li><strong>Banner:</strong> "STAGE CLEARED" + star count (1, 2, or 3)</li>
+        <li><strong>Hero stats:</strong> KOs, total damage dealt, damage taken, HP at end</li>
+        <li><strong>Damage breakdown:</strong> by type (Steel/Pierce/Pyre/Frost/Arcane), bar chart visual</li>
+        <li><strong>Combo log:</strong> Onslaught × N, Triadic × N, Relentless × N triggered</li>
+        <li><strong>Bonus objectives:</strong> ✓ or ✗ for each, color-coded</li>
+        <li><strong>Reward chest:</strong> Animated chest opens by star tier — gold + 0/1/2 cards + equipment chance</li>
+        <li><strong>Equipment drop (NEW):</strong> If gear dropped, shown with rarity color and "+ Add to Inventory" CTA</li>
+        <li><strong>CTA row:</strong> [🏠 Home] [🔁 Replay] [➡ Next Stage]</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">💀 Defeat Screen Layout</div>
+      <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+        <li><strong>Banner:</strong> "DEFEATED" — somber crimson, character slumped sprite</li>
+        <li><strong>Cause of death:</strong> "Slain by Frost Giant — 28 damage"</li>
+        <li><strong>Run summary:</strong> stages cleared, total enemies defeated, run length</li>
+        <li><strong>Salvage rewards:</strong> 25% of gold earned this run is retained (mirrors Plotbound's partial-run reward)</li>
+        <li><strong>"You earned":</strong> XP gained, achievements unlocked this run</li>
+        <li><strong>CTA row:</strong> [🏠 Home] [🔁 Retry from Stage 1] [📊 Stats]</li>
+      </ul>
+      <div class="danger-box" style="margin-top:10px;font-size:12px;">In <strong>Hardcore mode</strong>, no salvage is given and the entire run is voided.</div>
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <strong>Reward chest tier-to-content mapping</strong> (mirrors Plotbound's seeded reward roll exactly — only the contents differ):
+    <table class="data-table" style="margin-top:8px;">
+      <tr><th>Stars</th><th>Gold</th><th>Card Reward</th><th>Equipment Chance</th><th>Soul Shards</th></tr>
+      <tr><td>★</td><td>50–100g</td><td>0 cards</td><td>5%</td><td>0</td></tr>
+      <tr><td>★★</td><td>100–200g</td><td>Pick 1 of 2</td><td>15%</td><td>5</td></tr>
+      <tr><td>★★★</td><td>200–400g</td><td>Pick 1 of 3 (uncommon+)</td><td>40%</td><td>15</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ======= ANIMATION ======= -->
+<section class="section" id="sec-animation">
+  <h1 class="section-title">🎬 Card Animation Spec</h1>
+  <p class="section-subtitle">Same animation philosophy as Plotbound. The "no card teleports" principle is non-negotiable.</p>
+
+  <div class="info-box">
+    <strong>Direct port:</strong> All 7 of Plotbound's animation principles transfer 1:1 to Sigilbound. Only the destination targets change (cards travel to <em>enemies</em> instead of plot slots).
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚖️ The 7 Animation Principles</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>1. No teleports.</strong> Every card movement is tweened. If a card needs to go from hand to discard pile, it flies — never disappears and reappears.</li>
+      <li><strong>2. 60fps target.</strong> All tweens run at 60fps on mid-range mobile (iPhone SE 2020 baseline). GPU-only transforms.</li>
+      <li><strong>3. Easing curves matter.</strong> Use <code>ease-out-back</code> for impact (cards landing on enemy), <code>ease-in-quart</code> for departures (cards leaving hand).</li>
+      <li><strong>4. Anticipation before impact.</strong> Card hovers slightly above target for 80ms before impact tween completes — gives the brain time to register what's hitting.</li>
+      <li><strong>5. Damage numbers float.</strong> Numbers spawn at impact point, float +60px, fade over 600ms. Crits use larger font + screen shake.</li>
+      <li><strong>6. Combo trigger = cascade.</strong> When a combo fires, a golden shockwave radiates from the sigil row, then each contributing slot pulses in sequence (200ms stagger). Mirrors Plotbound's "harvest cascade".</li>
+      <li><strong>7. End-of-turn discard fan.</strong> Cards in hand fan-flip to discard pile in a clockwise arc, 50ms stagger between each. Even if invisible, the engine animates them.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⏱️ Timing Reference Table</div>
+    <table class="data-table">
+      <tr><th>Action</th><th>Duration</th><th>Easing</th></tr>
+      <tr><td>Card draw (deck → hand)</td><td>240ms</td><td>ease-out-cubic</td></tr>
+      <tr><td>Card play (hand → sigil slot)</td><td>320ms</td><td>ease-out-back</td></tr>
+      <tr><td>Card resolve (sigil → enemy)</td><td>280ms</td><td>ease-in-quart</td></tr>
+      <tr><td>Damage number float</td><td>600ms</td><td>linear-fade</td></tr>
+      <tr><td>Combo cascade radiate</td><td>500ms total · 200ms stagger</td><td>ease-out-elastic</td></tr>
+      <tr><td>Enemy intent reveal</td><td>180ms</td><td>ease-out-quint</td></tr>
+      <tr><td>Enemy attack lunge</td><td>360ms</td><td>ease-out-back, return ease-in-cubic</td></tr>
+      <tr><td>HP bar tween</td><td>400ms</td><td>ease-out-quart</td></tr>
+      <tr><td>Stage clear banner</td><td>900ms in · hold · fade</td><td>ease-out-elastic</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ======= CARD ART ======= -->
+<section class="section" id="sec-card-art">
+  <h1 class="section-title">🎴 Card Art & Visual Anatomy</h1>
+  <p class="section-subtitle">Visual structure for cards. Same anatomy as Plotbound (header / icon / name / desc / stats), themed for combat.</p>
+
+  <div class="card">
+    <div class="card-title">📐 Card Anatomy</div>
+    <p style="font-size:13px;">Each card is 240×340px (mobile-optimized). The same template engine from Plotbound renders all card variants. The only differences are color palette and icon set.</p>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Header band</strong> (top 12%): card type + rarity pill (Common→Mythic gradient)</li>
+      <li><strong>Icon area</strong> (next 35%): central illustration. Uses 96×96 emoji-style icons in v1, painted illustrations in post-launch update.</li>
+      <li><strong>Name strip</strong>: bold serif, 14pt — Cinzel typeface for medieval feel</li>
+      <li><strong>Description</strong>: 11pt sans-serif body, 3-4 lines max</li>
+      <li><strong>Stat tray</strong> (bottom 15%): numeric badges — DMG, BLOCK, HEAL, COST</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎨 Card Frame Color Coding</div>
+    <table class="data-table">
+      <tr><th>Card Type</th><th>Frame Color</th><th>Rarity Treatment</th></tr>
+      <tr><td>Action</td><td>Crimson border (#a02a2a)</td><td>Same — ribbon color shifts by rarity</td></tr>
+      <tr><td>Tactic</td><td>Steel blue border (#2b5a7e)</td><td>Same</td></tr>
+      <tr><td>Reaction</td><td>Arcane purple border (#7a3ca0)</td><td>Same</td></tr>
+      <tr><td>Equipment (in inventory grid)</td><td>Slot icon top-left, frame matches rarity (gold/silver/etc.)</td><td>Mythic = animated frame shimmer</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Frame textures are hand-painted gilded edges over a parchment base, evoking illuminated manuscripts. Plotbound used wooden frames with twine — same painterly approach, swapped textures.</p>
+  </div>
+</section>
+
+<!-- ======= CARDS DATA ======= -->
+<section class="section" id="sec-card-data">
+  <h1 class="section-title">📊 Cards Data — Master Table</h1>
+  <p class="section-subtitle">Full card list at launch. Roughly 60 cards across 3 types — same magnitude as Plotbound's seed/tool/event count.</p>
+
+  <div class="info-box">
+    <strong>Quantity targets:</strong> 30 Action cards · 20 Tactic cards · 10 Reaction cards = <strong>60 cards at launch</strong>. Plotbound shipped with 58. Engineering can re-use <code>CardDatabase.js</code> shape — just swap the data file.
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚔️ Action Cards (30)</div>
+    <table class="data-table">
+      <tr><th>ID</th><th>Name</th><th>Damage Type</th><th>DMG</th><th>Cost</th><th>Rarity</th><th>Special</th></tr>
+      <tr><td>act_001</td><td>Strike</td><td><span class="dmg-steel">Steel</span></td><td>6</td><td>1</td><td>Common</td><td>—</td></tr>
+      <tr><td>act_002</td><td>Slash</td><td><span class="dmg-steel">Steel</span></td><td>8</td><td>1</td><td>Common</td><td>—</td></tr>
+      <tr><td>act_003</td><td>Heavy Swing</td><td><span class="dmg-steel">Steel</span></td><td>12</td><td>2</td><td>Common</td><td>−1 block</td></tr>
+      <tr><td>act_004</td><td>Cleave</td><td><span class="dmg-steel">Steel</span></td><td>5</td><td>2</td><td>Uncommon</td><td>Hits all enemies</td></tr>
+      <tr><td>act_005</td><td>Blade Dance</td><td><span class="dmg-steel">Steel</span></td><td>3×3</td><td>2</td><td>Rare</td><td>Triple hit</td></tr>
+      <tr><td>act_006</td><td>Quick Stab</td><td><span class="dmg-pierce">Pierce</span></td><td>5</td><td>1</td><td>Common</td><td>+1 stamina if kills</td></tr>
+      <tr><td>act_007</td><td>Throwing Dagger</td><td><span class="dmg-pierce">Pierce</span></td><td>7</td><td>1</td><td>Common</td><td>Doesn't trigger contact effects</td></tr>
+      <tr><td>act_008</td><td>Crossbow Bolt</td><td><span class="dmg-pierce">Pierce</span></td><td>9</td><td>1</td><td>Uncommon</td><td>+50% vs flying</td></tr>
+      <tr><td>act_009</td><td>Sniper Shot</td><td><span class="dmg-pierce">Pierce</span></td><td>20</td><td>3</td><td>Rare</td><td>Auto-crit at full HP</td></tr>
+      <tr><td>act_010</td><td>Volley</td><td><span class="dmg-pierce">Pierce</span></td><td>4×4</td><td>3</td><td>Epic</td><td>Random targets</td></tr>
+      <tr><td>act_011</td><td>Firebolt</td><td><span class="dmg-pyre">Pyre</span></td><td>5</td><td>1</td><td>Common</td><td>Apply 2 burn</td></tr>
+      <tr><td>act_012</td><td>Flame Lance</td><td><span class="dmg-pyre">Pyre</span></td><td>10</td><td>2</td><td>Uncommon</td><td>Apply 3 burn</td></tr>
+      <tr><td>act_013</td><td>Inferno</td><td><span class="dmg-pyre">Pyre</span></td><td>8</td><td>2</td><td>Rare</td><td>AoE + 2 burn each</td></tr>
+      <tr><td>act_014</td><td>Phoenix Blast</td><td><span class="dmg-pyre">Pyre</span></td><td>16</td><td>3</td><td>Epic</td><td>Heal 8 if kills</td></tr>
+      <tr><td>act_015</td><td>Frost Shard</td><td><span class="dmg-frost">Frost</span></td><td>5</td><td>1</td><td>Common</td><td>Apply 1 chill</td></tr>
+      <tr><td>act_016</td><td>Ice Lance</td><td><span class="dmg-frost">Frost</span></td><td>9</td><td>2</td><td>Uncommon</td><td>Skip enemy turn if 3+ chill</td></tr>
+      <tr><td>act_017</td><td>Blizzard</td><td><span class="dmg-frost">Frost</span></td><td>4</td><td>2</td><td>Rare</td><td>AoE + chill all</td></tr>
+      <tr><td>act_018</td><td>Glacial Prison</td><td><span class="dmg-frost">Frost</span></td><td>0</td><td>3</td><td>Epic</td><td>Stun enemy 2 turns</td></tr>
+      <tr><td>act_019</td><td>Arcane Bolt</td><td><span class="dmg-arcane">Arcane</span></td><td>6</td><td>1</td><td>Common</td><td>Ignore 50% block</td></tr>
+      <tr><td>act_020</td><td>Soul Drain</td><td><span class="dmg-arcane">Arcane</span></td><td>8</td><td>2</td><td>Uncommon</td><td>Heal 50% damage dealt</td></tr>
+      <tr><td>act_021</td><td>Mana Surge</td><td><span class="dmg-arcane">Arcane</span></td><td>5×N</td><td>3</td><td>Rare</td><td>N = Tactics played this stage</td></tr>
+      <tr><td>act_022</td><td>Reality Tear</td><td><span class="dmg-arcane">Arcane</span></td><td>25</td><td>4</td><td>Epic</td><td>Ignores all block</td></tr>
+      <tr><td>act_023</td><td>Sigil of Ruin</td><td><span class="dmg-arcane">Arcane</span></td><td>15</td><td>3</td><td>Legendary</td><td>Doubles next combo this turn</td></tr>
+      <tr><td>act_024</td><td>Bash</td><td><span class="dmg-steel">Steel</span></td><td>4</td><td>1</td><td>Common</td><td>+5 block on self</td></tr>
+      <tr><td>act_025</td><td>Riposte</td><td><span class="dmg-pierce">Pierce</span></td><td>6</td><td>1</td><td>Uncommon</td><td>+50% if blocked last turn</td></tr>
+      <tr><td>act_026</td><td>Ember Dash</td><td><span class="dmg-pyre">Pyre</span></td><td>7</td><td>1</td><td>Uncommon</td><td>Draw 1 card</td></tr>
+      <tr><td>act_027</td><td>Cold Snap</td><td><span class="dmg-frost">Frost</span></td><td>6</td><td>1</td><td>Uncommon</td><td>−1 enemy attack next turn</td></tr>
+      <tr><td>act_028</td><td>Mind Spike</td><td><span class="dmg-arcane">Arcane</span></td><td>4</td><td>1</td><td>Common</td><td>Reveal next intent</td></tr>
+      <tr><td>act_029</td><td>Berserk Strike</td><td><span class="dmg-steel">Steel</span></td><td>20</td><td>2</td><td>Rare</td><td>Take 5 self damage</td></tr>
+      <tr><td>act_030</td><td>Sigilbreaker's Edge</td><td>All types*</td><td>10</td><td>3</td><td>Legendary</td><td>Counts as ALL damage types for combos</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📜 Tactic Cards (20)</div>
+    <table class="data-table">
+      <tr><th>ID</th><th>Name</th><th>Effect</th><th>Cost</th><th>Rarity</th></tr>
+      <tr><td>tac_001</td><td>Block</td><td>Gain 8 block</td><td>1</td><td>Common</td></tr>
+      <tr><td>tac_002</td><td>Bandage</td><td>Heal 5 HP</td><td>1</td><td>Common</td></tr>
+      <tr><td>tac_003</td><td>Brace</td><td>Gain 12 block</td><td>2</td><td>Common</td></tr>
+      <tr><td>tac_004</td><td>Heal Potion</td><td>Heal 10 HP</td><td>1</td><td>Common</td></tr>
+      <tr><td>tac_005</td><td>Inspire</td><td>Draw 2 cards</td><td>1</td><td>Common</td></tr>
+      <tr><td>tac_006</td><td>Adrenaline</td><td>+2 stamina this turn</td><td>0</td><td>Uncommon</td></tr>
+      <tr><td>tac_007</td><td>Smoke Screen</td><td>−50% enemy damage next turn</td><td>2</td><td>Uncommon</td></tr>
+      <tr><td>tac_008</td><td>War Cry</td><td>+25% damage this turn</td><td>1</td><td>Uncommon</td></tr>
+      <tr><td>tac_009</td><td>Sigil Refresh</td><td>Clear all sigil slots, draw equal cards</td><td>2</td><td>Rare</td></tr>
+      <tr><td>tac_010</td><td>Second Wind</td><td>Heal 15 HP, +1 stamina next turn</td><td>2</td><td>Uncommon</td></tr>
+      <tr><td>tac_011</td><td>Tactical Prep</td><td>Tutor: pick 1 card from deck</td><td>2</td><td>Rare</td></tr>
+      <tr><td>tac_012</td><td>Reinforce</td><td>+5 max HP this stage</td><td>1</td><td>Uncommon</td></tr>
+      <tr><td>tac_013</td><td>Iron Wall</td><td>Gain 25 block</td><td>3</td><td>Rare</td></tr>
+      <tr><td>tac_014</td><td>Mana Tap</td><td>Gain 1 stamina + draw 1</td><td>0</td><td>Rare</td></tr>
+      <tr><td>tac_015</td><td>Foresight</td><td>Reveal all enemy intents this stage</td><td>1</td><td>Rare</td></tr>
+      <tr><td>tac_016</td><td>Soulburn</td><td>Apply 5 burn to all enemies</td><td>2</td><td>Rare</td></tr>
+      <tr><td>tac_017</td><td>Time Warp</td><td>Take an extra turn</td><td>4</td><td>Epic</td></tr>
+      <tr><td>tac_018</td><td>Mass Heal</td><td>Heal 30 HP</td><td>3</td><td>Epic</td></tr>
+      <tr><td>tac_019</td><td>Damage Mirror</td><td>Reflect 100% next attack</td><td>2</td><td>Epic</td></tr>
+      <tr><td>tac_020</td><td>Astral Pact</td><td>This turn: every card has +50% damage and costs 0</td><td>5</td><td>Legendary</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚡ Reaction Cards (10)</div>
+    <table class="data-table">
+      <tr><th>ID</th><th>Name</th><th>Trigger</th><th>Effect</th><th>Rarity</th></tr>
+      <tr><td>rea_001</td><td>Parry</td><td>On enemy attack</td><td>Negate up to 6 damage</td><td>Common</td></tr>
+      <tr><td>rea_002</td><td>Dodge</td><td>On enemy attack</td><td>Avoid 50% damage</td><td>Common</td></tr>
+      <tr><td>rea_003</td><td>Counterstrike</td><td>On block</td><td>Reflect 4 damage</td><td>Uncommon</td></tr>
+      <tr><td>rea_004</td><td>Bloodthirst</td><td>On kill</td><td>Heal 3 HP</td><td>Uncommon</td></tr>
+      <tr><td>rea_005</td><td>Power Surge</td><td>On combo trigger</td><td>+1 stamina</td><td>Rare</td></tr>
+      <tr><td>rea_006</td><td>Sigil Echo</td><td>On combo trigger</td><td>Repeat 1 sigil slot</td><td>Rare</td></tr>
+      <tr><td>rea_007</td><td>Last Stand</td><td>HP &lt; 25%</td><td>+50% damage until full HP</td><td>Epic</td></tr>
+      <tr><td>rea_008</td><td>Phoenix Heart</td><td>On lethal damage</td><td>Survive at 1 HP, 1× per stage</td><td>Epic</td></tr>
+      <tr><td>rea_009</td><td>Soulbond</td><td>On HP heal</td><td>Damage equal to heal next attack</td><td>Rare</td></tr>
+      <tr><td>rea_010</td><td>Sigilbinder's Will</td><td>On stage start</td><td>Bind any 1 card to a sigil slot pre-turn-1</td><td>Legendary</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ======= EQUIPMENT DATA ======= -->
+<section class="section" id="sec-equipment-data">
+  <h1 class="section-title">📊 Equipment Data — Master Table</h1>
+  <p class="section-subtitle">~96 equipment pieces at launch across 6 slots and 6 rarities. Mythic tier requires lv30 + Armory Tier 5 to drop.</p>
+
+  <div class="info-box">
+    <strong>Distribution:</strong> 6 slots × 16 pieces avg = 96 total. Per slot: 4 Common, 4 Uncommon, 4 Rare, 2 Epic, 1 Legendary, 1 Mythic. <em>Equipment is the largest content scope addition vs Plotbound.</em>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚔️ Weapons (16) — Sample Table</div>
+    <table class="data-table">
+      <tr><th>Name</th><th>Rarity</th><th>Atk</th><th>Crit</th><th>Special</th></tr>
+      <tr><td>Iron Shortsword</td><td>Common</td><td>+3</td><td>—</td><td>—</td></tr>
+      <tr><td>Steel Longsword</td><td>Uncommon</td><td>+6</td><td>+2%</td><td>—</td></tr>
+      <tr><td>Frostbrand</td><td>Rare</td><td>+8</td><td>+3%</td><td>+1 chill on hit</td></tr>
+      <tr><td>Phoenix Greatsword</td><td>Rare</td><td>+10</td><td>—</td><td>+15% Pyre damage</td></tr>
+      <tr><td>Vorpal Edge</td><td>Epic</td><td>+12</td><td>+8%</td><td>+1 Action card on draw</td></tr>
+      <tr><td>Skybreaker Maul</td><td>Epic</td><td>+15</td><td>—</td><td>Adds 'Hammer Strike' (10 Steel) to deck</td></tr>
+      <tr><td>Dragonfang Sabre</td><td>Legendary</td><td>+18</td><td>+10%</td><td>Crits apply 5 burn</td></tr>
+      <tr><td>Sigilbreaker (Mythic)</td><td>Mythic</td><td>+25</td><td>+15%</td><td>All Onslaught tiers +1 effective level</td></tr>
+    </table>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Other weapon archetypes follow same scaling pattern: daggers (low atk, high crit), staves (low atk, high spell scaling), bows (mid atk, ranged Pierce bonuses).</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🛡️ Off-hand · Helm · Armor · Ring · Amulet (80) — Distribution Sample</div>
+    <table class="data-table">
+      <tr><th>Slot</th><th>Common Stats</th><th>Mythic Showcase</th></tr>
+      <tr><td>Off-hand (Shield/Tome)</td><td>+5 block, +5 max HP</td><td><strong>Aegis of the Last King</strong> — +20 block, all Reaction cards trigger 2× per stage</td></tr>
+      <tr><td>Helm</td><td>+5 max HP, +1% crit</td><td><strong>Crown of the Sigilbound</strong> — +30 max HP, +5% crit, Onslaught combos heal 5 HP each</td></tr>
+      <tr><td>Armor</td><td>+10 max HP, +3 def</td><td><strong>Plate of Eternal Vigil</strong> — +50 max HP, +10 def, retain 50% block between turns</td></tr>
+      <tr><td>Ring</td><td>+1% crit, +5% damage of one type</td><td><strong>Phoenix Signet</strong> — +5% crit, all Pyre damage +10%, revive at 25% HP once per run</td></tr>
+      <tr><td>Amulet</td><td>+5 max HP, minor passive</td><td><strong>Heart of the Sigilkeeper</strong> — +1 Sigil Slot for the run (run-defining)</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💎 Mythic Set Bonuses (6 sets at launch)</div>
+    <p style="font-size:13px;">Pairing 2+ Mythic items from the same set unlocks a set bonus. Sets are theme-keyed to biomes and damage types.</p>
+    <table class="data-table">
+      <tr><th>Set</th><th>2pc Bonus</th><th>4pc Bonus</th></tr>
+      <tr><td>Phoenix (Pyre)</td><td>Revive once at 25% HP</td><td>Burn deals 2× damage</td></tr>
+      <tr><td>Glacier (Frost)</td><td>+15% block</td><td>Frostbite skips enemy turn at 5+ stacks</td></tr>
+      <tr><td>Wraith (Arcane)</td><td>+10% all damage if HP &lt; 50%</td><td>Soul Drain heals 100% damage</td></tr>
+      <tr><td>Warden (Steel)</td><td>+10 max HP per piece worn</td><td>Crits gain +5% per Steel piece</td></tr>
+      <tr><td>Hunter (Pierce)</td><td>+15% Pierce damage</td><td>First strike each stage auto-crits</td></tr>
+      <tr><td>Sigilbound (Mixed)</td><td>+1 Sigil Slot</td><td>All combos +50% damage</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ======= ACHIEVEMENTS ======= -->
+<section class="section" id="sec-achievements">
+  <h1 class="section-title">🏆 999 Achievements</h1>
+  <p class="section-subtitle">Same total count as Plotbound. Categories rebalanced for combat. UI/filtering identical to Plotbound's achievement screen.</p>
+
+  <div class="info-box">
+    <strong>Plotbound parity:</strong> Direct port of <code>AchievementSystem.js</code> with renamed categories. Same tier system: Bronze (1pt) / Silver (5pt) / Gold (15pt) / Platinum (50pt) / Diamond (250pt). Same UI filter, search, sort.
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Achievement Categories (18 total)</div>
+    <table class="data-table">
+      <tr><th>Category</th><th>Count</th><th>Sample Achievements</th></tr>
+      <tr><td>Beginner</td><td>40</td><td>"First Strike" — defeat any enemy · "Tutorial Complete" — clear stage 5</td></tr>
+      <tr><td>Combat Mastery</td><td>80</td><td>Defeat 10/100/1000 enemies · Win without taking damage</td></tr>
+      <tr><td>Combo Master</td><td>60</td><td>Trigger 100 Onslaughts · Hit T3 Onslaught with 6 cards</td></tr>
+      <tr><td>Crit Master</td><td>50</td><td>Land 1000 crits · Crit for 100+ damage in one hit</td></tr>
+      <tr><td>Boss Slayer</td><td>40</td><td>Defeat all 5 biome bosses · Defeat Sigilbreaker · Defeat any boss in &lt;5 turns</td></tr>
+      <tr><td>Tactician</td><td>50</td><td>Use 100 Tactic cards · Win using only Tactic + Reaction · No Action cards used</td></tr>
+      <tr><td>Equipment Forge</td><td>60</td><td>Craft 10/100 pieces · Equip a full Mythic set · Reach +5 on any piece</td></tr>
+      <tr><td>Speedrunner</td><td>40</td><td>Clear stage 1-10 in &lt;5min · Clear all 100 in &lt;90min</td></tr>
+      <tr><td>Perfectionist</td><td>50</td><td>3-star 10/50/100 stages · 3-star a boss without taking damage</td></tr>
+      <tr><td>Damage Type Mastery</td><td>100</td><td>Deal 10k/100k of each type (×5 types = 5 × 4 tiers = 20 each)</td></tr>
+      <tr><td>Social</td><td>40</td><td>Add 5 friends · Send 10 gifts · Visit 50 strongholds</td></tr>
+      <tr><td>PvP / Sigil Rating</td><td>60</td><td>Win 10/100 duels · Reach Champion / Vanguard / Legendary Sigilist</td></tr>
+      <tr><td>Collector</td><td>80</td><td>Collect all 60 cards · Equip every slot · Find every Mythic</td></tr>
+      <tr><td>Seasonal</td><td>40</td><td>Complete monthly battle pass · Hit max BP tier · Themed event challenges</td></tr>
+      <tr><td>Daring</td><td>50</td><td>Win at &lt;10 HP · Win Hardcore · Win without buying any cards from vendors</td></tr>
+      <tr><td>Lucky</td><td>30</td><td>Crit 5× in one turn · Find a Mythic before stage 30 · Lucky Streak triggers chain</td></tr>
+      <tr><td>Veteran</td><td>50</td><td>Reach Lv25/50 · Earn 100,000 gold · Play 100 runs</td></tr>
+      <tr><td>Discovery / Mythic</td><td>79</td><td>Hidden achievements — secrets, easter eggs, unexpected interactions</td></tr>
+    </table>
+    <p style="font-size:13px;margin-top:8px;"><strong>Total: 999</strong> · Total achievement points possible: ~50,000 · Used as a soft progression and bragging rights metric.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🖥️ Achievement Screen UI</div>
+    <p style="font-size:13px;">Mirrors Plotbound exactly: filterable list with category tabs, search bar, sort by (Tier / Date Earned / Progress), progress bar per achievement, locked achievements show shadow silhouette + hint.</p>
+  </div>
+</section>
+
+<!-- ======= UPGRADE DATA ======= -->
+<section class="section" id="sec-upgrade-data">
+  <h1 class="section-title">🏗️ Stronghold Upgrade Data — Full Table</h1>
+  <p class="section-subtitle">All 20 upgrades with prereqs, costs, and effects formalized for engineering.</p>
+
+  <div class="card">
+    <div class="card-title">📋 Master Upgrade Table</div>
+    <table class="data-table">
+      <tr><th>ID</th><th>Zone</th><th>Tier</th><th>Name</th><th>Prereq</th><th>Cost (Gold)</th><th>Effect (formal)</th></tr>
+      <tr><td>kp_t1</td><td>Keep</td><td>1</td><td>Watchtower</td><td>—</td><td>50</td><td>player.handSize += 1</td></tr>
+      <tr><td>kp_t2</td><td>Keep</td><td>2</td><td>Inner Wall</td><td>kp_t1</td><td>200</td><td>player.sigilSlots += 1</td></tr>
+      <tr><td>kp_t3</td><td>Keep</td><td>3</td><td>Citadel Floor</td><td>kp_t2</td><td>600</td><td>player.maxHp += 10</td></tr>
+      <tr><td>kp_t4</td><td>Keep</td><td>4</td><td>War Room</td><td>kp_t3</td><td>1500</td><td>onRunStart: hand.addRandomTactic(rarity:Common)</td></tr>
+      <tr><td>kp_t5</td><td>Keep</td><td>5</td><td>Throne Hall</td><td>kp_t4</td><td>4000</td><td>player.sigilSlots += 1 (cap=6)</td></tr>
+      <tr><td>ar_t1</td><td>Archive</td><td>1</td><td>Card Vault</td><td>—</td><td>50</td><td>player.deckCap = 18</td></tr>
+      <tr><td>ar_t2</td><td>Archive</td><td>2</td><td>Scribe's Desk</td><td>ar_t1</td><td>200</td><td>vendor.rerollsPerRun += 1</td></tr>
+      <tr><td>ar_t3</td><td>Archive</td><td>3</td><td>Tome of Lore</td><td>ar_t2</td><td>600</td><td>onStageStart: revealAllBonusObjectives()</td></tr>
+      <tr><td>ar_t4</td><td>Archive</td><td>4</td><td>Spellforge</td><td>ar_t3</td><td>1500</td><td>vendor.cardUpgradeSlot.unlock()</td></tr>
+      <tr><td>ar_t5</td><td>Archive</td><td>5</td><td>Grand Library</td><td>ar_t4</td><td>4000</td><td>player.deckCap = 22; turn1.drawBonus += 1</td></tr>
+      <tr><td>am_t1</td><td>Armory</td><td>1</td><td>Forge Hut</td><td>—</td><td>50</td><td>lootRoll.commonRate += 0.10</td></tr>
+      <tr><td>am_t2</td><td>Armory</td><td>2</td><td>Anvil House</td><td>am_t1</td><td>200</td><td>lootRoll.uncommonRate += 0.15</td></tr>
+      <tr><td>am_t3</td><td>Armory</td><td>3</td><td>Master Forge</td><td>am_t2</td><td>600</td><td>lootRoll.rareRate.fromBoss += 0.30</td></tr>
+      <tr><td>am_t4</td><td>Armory</td><td>4</td><td>Enchantment Hall</td><td>am_t3</td><td>1500</td><td>vendor.upgradeStones.unlock()</td></tr>
+      <tr><td>am_t5</td><td>Armory</td><td>5</td><td>Mythic Forge</td><td>am_t4</td><td>4000</td><td>mythic.dropEnabled = true; mythic.craftEnabled = true (lv30+)</td></tr>
+      <tr><td>tr_t1</td><td>Treasury</td><td>1</td><td>Counting House</td><td>—</td><td>50</td><td>stageReward.gold *= 1.10</td></tr>
+      <tr><td>tr_t2</td><td>Treasury</td><td>2</td><td>Trade Post</td><td>tr_t1</td><td>200</td><td>vendor.itemsPerVisit += 1</td></tr>
+      <tr><td>tr_t3</td><td>Treasury</td><td>3</td><td>Royal Bank</td><td>tr_t2</td><td>600</td><td>bossReward.gold *= 1.25</td></tr>
+      <tr><td>tr_t4</td><td>Treasury</td><td>4</td><td>Merchant Guild</td><td>tr_t3</td><td>1500</td><td>vendor.priceMultiplier = 0.85</td></tr>
+      <tr><td>tr_t5</td><td>Treasury</td><td>5</td><td>Vault Eternal</td><td>tr_t4</td><td>4000</td><td>vendor.freeRerolls += 1; winStreak.bonusAt(3) = 1.5x</td></tr>
+    </table>
+  </div>
+
+  <div class="info-box">
+    <strong>Total to max: 25,400 gold.</strong> Identical to Plotbound's farmstead total. Pacing: a player earning ~500g per stage clear should max stronghold around stage 50, leaving the second half of progression for equipment & talent collection.
+  </div>
+</section>
+
+<!-- ======= ECONOMY ======= -->
+<section class="section" id="sec-economy">
+  <h1 class="section-title">💰 Player Economy</h1>
+  <p class="section-subtitle">Gold sources, sinks, and pacing curves. Mirrors Plotbound's economy with combat-flavored sources.</p>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">💰 Gold Sources</div>
+      <table class="data-table">
+        <tr><th>Source</th><th>Amount</th></tr>
+        <tr><td>Stage clear (★)</td><td>50–100g</td></tr>
+        <tr><td>Stage clear (★★)</td><td>100–200g</td></tr>
+        <tr><td>Stage clear (★★★)</td><td>200–400g</td></tr>
+        <tr><td>Boss clear (×5)</td><td>800–1500g</td></tr>
+        <tr><td>Equipment salvage</td><td>5–80 shards (convertible)</td></tr>
+        <tr><td>Daily quests (3/day)</td><td>~300g/day</td></tr>
+        <tr><td>Achievement rewards</td><td>50–500g per</td></tr>
+        <tr><td>PvP win</td><td>100g/win + tier bonuses</td></tr>
+        <tr><td>Battle Pass tier rewards</td><td>~10,000g over 40 tiers</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">🛒 Gold Sinks</div>
+      <table class="data-table">
+        <tr><th>Sink</th><th>Cost Range</th></tr>
+        <tr><td>Vendor card purchase</td><td>50–500g per card</td></tr>
+        <tr><td>Vendor reroll</td><td>20g (free first per visit)</td></tr>
+        <tr><td>Equipment upgrade +1→+5</td><td>50→4000g per tier</td></tr>
+        <tr><td>Card upgrade (vendor)</td><td>200g per upgrade</td></tr>
+        <tr><td>Stronghold upgrades (×20)</td><td>50→4000g, total 25,400g</td></tr>
+        <tr><td>Cosmetic shop</td><td>500–2000g per item</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📈 Pacing Curve</div>
+    <table class="data-table">
+      <tr><th>Phase</th><th>Stages</th><th>Expected Gold/run</th><th>Cumulative Goal</th></tr>
+      <tr><td>Tutorial</td><td>1–10</td><td>~1,500g</td><td>Buy 2-3 vendor cards · finish Keep T1</td></tr>
+      <tr><td>Early</td><td>11–30</td><td>~5,000g</td><td>Most Tier 1-2 stronghold upgrades</td></tr>
+      <tr><td>Mid</td><td>31–60</td><td>~15,000g</td><td>Stronghold tier 3-4 unlocked, gear +2 across slots</td></tr>
+      <tr><td>Late</td><td>61–80</td><td>~25,000g</td><td>Stronghold maxed · Mythic Forge unlocked</td></tr>
+      <tr><td>Endgame</td><td>81–100</td><td>~40,000g+</td><td>Equipment +5 grind, Mythic crafting, PvP focus</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ======= SOCIAL ======= -->
+<section class="section" id="sec-social">
+  <h1 class="section-title">👥 Social & Leaderboard</h1>
+  <p class="section-subtitle">Friends, gifts, weekly ranks. Reuses Plotbound's social architecture.</p>
+
+  <div class="card">
+    <div class="card-title">🤝 Friends System</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Add friends</strong> by tag (e.g., "WolfRider#1287"), max 50 friends</li>
+      <li><strong>Gift system:</strong> 3 gifts/day to friends — 50g each, tracked weekly</li>
+      <li><strong>Visit Stronghold:</strong> See friend's progression, equipped Mythic, talent loadout</li>
+      <li><strong>Friend Spectate:</strong> Watch a recorded duel reveal screen for any friend</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏅 Leaderboards (Weekly)</div>
+    <table class="data-table">
+      <tr><th>Board</th><th>Metric</th><th>Reset</th></tr>
+      <tr><td>Sigil Rating</td><td>PvP duel ladder ELO</td><td>Weekly</td></tr>
+      <tr><td>Speedrun</td><td>Fastest 1-10 / 1-100 clear</td><td>Weekly</td></tr>
+      <tr><td>High Score</td><td>Best single-run star total</td><td>Weekly</td></tr>
+      <tr><td>Damage Dealt</td><td>Cumulative weekly damage</td><td>Weekly</td></tr>
+      <tr><td>Achievement Points</td><td>Total earned points</td><td>All-time</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">Top 10/100/1000 rewarded with cosmetic frames + crystals + soul shards. Same reward scaffolding as Plotbound's weekly Harvest Rating ladder.</p>
+  </div>
+</section>
+
+<!-- ======= PVP ======= -->
+<section class="section" id="sec-pvp">
+  <h1 class="section-title">⚔️ 1v1 Duel Mode — Async PvP</h1>
+  <p class="section-subtitle">Same-seed asynchronous duels. Direct port of Plotbound's PvP architecture (no real-time sync needed).</p>
+
+  <div class="info-box">
+    <strong>Plotbound parity:</strong> Players don't fight live. Both players are given the <em>same enemy seed</em> (same enemy types, same intents, same RNG), and whoever clears it with higher score wins. This avoids netcode complexity while feeling competitive.
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏛️ Match Flow</div>
+    <ol style="font-size:13px;line-height:1.8;padding-left:22px;">
+      <li><strong>Queue:</strong> Player taps "Duel" → matchmaker pairs by Sigil Rating + Power Score</li>
+      <li><strong>Seed assigned:</strong> Both players receive identical 5-stage gauntlet (server seed)</li>
+      <li><strong>Player 1 plays</strong> their gauntlet, results recorded</li>
+      <li><strong>Player 2 plays</strong> the same gauntlet within 24h</li>
+      <li><strong>Score compared</strong> — winner determined by: total stars → HP remaining → fewer turns → fewer cards used</li>
+      <li><strong>Both players see replay</strong> of the other's run on the result screen</li>
+      <li><strong>Sigil Rating updates</strong> ELO-style</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎖️ Sigil Rating Tiers</div>
+    <table class="data-table">
+      <tr><th>Tier</th><th>Rating</th><th>Color</th><th>Reward Tier</th></tr>
+      <tr><td>Squire</td><td>0–999</td><td><span class="pill pill-steel">Steel</span></td><td>Tier 1 weekly cosmetics</td></tr>
+      <tr><td>Knight</td><td>1000–1999</td><td><span class="pill pill-bronze">Bronze</span></td><td>Tier 2</td></tr>
+      <tr><td>Champion</td><td>2000–2999</td><td><span class="pill pill-gold">Gold</span></td><td>Tier 3 — exclusive frames</td></tr>
+      <tr><td>Vanguard</td><td>3000–3999</td><td><span class="pill pill-arcane">Arcane</span></td><td>Tier 4 — animated weapon skin</td></tr>
+      <tr><td>Legendary Sigilist</td><td>4000+</td><td><span class="pill pill-mythic">Mythic</span></td><td>Tier 5 — Mythic crafting tokens</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎯 Matchmaking Power Score (anti-pay-to-win)</div>
+    <p style="font-size:13px;line-height:1.7;"><code>PowerScore = (TalentPower × 1.0) + (EquipmentPower × 0.6)</code></p>
+    <ul style="font-size:13px;line-height:1.7;padding-left:18px;">
+      <li>Talent Power = sum of rarity weights (Common 1, Uncommon 2, Rare 4, Epic 8, Legendary 16)</li>
+      <li>Equipment Power = sum across 6 slots (Common 1, …, Mythic 32)</li>
+      <li>Players matched within ±15% Power Score, then within ±200 Sigil Rating</li>
+      <li>Whales match whales. Free players match free players.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======= PROFILE ======= -->
+<section class="section" id="sec-profile">
+  <h1 class="section-title">🪪 Profile & Customization</h1>
+  <p class="section-subtitle">Profile picture, title, banner, weapon skins, card backs, sigil slot frames.</p>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">🖼️ Cosmetic Slots</div>
+      <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+        <li><strong>Avatar portrait</strong> — 64×64 (~80 unlockable, BP/event/PvP)</li>
+        <li><strong>Title</strong> — earned from achievements (e.g., "the Sigilbound", "Boss Slayer")</li>
+        <li><strong>Banner</strong> — heraldic background behind avatar in profiles & match screens</li>
+        <li><strong>Weapon skin</strong> — visual override on combat sprite</li>
+        <li><strong>Card back</strong> — visual on card backs in deck preview & vendor</li>
+        <li><strong>Sigil frame</strong> — decorative frame around the 3 sigil slots</li>
+        <li><strong>Stronghold theme</strong> — building skins (e.g., royal palace, crystal fortress)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">📜 Profile Card Layout</div>
+      <p style="font-size:13px;">Same layout as Plotbound's profile screen — viewable by friends, by duel opponents.</p>
+      <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+        <li>Avatar + Title + Banner (top)</li>
+        <li>Sigil Rating + tier badge</li>
+        <li>Best run summary (stage cleared, 3-stars achieved)</li>
+        <li>Equipped Mythics (visible icons)</li>
+        <li>Talent loadout</li>
+        <li>Stat plate: total enemies defeated, total damage, runs played</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======= MONETIZATION ======= -->
+<section class="section" id="sec-monetization">
+  <h1 class="section-title">💎 Monetization Model</h1>
+  <p class="section-subtitle">Revenue mix, $2.99 Battle Pass, fair-play guardrails. Identical economic model to Plotbound.</p>
+
+  <div class="info-box">
+    <strong>Plotbound parity:</strong> Same revenue stream split, same Battle Pass price, same anti-pay-to-win matchmaker. Reuses Plotbound's IAP + Battle Pass UI shells. Only the cosmetic catalog and BP rewards are themed-different.
+  </div>
+
+  <div class="card">
+    <div class="card-title">💰 Revenue Stream Mix (target)</div>
+    <table class="data-table">
+      <tr><th>Stream</th><th>Target Share</th><th>Notes</th></tr>
+      <tr><td>Battle Pass ($2.99/season)</td><td>40%</td><td>Highest LTV per buyer · 28-day cycle</td></tr>
+      <tr><td>Crystals (premium currency)</td><td>25%</td><td>Tiered packs: $0.99 → $99.99</td></tr>
+      <tr><td>Cosmetic Shop (direct)</td><td>20%</td><td>Skins, frames, sigil frames — no gameplay impact</td></tr>
+      <tr><td>Equipment "Forge Boost" packs</td><td>10%</td><td>Soul shards + dust shards bundles. Equipment <em>can</em> be earned free; this accelerates only.</td></tr>
+      <tr><td>Founder's Pack (one-time)</td><td>5%</td><td>$9.99 launch bundle: cosmetics + currency, ~$25 perceived value</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎯 Fair-Play Guardrails</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Talent loadouts must be earned</strong> — no IAP unlocks talents directly. (Battle Pass tracks can speed Talent Shard farming, but talents themselves are progression-gated.)</li>
+      <li><strong>Equipment is grindable</strong> — every Mythic can be earned by free players via daily quests + Mythic Forge crafting. IAP packs only accelerate.</li>
+      <li><strong>Power Score matchmaking</strong> ensures whales fight whales in PvP (see PvP section).</li>
+      <li><strong>Stage difficulty is fixed</strong> — does not scale to gear, so an under-geared player can grind their way through stages with skill alone.</li>
+      <li><strong>No loot boxes with random gameplay items</strong> — all paid bundles list contents up front.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======= BATTLE PASS ======= -->
+<section class="section" id="sec-battlepass">
+  <h1 class="section-title">🎫 Battle Pass — 40 Tiers per Season</h1>
+  <p class="section-subtitle">28-day seasonal cycle, $2.99 premium track. Mirrors Plotbound's BP exactly.</p>
+
+  <div class="card">
+    <div class="card-title">📋 Sample Tier Reward Table (Season 1)</div>
+    <table class="data-table">
+      <tr><th>Tier</th><th>Free Track</th><th>Premium Track ($2.99)</th></tr>
+      <tr><td>1</td><td>200g</td><td>500g + Avatar Frame</td></tr>
+      <tr><td>2</td><td>5 Crystals</td><td>20 Crystals + Card Back</td></tr>
+      <tr><td>5</td><td>1 Common card</td><td>1 Rare card + 100 Soul Shards</td></tr>
+      <tr><td>10 ⭐</td><td>500g</td><td><strong>Banner: "Sigil Acolyte"</strong></td></tr>
+      <tr><td>15</td><td>10 Crystals</td><td>50 Crystals + Talent Shard ×3</td></tr>
+      <tr><td>20 ⭐⭐</td><td>1 Rare equip token</td><td><strong>Title: "the Initiate"</strong></td></tr>
+      <tr><td>25</td><td>200 Soul Shards</td><td>500 Soul Shards + Profile portrait</td></tr>
+      <tr><td>30 ⭐⭐⭐</td><td>1 Epic card pull</td><td><strong>Animated Card Back · Stronghold theme</strong></td></tr>
+      <tr><td>35</td><td>20 Crystals</td><td>75 Crystals + Sigil frame</td></tr>
+      <tr><td>40 🏆</td><td>1 random Rare equip</td><td><strong>Mythic Equipment Token + Exclusive Weapon Skin</strong></td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">Tiers between examples follow same scaling. Total free-track value: ~7,000g + 50 crystals + 1 epic. Total premium-track value: ~25,000g + 250 crystals + Mythic + 5 cosmetic items.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎟️ XP Sources</div>
+    <table class="data-table">
+      <tr><th>Action</th><th>XP</th></tr>
+      <tr><td>Stage clear (★)</td><td>100 XP</td></tr>
+      <tr><td>Stage clear (★★★)</td><td>300 XP</td></tr>
+      <tr><td>Daily quest complete (3/day)</td><td>500 XP each</td></tr>
+      <tr><td>Weekly quest complete (5/week)</td><td>2,000 XP each</td></tr>
+      <tr><td>PvP duel win</td><td>200 XP</td></tr>
+      <tr><td>Boss defeated</td><td>500 XP</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">Tier threshold: 5,000 XP per tier. Daily-quester pace: ~1 tier/day. Engaged player completes BP in 25–30 days. Casual: needs full 28-day window.</p>
+  </div>
+</section>
+
+<!-- ======= CURRENCIES ======= -->
+<section class="section" id="sec-currencies">
+  <h1 class="section-title">🪙 Currency Design</h1>
+  <p class="section-subtitle">Three currencies, identical structure to Plotbound's 3-currency system. Different theming.</p>
+
+  <div class="card">
+    <div class="card-title">💱 Currency Map</div>
+    <table class="data-table">
+      <tr><th>Currency</th><th>Plotbound Equivalent</th><th>Symbol</th><th>Used For</th></tr>
+      <tr><td>Gold</td><td>Farm Coins</td><td>💰</td><td>Vendors, stronghold upgrades, equipment upgrades</td></tr>
+      <tr><td>Crystals</td><td>Seed Gems</td><td>💎</td><td>Premium currency · cosmetics · BP, IAP</td></tr>
+      <tr><td>Soul Shards</td><td>Perk Shards</td><td>🔮</td><td>Talent crafting, equipment crafting</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Daily Earn Targets (free player)</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Gold:</strong> ~2,000g/day from runs + dailies (enough to keep gear & stronghold progressing)</li>
+      <li><strong>Crystals:</strong> ~30/day from achievements + BP + special rewards (vs IAP smallest pack of 100 for $0.99)</li>
+      <li><strong>Soul Shards:</strong> ~100/day from boss clears + dailies (slow, deliberate craft pace)</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔁 Conversion Rules</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li>Crystals → Gold: 1 crystal = 100 gold (one-way, capped at 50/day)</li>
+      <li>Equipment salvage → Soul Shards (variable by rarity)</li>
+      <li>Crystals can <strong>never</strong> be earned by selling soul shards or gold (anti-RMT)</li>
+      <li>No direct conversion between Soul Shards and Gold</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======= UX FLOW ======= -->
+<section class="section" id="sec-ux-flow">
+  <h1 class="section-title">🗺️ UI/UX Flow — Navigation Map</h1>
+  <p class="section-subtitle">Top-level navigation tree. Same node graph as Plotbound — only labels differ.</p>
+
+  <div class="info-box">
+    <strong>Direct port:</strong> The Plotbound navigation flow diagram (SVG in source GDD) maps 1:1 onto Sigilbound. Engineering can copy the Phaser scene graph wholesale: <code>HomeScene → StageSelectScene → CombatScene → ResultScene</code>.
+  </div>
+
+  <div class="card">
+    <div class="card-title">🧭 Top-Level Scenes</div>
+    <table class="data-table">
+      <tr><th>Scene</th><th>Plotbound Name</th><th>Function</th></tr>
+      <tr><td>HomeScene</td><td>HomeScene</td><td>Hub: Play / Stronghold / Inventory / Talents / Shop / Friends / BP</td></tr>
+      <tr><td>StageSelectScene</td><td>OrderSelectScene</td><td>1-100 stage map · biome groupings · star previews</td></tr>
+      <tr><td>LoadoutScene</td><td>LoadoutScene</td><td>Equip gear · select talents · review deck</td></tr>
+      <tr><td>CombatScene</td><td>HarvestScene</td><td>Main gameplay — turn loop</td></tr>
+      <tr><td>ResultScene</td><td>ResultScene</td><td>Stage cleared / defeated</td></tr>
+      <tr><td>StrongholdScene</td><td>FarmsteadScene</td><td>4-zone upgrade tree</td></tr>
+      <tr><td>InventoryScene</td><td>InventoryScene</td><td>Equipment management · crafting</td></tr>
+      <tr><td>VendorScene</td><td>MarketScene</td><td>Card / equipment shop · per-stage</td></tr>
+      <tr><td>DuelScene</td><td>DuelScene</td><td>PvP queue + matched duel</td></tr>
+      <tr><td>BattlePassScene</td><td>BattlePassScene</td><td>40-tier track</td></tr>
+      <tr><td>AchievementScene</td><td>AchievementScene</td><td>999 list with filters</td></tr>
+      <tr><td>ProfileScene</td><td>ProfileScene</td><td>Avatar / titles / banners / stats</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🚦 Key Flow Diagram (text)</div>
+    <pre style="font-size:11px;background:var(--cream-2);padding:12px;border-radius:8px;overflow-x:auto;">
+    Login → Home
+              ├─ Play
+              │   ├─ Story Stages → StageSelect → Loadout → Combat → Result → (Home / Replay / Next)
+              │   └─ PvP Duel → Loadout → Combat (seeded) → Result → Rating Update
+              ├─ Stronghold → Zone selector → Upgrade tier → Confirm cost
+              ├─ Inventory → Slot tabs → Equip / Salvage / Craft / Upgrade
+              ├─ Talents → Slot pre-run → Lock loadout
+              ├─ Shop → Crystals / Cosmetics / Bundles
+              ├─ Friends → List → Profile / Spectate / Gift
+              ├─ Battle Pass → Tier track → Claim
+              ├─ Achievements → Filter / Sort / View progress
+              └─ Profile → Edit avatar / title / banner</pre>
+  </div>
+</section>
+
+<!-- ======= MOBILE UI ======= -->
+<section class="section" id="sec-ui-mobile">
+  <h1 class="section-title">📱 Mobile UI/UX</h1>
+  <p class="section-subtitle">Portrait-first layout, optimized for thumb-reach. Mirrors Plotbound's mobile UX.</p>
+
+  <div class="info-box">
+    <strong>Plotbound parity:</strong> Same 1080×2400 base canvas, same FTP-style home (single hero CTA), same horizontal top strips for talents/combos in combat. Engineering can reuse the entire mobile layout system.
+  </div>
+
+  <div class="card">
+    <div class="card-title">📐 Mobile Combat Layout (top → bottom)</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Top strip 1 (~6%):</strong> Talent icons (active 2-4) — horizontal scroll if &gt;3</li>
+      <li><strong>Top strip 2 (~5%):</strong> Combo readout (Onslaught/Triadic/Relentless multipliers, color-coded)</li>
+      <li><strong>Enemy zone (~28%):</strong> 1-3 enemy sprites with HP bars + intent telegraph icon overhead</li>
+      <li><strong>Sigil row (~14%):</strong> 3-6 sigil slots, each ~85×120px with bound card preview</li>
+      <li><strong>Player HUD (~8%):</strong> HP bar, block badge, stamina pips, gold counter</li>
+      <li><strong>Hand (~28%):</strong> Cards fanned along bottom — drag-up to play onto a sigil slot</li>
+      <li><strong>Bottom action bar (~8%):</strong> [End Turn] · [Discard Pile] · [Deck] · [Settings]</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👍 Mobile-First Interactions</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Card play:</strong> Long-press to inspect, drag-up to sigil slot to bind</li>
+      <li><strong>Enemy targeting:</strong> Tap enemy to set as default target. Reaction cards auto-route to attacker.</li>
+      <li><strong>Talent inspect:</strong> Tap top strip icon → tooltip overlay</li>
+      <li><strong>HUD compact mode:</strong> Optional setting collapses HUD when hand is open, prioritizing card readability</li>
+      <li><strong>One-handed mode:</strong> Reaches all action buttons within thumb arc on devices ≤ 6.7"</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏠 Mobile Home Screen</div>
+    <p style="font-size:13px;">Single hero CTA: "Continue Run" or "Start Stage X" big button center. Below: row of 4 secondary CTAs (Stronghold / Inventory / Talents / Shop). Top: avatar + currency strip. Bottom: 5-tab nav (Home / Duel / BP / Friends / Profile). Same hierarchy as Plotbound.</p>
+  </div>
+</section>
+
+<!-- ======= BROWSER UI ======= -->
+<section class="section" id="sec-ui-browser">
+  <h1 class="section-title">🖥️ Browser UI/UX</h1>
+  <p class="section-subtitle">Desktop layout. Wider canvas allows side panels for inventory and combat log.</p>
+
+  <div class="card">
+    <div class="card-title">📐 Desktop Combat Layout (1440×900 base)</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Left rail (~18%):</strong> Combat log scroll · turn-by-turn damage history</li>
+      <li><strong>Center stage (~64%):</strong> Same vertical stack as mobile (enemies / sigils / hud / hand) but wider</li>
+      <li><strong>Right rail (~18%):</strong> Active talents card view · equipped gear preview</li>
+      <li><strong>Top bar:</strong> Currencies + settings + minimize</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⌨️ Keyboard Shortcuts</div>
+    <table class="data-table">
+      <tr><th>Key</th><th>Action</th></tr>
+      <tr><td>1-6</td><td>Play card from hand position</td></tr>
+      <tr><td>Q/W/E</td><td>Bind to sigil slot 1/2/3</td></tr>
+      <tr><td>R</td><td>Reroll vendor (if available)</td></tr>
+      <tr><td>Space</td><td>End turn</td></tr>
+      <tr><td>Tab</td><td>Toggle inspect mode (hover for full card)</td></tr>
+      <tr><td>Esc</td><td>Pause / settings</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ======= TECHNICAL ======= -->
+<section class="section" id="sec-tech">
+  <h1 class="section-title">⚙️ Technical Architecture</h1>
+  <p class="section-subtitle">Phaser3 + React + Capacitor + Firebase. <strong>Identical stack to Plotbound</strong> — codebase is the starting fork.</p>
+
+  <div class="info-box">
+    <strong>This is the most important section for the Claude Code workflow.</strong> Engineering should fork the Plotbound repo, run the migration steps in the next section, and immediately have a playable Sigilbound shell. No tech changes are required.
+  </div>
+
+  <div class="card">
+    <div class="card-title">🧰 Stack Summary</div>
+    <table class="data-table">
+      <tr><th>Layer</th><th>Tech</th><th>Notes</th></tr>
+      <tr><td>Game engine</td><td>Phaser 3.70+</td><td>Canvas/WebGL renderer for combat scenes</td></tr>
+      <tr><td>UI overlays</td><td>React 18 + Tailwind</td><td>Menus, profile, BP, achievements, vendors</td></tr>
+      <tr><td>Animation</td><td>GSAP 3 + Phaser Tweens</td><td>GSAP for HUD, Phaser for in-scene</td></tr>
+      <tr><td>Mobile wrapper</td><td>Capacitor 6</td><td>iOS/Android native wrapping</td></tr>
+      <tr><td>Backend</td><td>Firebase (Firestore + Cloud Functions + Auth)</td><td>Same project structure as Plotbound</td></tr>
+      <tr><td>Anti-cheat</td><td>Server-authoritative duel validation</td><td>Same seed verification model</td></tr>
+      <tr><td>Audio</td><td>Howler.js</td><td>SFX banks + dynamic music</td></tr>
+      <tr><td>Build/CI</td><td>Vite + GitHub Actions</td><td>Same pipeline</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📁 Data Model — PlayerProfile (extended)</div>
+<pre style="font-size:11px;background:var(--cream-2);padding:12px;border-radius:8px;overflow-x:auto;">
+PlayerProfile {
+  id: string
+  displayName: string
+  level: number, xp: number
+  currencies: { gold, crystals, soulShards }
+  stronghold: { keep:1-5, archive:1-5, armory:1-5, treasury:1-5 }
+
+  // NEW vs Plotbound — combat fields
+  player: {
+    maxHp: number,            // base 50, +scaling
+    currentHp: number,        // resets per stage default; persists in hardcore
+    atk: number, def: number,
+    crit: number, speed: number, stamina: number
+  }
+
+  // NEW — equipment system
+  inventory: {
+    weapon: EquipmentRef|null,
+    offhand: EquipmentRef|null,
+    helm: EquipmentRef|null,
+    armor: EquipmentRef|null,
+    ring: EquipmentRef|null,
+    amulet: EquipmentRef|null
+  }
+  equipmentBag: EquipmentRef[]   // unequipped items
+
+  talents: { unlocked: TalentId[], loadout: TalentId[] }   // renamed from "perks"
+  cards: { collection: CardId[], deck: CardId[] }
+  achievements: AchievementProgress
+  battlePass: { season, tier, xp, premiumOwned }
+  pvp: { sigilRating, wins, losses }
+  cosmetics: { avatar, title, banner, weaponSkin, cardBack, sigilFrame }
+  stats: { runsPlayed, enemiesDefeated, totalDamageDealt, totalDamageTaken, ... }
+}</pre>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📁 Data Model — SessionRecord (combat run)</div>
+<pre style="font-size:11px;background:var(--cream-2);padding:12px;border-radius:8px;overflow-x:auto;">
+SessionRecord {
+  runId: string
+  seed: number              // server-issued, deterministic for replays
+  startedAt: timestamp
+  stages: StageResult[]     // each contains:
+                            //   stageId, starsEarned, hpEnd, damageDealtByType[],
+                            //   enemiesDefeated[], combosTriggered[],
+                            //   bonusObjectivesCleared[], cardsPlayedCount,
+                            //   damageTaken (NEW — array per turn)
+  finalState: 'cleared' | 'defeated' | 'abandoned'
+  rewards: { gold, soulShards, crystals, equipmentDrops[], cardRewards[] }
+  loadout: { talents:[], equipment:{...}, deck:[] }   // snapshot at run start
+}</pre>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📁 Data Model — EnemyState (NEW vs Plotbound)</div>
+<pre style="font-size:11px;background:var(--cream-2);padding:12px;border-radius:8px;overflow-x:auto;">
+EnemyState {
+  id: string                // 'frost_giant_42'
+  archetype: 'brute'|'skirmisher'|'caster'|'tank'|'summoner'|'elite'|'boss'
+  maxHp: number, currentHp: number
+  atk: number, def: number, speed: number
+  damageType: 'steel'|'pierce'|'pyre'|'frost'|'arcane'
+  intent: { type: 'attack'|'block'|'summon'|'debuff'|'charge'|'hidden', value:number }
+  intentQueue: Intent[]    // multi-turn telegraph
+  statusEffects: { burn, chill, curse, vulnerable, ... }
+  resistances: { steel, pierce, pyre, frost, arcane }
+}</pre>
+  </div>
+</section>
+
+<!-- ======= VFX SFX ======= -->
+<section class="section" id="sec-vfx">
+  <h1 class="section-title">✨ VFX & SFX Spec</h1>
+  <p class="section-subtitle">Particle effects and sound design. Refits Plotbound's VFX library to combat events.</p>
+
+  <div class="card">
+    <div class="card-title">💥 Combat VFX Catalog</div>
+    <table class="data-table">
+      <tr><th>Event</th><th>VFX</th><th>Plotbound Equivalent</th></tr>
+      <tr><td>Damage hit (Steel)</td><td>Spark sheet + slash arc</td><td>Crop slash particles</td></tr>
+      <tr><td>Damage hit (Pyre)</td><td>Fire burst + ember particles</td><td>Sun burst (fruit harvest)</td></tr>
+      <tr><td>Damage hit (Frost)</td><td>Crystal shatter + frost mist</td><td>Snowfall effect (winter season)</td></tr>
+      <tr><td>Damage hit (Pierce)</td><td>Pinpoint impact + dust</td><td>Sharp pop</td></tr>
+      <tr><td>Damage hit (Arcane)</td><td>Purple rune circle + glow</td><td>Magic event sparkle</td></tr>
+      <tr><td>Block applied</td><td>Translucent shield arc + chime</td><td>Tool sparkle</td></tr>
+      <tr><td>Heal</td><td>Green leaf rise + soft pulse</td><td>Compost healing animation</td></tr>
+      <tr><td>Combo trigger</td><td>Golden shockwave + cascade</td><td>Harvest cascade — direct port</td></tr>
+      <tr><td>Crit</td><td>Screen shake + larger damage number + red glow</td><td>NEW — no Plotbound equivalent</td></tr>
+      <tr><td>Enemy death</td><td>Sprite dissolve + soul wisp</td><td>Order completion sparkle</td></tr>
+      <tr><td>Boss arrival</td><td>Screen darken + spotlight + name banner</td><td>Big Order intro animation</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔊 Combat SFX Bank</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Combo escalation:</strong> Onslaught T1 / T2 / T3 use rising-pitch versions of the same chime (mirrors Plotbound's combo audio philosophy)</li>
+      <li><strong>Damage type signature:</strong> Steel = metallic clang, Pierce = whoosh-thud, Pyre = whoosh-roar, Frost = crystalline shimmer, Arcane = bell-and-whisper</li>
+      <li><strong>HP danger state:</strong> When HP &lt; 25%, ambient heartbeat fades in over 2s</li>
+      <li><strong>Enemy intent telegraph:</strong> Subtle "tell" sound when intent icon appears (per archetype)</li>
+      <li><strong>Boss music:</strong> 5 unique boss tracks, one per biome. Phase-2 transition swaps to climactic cue.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎵 Music System</div>
+    <p style="font-size:13px;">Layered score with adaptive intensity. Same engine pattern as Plotbound's seasonal music switching.</p>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li>5 biome themes (one per dungeon arc)</li>
+      <li>Hub theme (Home, Stronghold, Inventory)</li>
+      <li>Combat theme layered: percussion-only when calm, full mix when intent ≥ heavy attack</li>
+      <li>Victory + defeat stings (4-second cues)</li>
+      <li>BP claim cue, achievement unlock cue, level-up fanfare</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======= MIGRATION (CRITICAL) ======= -->
+<section class="section" id="sec-migration">
+  <h1 class="section-title">🔧 Migration from Plotbound — Engineering Playbook</h1>
+  <p class="section-subtitle">Step-by-step guide for forking Plotbound into Sigilbound. <strong>READ THIS FIRST</strong> before opening Claude Code.</p>
+
+  <div class="danger-box">
+    <strong>This is the canonical migration document.</strong> Engineering should fork the Plotbound repo, follow the find-replace map below, then implement the additive systems (HP/equipment/enemy AI/turn loop). All other systems remain functionally identical.
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔄 Phase 1 — Cosmetic Rename Pass (Day 1)</div>
+    <p style="font-size:13px;">Run a global find-replace across the codebase. These are pure renames — no logic changes.</p>
+    <table class="data-table">
+      <tr><th>Plotbound term</th><th>→ Sigilbound term</th><th>Domain</th></tr>
+      <tr><td><code>Seed</code></td><td><code>Action</code></td><td>Card type</td></tr>
+      <tr><td><code>Tool</code></td><td><code>Tactic</code></td><td>Card type</td></tr>
+      <tr><td><code>Event</code></td><td><code>Reaction</code></td><td>Card type</td></tr>
+      <tr><td><code>Plot</code> / <code>PlotSlot</code></td><td><code>Sigil</code> / <code>SigilSlot</code></td><td>Combo binding</td></tr>
+      <tr><td><code>Order</code></td><td><code>Enemy</code></td><td>Encounter unit</td></tr>
+      <tr><td><code>Crop</code></td><td><code>Strike</code></td><td>Played-card output</td></tr>
+      <tr><td><code>Harvest</code></td><td><code>Resolve</code></td><td>Combo trigger event</td></tr>
+      <tr><td><code>Round</code></td><td><code>Turn</code></td><td>Time unit</td></tr>
+      <tr><td><code>Season</code></td><td><code>Battle</code></td><td>Run unit</td></tr>
+      <tr><td><code>Farmstead</code></td><td><code>Stronghold</code></td><td>Meta tree</td></tr>
+      <tr><td><code>Land</code> (zone)</td><td><code>Keep</code></td><td>Stronghold zone</td></tr>
+      <tr><td><code>Barn</code></td><td><code>Archive</code></td><td>Stronghold zone</td></tr>
+      <tr><td><code>Greenhouse</code></td><td><code>Armory</code></td><td>Stronghold zone</td></tr>
+      <tr><td><code>Market</code></td><td><code>Treasury</code></td><td>Stronghold zone</td></tr>
+      <tr><td><code>Perk</code></td><td><code>Talent</code></td><td>Run modifier</td></tr>
+      <tr><td><code>FarmCoin</code> / <code>Coin</code></td><td><code>Gold</code></td><td>Currency</td></tr>
+      <tr><td><code>SeedGem</code></td><td><code>Crystal</code></td><td>Premium currency</td></tr>
+      <tr><td><code>PerkShard</code></td><td><code>SoulShard</code></td><td>Crafting currency</td></tr>
+      <tr><td><code>HarvestRating</code></td><td><code>SigilRating</code></td><td>PvP ELO</td></tr>
+      <tr><td><code>AbundanceBonus</code></td><td><code>Onslaught</code></td><td>Combo: same type</td></tr>
+      <tr><td><code>GardenVariety</code></td><td><code>TriadicStrike</code></td><td>Combo: 3 distinct types</td></tr>
+      <tr><td><code>LoyalHarvest</code></td><td><code>Relentless</code></td><td>Combo: streak</td></tr>
+      <tr><td><code>OrderCard</code></td><td><code>EnemyEntity</code></td><td>Encounter data</td></tr>
+      <tr><td>Asset paths: <code>/farm/</code></td><td><code>/combat/</code></td><td>Folder rename</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+      <strong>Engineer task:</strong> Use IDE refactoring (right-click → Rename Symbol) for code identifiers; use sed/ripgrep for asset paths and string literals. Run unit tests after each rename group.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">➕ Phase 2 — Additive Systems (Weeks 1-3)</div>
+    <p style="font-size:13px;">After rename, add these new systems on top of the existing structure. Each maps to a specific file or module addition.</p>
+
+    <div class="diff-box" style="margin-bottom:10px;">
+      <strong>NEW: <code>PlayerCombatant.js</code></strong>
+      <p style="font-size:12px;margin:4px 0;">Stat block module. Tracks HP, ATK, DEF, CRIT, SPEED, STAMINA. Initialized from PlayerProfile + Equipment + Talents. Exposes <code>takeDamage()</code>, <code>heal()</code>, <code>onTurnStart()</code>, <code>onTurnEnd()</code> hooks.</p>
+    </div>
+
+    <div class="diff-box" style="margin-bottom:10px;">
+      <strong>NEW: <code>EnemyAI.js</code></strong>
+      <p style="font-size:12px;margin:4px 0;">7 archetype handlers: brute, skirmisher, caster, tank, summoner, elite, boss. Each owns an intent-rolling table. Exposes <code>chooseIntent(state)</code>, <code>executeIntent(state)</code>.</p>
+    </div>
+
+    <div class="diff-box" style="margin-bottom:10px;">
+      <strong>NEW: <code>TurnLoop.js</code></strong>
+      <p style="font-size:12px;margin:4px 0;">Replaces Plotbound's per-round resolve cycle with: PlayerActionPhase → EnemyTelegraphPhase → EnemyResolvePhase → EndTurnTriggers. Reuses Plotbound's tween scheduler.</p>
+    </div>
+
+    <div class="diff-box" style="margin-bottom:10px;">
+      <strong>NEW: <code>EquipmentSystem.js</code></strong>
+      <p style="font-size:12px;margin:4px 0;">6-slot inventory model. Equipping recomputes player stats. Crafting + upgrade modules. Salvage handler. Mythic set bonus checker.</p>
+    </div>
+
+    <div class="diff-box" style="margin-bottom:10px;">
+      <strong>NEW: <code>DamageSystem.js</code></strong>
+      <p style="font-size:12px;margin:4px 0;">5 damage types with resistance lookup. Status effect (burn / chill / curse / vulnerable) tick handler. Crit roll. Combo bonus application from existing <code>ComboResolver</code>.</p>
+    </div>
+
+    <div class="diff-box">
+      <strong>NEW: <code>ReactionSystem.js</code></strong>
+      <p style="font-size:12px;margin:4px 0;">Trigger-driven card type. Listens for events (onAttack, onKill, onCombo, onDamageTaken). Queue system for resolving multiple reactions in defined priority order.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🟢 Phase 3 — Reused Systems (NO CHANGES needed)</div>
+    <p style="font-size:13px;">These Plotbound modules drop in untouched after the rename pass:</p>
+    <ul style="font-size:13px;line-height:1.7;padding-left:18px;">
+      <li><strong>Card draw / discard / shuffle</strong> — deck mechanics are identical</li>
+      <li><strong>Combo resolver</strong> — math + trigger logic identical (only ID names differ)</li>
+      <li><strong>Vendor / shop</strong> — slot rolls, reroll, prices — identical</li>
+      <li><strong>Stronghold (Farmstead) tree</strong> — 4×5 with prereqs — identical structure</li>
+      <li><strong>Battle Pass UI + XP</strong> — 40-tier ladder logic identical, only rewards swapped</li>
+      <li><strong>Achievement system</strong> — identical filter / sort / progress UI</li>
+      <li><strong>PvP matchmaker</strong> — same-seed async duels — identical (Power Score formula adjusted to add Equipment factor)</li>
+      <li><strong>Profile / cosmetics layer</strong> — avatar, banner, title, card back system — identical</li>
+      <li><strong>Currency wallet</strong> — 3 currencies — identical (renamed)</li>
+      <li><strong>Daily/weekly quests</strong> — identical scaffold, swapped quest content</li>
+      <li><strong>Firebase data sync</strong> — identical Firestore structure with extended fields</li>
+      <li><strong>Animation principles + timing</strong> — identical, retargeted</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔴 Phase 4 — Removed / Replaced Systems</div>
+    <ul style="font-size:13px;line-height:1.7;padding-left:18px;">
+      <li><strong>Order objective system</strong> → replaced by <strong>Bonus Objectives</strong> (similar shape, simpler since stage-clear is the primary goal)</li>
+      <li><strong>Crop yield calculation</strong> → replaced by <strong>Damage calculation</strong> (apply atk + buffs + combo + resistances → enemy HP)</li>
+      <li><strong>Seasonal weather modifiers</strong> → replaced by <strong>Biome modifiers</strong> (5 biomes vs 4 seasons, same hook system)</li>
+      <li><strong>Plotbound's "harvest fly" particle</strong> → renamed/restyled to <strong>"strike fly"</strong> per damage type</li>
+      <li><strong>4-season UI swap</strong> → replaced by <strong>5-biome UI swap</strong> (one extra theme)</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Phase 5 — File-by-File Engineering Checklist</div>
+    <table class="data-table">
+      <tr><th>File / Module (Plotbound)</th><th>Action</th><th>Notes</th></tr>
+      <tr><td><code>CardDatabase.js</code></td><td>Replace data file</td><td>Use Cards Data Master Table from this GDD</td></tr>
+      <tr><td><code>PerkRegistry.js</code> → <code>TalentRegistry.js</code></td><td>Rename + replace data</td><td>Use 20-talent table from this GDD</td></tr>
+      <tr><td><code>OrderGenerator.js</code> → <code>EnemyGenerator.js</code></td><td>Rename + rewrite</td><td>Now produces EnemyEntity with intent/AI</td></tr>
+      <tr><td><code>HarvestScene.js</code> → <code>CombatScene.js</code></td><td>Rename + extend</td><td>Add HP HUD, enemy sprites, intent overlays</td></tr>
+      <tr><td><code>FarmsteadScene.js</code> → <code>StrongholdScene.js</code></td><td>Rename + retheme</td><td>Same logic, new art</td></tr>
+      <tr><td><code>SeedComboResolver.js</code> → <code>ComboResolver.js</code></td><td>Rename only</td><td>Math identical</td></tr>
+      <tr><td>—</td><td>NEW: <code>EquipmentSystem.js</code></td><td>Build new — see Phase 2</td></tr>
+      <tr><td>—</td><td>NEW: <code>InventoryScene.js</code></td><td>Build new — equip/craft/salvage UI</td></tr>
+      <tr><td>—</td><td>NEW: <code>EnemyAI.js</code></td><td>Build new — 7 archetypes</td></tr>
+      <tr><td>—</td><td>NEW: <code>DamageSystem.js</code></td><td>Build new — 5 damage types</td></tr>
+      <tr><td>—</td><td>NEW: <code>StatusEffects.js</code></td><td>Build new — burn/chill/curse/vulnerable</td></tr>
+      <tr><td>—</td><td>NEW: <code>ReactionSystem.js</code></td><td>Build new — Reaction card triggers</td></tr>
+      <tr><td><code>BattlePassScene.js</code></td><td>No code changes</td><td>Replace season's reward catalog only</td></tr>
+      <tr><td><code>AchievementSystem.js</code></td><td>No code changes</td><td>Replace 999-entry data file</td></tr>
+      <tr><td><code>DuelScene.js</code></td><td>Minor edits</td><td>Power Score formula now includes equipment factor (×0.6)</td></tr>
+      <tr><td>All asset bundles</td><td>Replace</td><td>Re-art per "medieval fantasy" art direction</td></tr>
+    </table>
+  </div>
+
+  <div class="highlight-box">
+    <strong>Estimated migration time</strong> (assuming Plotbound at 70% built):
+    <ul style="font-size:13px;line-height:1.7;padding-left:18px;margin-top:6px;">
+      <li>Phase 1 (rename pass): <strong>1-2 days</strong></li>
+      <li>Phase 2 (additive systems): <strong>3-4 weeks</strong></li>
+      <li>Phase 3 (reused systems): <strong>0 days</strong></li>
+      <li>Phase 4 (replacements): <strong>1 week</strong></li>
+      <li>Data tables population (cards / talents / equipment / achievements): <strong>1-2 weeks</strong></li>
+      <li>Art replacement: <strong>4-6 weeks parallel</strong></li>
+      <li>QA + balance: <strong>2-3 weeks</strong></li>
+    </ul>
+    <p style="font-size:13px;margin-top:8px;"><strong>Total: ~3 months from rename to soft launch</strong>, vs ~9-12 months building from scratch.</p>
+  </div>
+</section>
+
+<!-- ======= ROADMAP ======= -->
+<section class="section" id="sec-milestones">
+  <h1 class="section-title">🗓️ Development Roadmap</h1>
+  <p class="section-subtitle">12-month phased rollout. Mirrors Plotbound's milestone cadence.</p>
+
+  <div class="card">
+    <div class="card-title">📅 Phase Plan</div>
+    <table class="data-table">
+      <tr><th>Phase</th><th>Months</th><th>Goal</th><th>Deliverables</th></tr>
+      <tr><td>P1: Fork & Rename</td><td>0–1</td><td>Codebase ready for combat</td><td>All Phase 1 renames merged · clean CI</td></tr>
+      <tr><td>P2: Combat Core</td><td>1–3</td><td>Playable single-stage combat</td><td>HP, turn loop, enemy AI, 5 damage types, 1 biome playable</td></tr>
+      <tr><td>P3: Equipment + Stronghold</td><td>3–4</td><td>Meta progression alive</td><td>6-slot equip, crafting, all 4 stronghold zones</td></tr>
+      <tr><td>P4: Content & Polish</td><td>4–6</td><td>All 5 biomes & 100 stages</td><td>Full bestiary, 5 boss fights, 60 cards, 96 equipment</td></tr>
+      <tr><td>P5: Social & PvP</td><td>6–7</td><td>Async duels, leaderboards</td><td>Sigil Rating ladder, friends, gifts</td></tr>
+      <tr><td>P6: Monetization</td><td>7–8</td><td>BP, IAP, cosmetics shop</td><td>Season 1 BP track, founder's pack</td></tr>
+      <tr><td>P7: Closed Beta</td><td>8–9</td><td>External feedback loop</td><td>1,000 testers · feedback in production tickets</td></tr>
+      <tr><td>P8: Soft Launch</td><td>9–10</td><td>Limited geo release</td><td>SEA + ANZ rollout, KPI monitoring</td></tr>
+      <tr><td>P9: Global Launch</td><td>10–11</td><td>Worldwide release</td><td>iOS + Android + Web</td></tr>
+      <tr><td>P10: Live Ops</td><td>11–12+</td><td>Season cadence</td><td>Season 2 BP, new biome, new Mythic set every 12 weeks</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎯 Launch KPI Targets (Day 30)</div>
+    <ul style="font-size:13px;line-height:1.7;padding-left:18px;">
+      <li>D1 retention: 45%+ (Plotbound benchmark: 48%)</li>
+      <li>D7 retention: 22%+</li>
+      <li>D30 retention: 10%+</li>
+      <li>Avg session length: 18+ minutes</li>
+      <li>BP conversion (Season 1): 8%+</li>
+      <li>ARPDAU (Day 30): $0.18+</li>
+      <li>App Store rating: 4.5+ stars</li>
+    </ul>
+  </div>
+
+  <div class="info-box" style="margin-top:14px;">
+    <strong>Cross-promotion opportunity:</strong> Sigilbound and Plotbound share the "-bound" suffix branding. Bundle promotions (e.g., "buy Plotbound BP, get a Sigilbound founder cosmetic") strengthen both titles and create a recognizable Anthropic-of-deckbuilders portfolio.
+  </div>
+</section>
+
+</div><!-- /main -->
+
+<script>
+function showSection(e, id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  if (e && e.currentTarget) e.currentTarget.classList.add('active');
+  if (window.innerWidth < 900) document.getElementById('sidebar').classList.remove('open');
+  window.scrollTo(0, 0);
+}
+function switchTab(e, id) {
+  const parent = e.currentTarget.closest('.card') || e.currentTarget.closest('.section');
+  parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  parent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+</script>
+
+</body>
+</html>

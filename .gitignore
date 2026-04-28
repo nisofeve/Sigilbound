@@ -1,0 +1,27 @@
+node_modules
+dist
+dist-ssr
+.DS_Store
+*.local
+.vscode/*
+!.vscode/extensions.json
+.idea
+.env
+.env.local
+.env.*.local
+.firebase
+.firebaserc
+firebase-debug.log
+functions/lib
+functions/node_modules
+coverage
+
+# TypeScript build cache (regenerated per machine).
+*.tsbuildinfo
+
+# Plotbound v0.1 baseline binary (111 MB) — kept locally as a reference
+# but excluded from git because it exceeds GitHub's 100 MB single-file limit.
+Plotbound_v0.1.zip
+
+# Claude Code workspace metadata.
+.claude/

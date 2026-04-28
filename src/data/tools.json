@@ -1,0 +1,28 @@
+[
+  { "id": "tool.watering_can", "type": "tool", "name": "Watering Can", "rarity": "common", "persistent": false, "effect": "+1 growth tick on target seed", "emoji": "💧" },
+  { "id": "tool.fertilizer_bag", "type": "tool", "name": "Fertilizer Bag", "rarity": "common", "persistent": false, "effect": "Next seed grows -1 round", "emoji": "🪣" },
+  { "id": "tool.garden_fork", "type": "tool", "name": "Garden Fork", "rarity": "common", "persistent": false, "effect": "Discard 2, draw 3", "emoji": "🍴" },
+  { "id": "tool.wheelbarrow", "type": "tool", "name": "Wheelbarrow", "rarity": "common", "persistent": false, "effect": "Sell ready crop early for 80% value", "emoji": "🛒" },
+  { "id": "tool.scarecrow", "type": "tool", "name": "Scarecrow", "rarity": "uncommon", "persistent": true, "effect": "Negate next Hazard event (3 rounds)", "emoji": "🎃" },
+  { "id": "tool.silver_hoe", "type": "tool", "name": "Silver Hoe", "rarity": "uncommon", "persistent": true, "effect": "+1 plot slot temp (2 rounds), +1 draw", "emoji": "⛏️" },
+  { "id": "tool.seed_vault", "type": "tool", "name": "Seed Vault", "rarity": "uncommon", "persistent": false, "effect": "Duplicate top discard Seed to hand", "emoji": "📦" },
+  { "id": "tool.compost_heap", "type": "tool", "name": "Compost Heap", "rarity": "uncommon", "persistent": true, "effect": "+2 coins per harvest this season", "emoji": "🪵" },
+  { "id": "tool.harvest_basket", "type": "tool", "name": "Harvest Basket", "rarity": "uncommon", "persistent": false, "effect": "Take 2 ready crops to bank without harvest cycle", "emoji": "🧺" },
+  { "id": "tool.drip_line", "type": "tool", "name": "Drip Line", "rarity": "uncommon", "persistent": true, "effect": "+1 tick all seeds round 4–8 only", "emoji": "💦" },
+  { "id": "tool.growth_potion", "type": "tool", "name": "Growth Potion", "rarity": "rare", "persistent": false, "effect": "Instantly mature one seed", "emoji": "🧪" },
+  { "id": "tool.golden_trowel", "type": "tool", "name": "Golden Trowel", "rarity": "rare", "persistent": false, "effect": "+50% next sale", "emoji": "🛠️" },
+  { "id": "tool.season_compass", "type": "tool", "name": "Season Compass", "rarity": "rare", "persistent": true, "effect": "Predict next 3 events", "emoji": "🧭" },
+  { "id": "tool.market_bell", "type": "tool", "name": "Market Bell", "rarity": "rare", "persistent": false, "effect": "Trigger early Market Day at any round 7+", "emoji": "🔔" },
+  { "id": "tool.rainbow_sprinkler", "type": "tool", "name": "Rainbow Sprinkler", "rarity": "legendary", "persistent": true, "effect": "+1 tick on all seeds every round (permanent)", "emoji": "🌈" },
+
+  { "id": "tool.quick_draw",      "type": "tool", "name": "Quick Draw",       "rarity": "common",    "persistent": false, "effect": "Draw 1 card.",                                                          "emoji": "🃏" },
+  { "id": "tool.bulk_order",      "type": "tool", "name": "Bulk Order",       "rarity": "common",    "persistent": false, "effect": "Draw 2 cards.",                                                          "emoji": "📜" },
+  { "id": "tool.swap_seeds",      "type": "tool", "name": "Swap Seeds",       "rarity": "common",    "persistent": false, "effect": "Discard 1 random card, then draw 1.",                                   "emoji": "🔄" },
+  { "id": "tool.scout",           "type": "tool", "name": "Scout",            "rarity": "uncommon",  "persistent": false, "effect": "Look at top 3 of deck. Keep 1 in hand; the other 2 go to deck bottom.", "emoji": "🔭" },
+  { "id": "tool.market_research", "type": "tool", "name": "Market Research",  "rarity": "uncommon",  "persistent": false, "effect": "Discard your entire hand, then draw that many cards +1.",               "emoji": "📊" },
+  { "id": "tool.recycle",         "type": "tool", "name": "Recycle",          "rarity": "uncommon",  "persistent": false, "effect": "Discard 1 random card, then draw 2.",                                   "emoji": "♻️" },
+  { "id": "tool.tactical_dig",    "type": "tool", "name": "Tactical Dig",     "rarity": "rare",      "persistent": false, "effect": "Draw 3 cards.",                                                          "emoji": "🪏" },
+  { "id": "tool.curators_pick",   "type": "tool", "name": "Curator's Pick",   "rarity": "rare",      "persistent": false, "effect": "Draw 3 from deck. Keep 1 in hand; the other 2 go to discard.",          "emoji": "🎯" },
+  { "id": "tool.seed_exchange",   "type": "tool", "name": "Seed Exchange",    "rarity": "rare",      "persistent": false, "effect": "Discard a random Seed from your hand, then draw 2.",                    "emoji": "🔁" },
+  { "id": "tool.harvest_oracle",  "type": "tool", "name": "Harvest Oracle",   "rarity": "legendary", "persistent": false, "effect": "Look at top 5 of deck. Keep 1 in hand; the other 4 go to deck bottom.", "emoji": "🔮" }
+]

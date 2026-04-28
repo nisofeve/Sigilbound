@@ -1,0 +1,182 @@
+[
+  {
+    "id": "perk.carrot_specialist",
+    "name": "Carrot Specialist",
+    "rarity": "common",
+    "kind": "goal",
+    "icon": "🥕",
+    "description": "Bonus goal: harvest 6 carrots this season. Reward: +30 coins.",
+    "modifier": { "type": "goal_harvest_crop", "crop": "carrot", "goal": 6, "reward": 30 }
+  },
+  {
+    "id": "perk.watering_pro",
+    "name": "Watering Pro",
+    "rarity": "common",
+    "kind": "passive",
+    "icon": "💧",
+    "description": "First 3 Watering Can plays this season are free (don't consume the card).",
+    "modifier": { "type": "watering_can_free_uses", "value": 3 }
+  },
+  {
+    "id": "perk.early_bird",
+    "name": "Early Bird",
+    "rarity": "common",
+    "kind": "passive",
+    "icon": "🌅",
+    "description": "Start every season with +5 starting coins.",
+    "modifier": { "type": "starting_coins", "value": 5 }
+  },
+  {
+    "id": "perk.extra_draw",
+    "name": "Extra Draw",
+    "rarity": "common",
+    "kind": "passive",
+    "icon": "🃏",
+    "description": "Draw 1 extra card on round 1.",
+    "modifier": { "type": "round_one_extra_draw", "value": 1 }
+  },
+  {
+    "id": "perk.corn_field_bonus",
+    "name": "Corn Field Bonus",
+    "rarity": "common",
+    "kind": "goal",
+    "icon": "🌽",
+    "description": "Bonus goal: plant 4 corn this season. Reward: +25 coins.",
+    "modifier": { "type": "goal_plant_crop", "crop": "corn", "goal": 4, "reward": 25 }
+  },
+  {
+    "id": "perk.variety_pack",
+    "name": "Variety Pack",
+    "rarity": "uncommon",
+    "kind": "combo_mod",
+    "icon": "🌈",
+    "description": "Garden Variety fires with only 2 different crop types instead of 3.",
+    "modifier": { "type": "triadic_threshold_delta", "value": -1 }
+  },
+  {
+    "id": "perk.loyalty_pact",
+    "name": "Loyalty Pact",
+    "rarity": "uncommon",
+    "kind": "combo_mod",
+    "icon": "🔁",
+    "description": "Loyal Harvest cap raised from +50% to +70%.",
+    "modifier": { "type": "relentless_cap_delta", "value": 2 }
+  },
+  {
+    "id": "perk.bigger_hand",
+    "name": "Bigger Hand",
+    "rarity": "uncommon",
+    "kind": "passive",
+    "icon": "📋",
+    "description": "Hand size +1.",
+    "modifier": { "type": "hand_size_delta", "value": 1 }
+  },
+  {
+    "id": "perk.plot_plus",
+    "name": "Plot Plus",
+    "rarity": "uncommon",
+    "kind": "passive",
+    "icon": "🚜",
+    "description": "+1 plot slot for this run only.",
+    "modifier": { "type": "plot_count_delta", "value": 1 }
+  },
+  {
+    "id": "perk.sustained_growth",
+    "name": "Sustained Growth",
+    "rarity": "uncommon",
+    "kind": "passive",
+    "icon": "🍃",
+    "description": "First seed planted each round grows -1 round faster.",
+    "modifier": { "type": "first_seed_grow_delta", "value": -1 }
+  },
+  {
+    "id": "perk.abundance_amplifier",
+    "name": "Abundance Amplifier",
+    "rarity": "rare",
+    "kind": "combo_mod",
+    "icon": "🌽",
+    "description": "Abundance Bonus tiers each jump one tier higher (2→+20%, 3→+35%, etc.).",
+    "modifier": { "type": "onslaught_tier_bump", "value": 1 }
+  },
+  {
+    "id": "perk.tycoon_touch",
+    "name": "Tycoon Touch",
+    "rarity": "rare",
+    "kind": "passive",
+    "icon": "💰",
+    "description": "All sale prices +10% globally this run.",
+    "modifier": { "type": "global_sale_mult", "value": 0.10 }
+  },
+  {
+    "id": "perk.quick_hands",
+    "name": "Quick Hands",
+    "rarity": "rare",
+    "kind": "goal",
+    "icon": "⚡",
+    "description": "Bonus goal: trigger any combo by round 3. (Phase 3)",
+    "modifier": { "type": "noop" }
+  },
+  {
+    "id": "perk.tool_master",
+    "name": "Tool Master",
+    "rarity": "rare",
+    "kind": "passive",
+    "icon": "🔧",
+    "description": "Tools draw +1 card after use (cap 6 bonus draws/season).",
+    "modifier": { "type": "tool_draw_bonus", "value": 1, "cap": 6 }
+  },
+  {
+    "id": "perk.hazard_shield",
+    "name": "Hazard Shield",
+    "rarity": "rare",
+    "kind": "defensive",
+    "icon": "🛡️",
+    "description": "First negative event auto-cancelled. (Phase 3)",
+    "modifier": { "type": "noop" }
+  },
+  {
+    "id": "perk.combo_cascade",
+    "name": "Combo Cascade",
+    "rarity": "epic",
+    "kind": "combo_mod",
+    "icon": "✨",
+    "description": "Triggering any combo grants +1 card draw next round.",
+    "modifier": { "type": "combo_cascade_draw", "value": 1 }
+  },
+  {
+    "id": "perk.triple_threat",
+    "name": "Triple Threat",
+    "rarity": "epic",
+    "kind": "goal",
+    "icon": "🌟",
+    "description": "Bonus goal: trigger all 3 core combos in one round. (Phase 3)",
+    "modifier": { "type": "noop" }
+  },
+  {
+    "id": "perk.lucky_streak",
+    "name": "Lucky Streak",
+    "rarity": "epic",
+    "kind": "passive",
+    "icon": "🎰",
+    "description": "First 3 random events this season are guaranteed Boons.",
+    "modifier": { "type": "forced_boon_count", "value": 3 }
+  },
+  {
+    "id": "perk.plotbound_master",
+    "name": "Plotbound Master",
+    "rarity": "legendary",
+    "kind": "combo_mod",
+    "icon": "👑",
+    "description": "All 3 combo modifiers active + +25% bonus on all combo value. (Phase 3)",
+    "modifier": { "type": "noop" }
+  },
+  {
+    "id": "perk.cosmic_harvest",
+    "name": "Cosmic Harvest",
+    "rarity": "mythic",
+    "kind": "passive",
+    "icon": "🌌",
+    "description": "Once per season: pick 1 plot to mature instantly. (Phase 3)",
+    "modifier": { "type": "noop" }
+  }
+]
