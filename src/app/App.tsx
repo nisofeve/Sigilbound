@@ -22,6 +22,7 @@ import CombatDeckScreen from '@ui/screens/CombatDeckScreen';
 import CombatShopScreen from '@ui/screens/CombatShopScreen';
 import {
   applyStageOutcomeToProfile,
+  applyCombatClearToProfile,
   consumeEquippedPerksForRun,
   loadProfile,
   presetToStartingDeck,
@@ -417,16 +418,35 @@ export default function App() {
           hardcore={screen.hardcore}
           initialHp={screen.carryHp}
           customDeck={screen.customDeck}
-          onOutcome={(outcome, stage, runner) => setScreen({
-            kind: 'combat_result',
-            outcome,
-            stage,
-            runner,
-            talents: screen.talents,
-            equipment: screen.equipment,
-            hardcore: screen.hardcore,
-            customDeck: screen.customDeck,
-          })}
+          playerName={profile.displayName ?? 'Sigilist'}
+          playerAvatar={profile.avatarEmoji || '🛡️'}
+          onOutcome={(outcome, stage, runner) => {
+            // Apply combat clear rewards to the profile before transitioning.
+            // Defeat passes through with no profile changes. The granted
+            // outcome is forwarded to the result screen so it can show what
+            // the player just earned.
+            const { profile: nextProfile, outcome: clearOutcome } = applyCombatClearToProfile(
+              profile,
+              stage,
+              {
+                cleared: outcome === 'cleared',
+                currentHp: runner.state.player.currentHp,
+                maxHp: runner.state.player.stats.maxHp,
+              },
+            );
+            if (nextProfile !== profile) persistProfile(nextProfile);
+            setScreen({
+              kind: 'combat_result',
+              outcome,
+              stage,
+              runner,
+              talents: screen.talents,
+              equipment: screen.equipment,
+              hardcore: screen.hardcore,
+              customDeck: screen.customDeck,
+              clearOutcome,
+            });
+          }}
           onExit={() => setScreen({ kind: 'combat_home' })}
         />
       )}
@@ -435,6 +455,7 @@ export default function App() {
           outcome={screen.outcome}
           stage={screen.stage}
           runner={screen.runner}
+          clearOutcome={screen.clearOutcome}
           onReplay={() => setScreen({
             kind: 'combat',
             stageNumber: screen.stage.number,

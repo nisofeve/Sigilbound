@@ -98,7 +98,7 @@ The codebase has been transformed from Plotbound (farming) into Sigilbound
 - **Phase 2 — combat core:** damage, status effects, player combatant, enemy AI, reactions, battle runner (134 tests)
 - **Phase 3 — equipment:** 6 slots, 6 rarities, 6 mythic sets (42 tests)
 - **Phase 4 — content:** 30 Actions + 20 Tactics + 10 Reactions + 52 equipment + 30 enemies + 100 stages + 20 talents (66 tests)
-- **Phase 5 — UI integration:** CombatScene, CombatView, CombatHomeScreen, CombatResultScreen
+- **Phase 5 — UI integration:** CombatView (pure React/CSS), CombatHomeScreen, CombatResultScreen
 - **Phase 6 — depth:** draw/discard pile, tactic play, talent runtime wiring, Hardcore mode (25 tests)
 - **Phase 7 — collection:** combat card inventory, deck builder, daily-rotating Bazaar (11 tests)
 

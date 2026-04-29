@@ -21,6 +21,9 @@ import {
   getStageDef,
   starsFor,
   replayRewardsFor,
+  combatStageRewards,
+  combatStageReplayRewards,
+  combatStarsFor,
   XP_FROM_SEASON_COMPLETE,
   XP_PER_RUN_COIN,
   XP_FROM_ACHIEVEMENT_BY_RARITY,
@@ -31,6 +34,8 @@ import {
   type Rating,
   type RunResult,
   type StageReward,
+  type CombatStageDef,
+  type CombatStageReward,
 } from '@engine/index';
 import { adjustInventory } from './inventory';
 import { addPerkCharges, isStarterPerk } from './perks';
@@ -444,6 +449,96 @@ function applyStageRewards(p: Profile, rewards: StageReward[]): void {
       }
     }
   }
+}
+
+// === Combat clear reward application ===
+
+export interface CombatClearOutcome {
+  stars: 0 | 1 | 2 | 3;
+  firstClearAtTier: 0 | 1 | 2 | 3;        // 0 = no new first-clear chest opened
+  rewardsGranted: CombatStageReward[];
+  newCurrentStage: number;                 // stage after this clear (unchanged on defeat)
+}
+
+/**
+ * Apply a combat stage clear (or defeat) to the profile and persist.
+ * - Defeat: nothing changes; returned outcome reports 0 stars.
+ * - Clear: stars are computed from final HP, currentStage advances,
+ *   stageStars updates, and either the first-clear chest at this star
+ *   tier OR a smaller replay reward is granted.
+ */
+export function applyCombatClearToProfile(
+  profile: Profile,
+  stage: CombatStageDef,
+  result: { cleared: boolean; currentHp: number; maxHp: number },
+): { profile: Profile; outcome: CombatClearOutcome } {
+  const stars = combatStarsFor({
+    cleared: result.cleared,
+    currentHp: result.currentHp,
+    maxHp: result.maxHp,
+  });
+
+  if (stars === 0) {
+    return {
+      profile,
+      outcome: { stars: 0, firstClearAtTier: 0, rewardsGranted: [], newCurrentStage: profile.currentStage },
+    };
+  }
+
+  // Clone the profile so we don't mutate the caller's reference.
+  const next: Profile = {
+    ...profile,
+    stageStars: { ...profile.stageStars },
+    stageRewardsClaimed: { ...profile.stageRewardsClaimed },
+  };
+
+  const stageNum = stage.number;
+  const prevBestStars = next.stageStars[stageNum] ?? 0;
+  if (stars > prevBestStars) {
+    next.stageStars = { ...next.stageStars, [stageNum]: stars };
+  }
+  if (next.currentStage < stageNum + 1) {
+    next.currentStage = stageNum + 1;
+  }
+
+  // Determine reward tier: first-clear at a higher star count than ever
+  // before pays the full chest; otherwise it's a (smaller) replay reward.
+  const claimedTier = next.stageRewardsClaimed[stageNum] ?? 0;
+  let rewardsGranted: CombatStageReward[];
+  let firstClearAtTier: 0 | 1 | 2 | 3 = 0;
+  if (stars > claimedTier) {
+    rewardsGranted = combatStageRewards(stage, stars);
+    firstClearAtTier = stars;
+    next.stageRewardsClaimed = { ...next.stageRewardsClaimed, [stageNum]: stars };
+  } else {
+    rewardsGranted = combatStageReplayRewards(stage, stars);
+  }
+
+  // Apply reward currencies. Mirrors the farming-side applyStageRewards
+  // behaviour for coins/xp/gems/shards.
+  for (const r of rewardsGranted) {
+    switch (r.type) {
+      case 'coins':
+        next.bankCoins = next.bankCoins + r.value;
+        next.totalCoinsEarned = next.totalCoinsEarned + r.value;
+        break;
+      case 'gems':
+        next.gems = next.gems + r.value;
+        break;
+      case 'shards':
+        next.perkShards = next.perkShards + r.value;
+        break;
+      case 'xp':
+        next.playerXp = Math.max(0, next.playerXp + r.value);
+        break;
+    }
+  }
+
+  saveProfile(next);
+  return {
+    profile: next,
+    outcome: { stars, firstClearAtTier, rewardsGranted, newCurrentStage: next.currentStage },
+  };
 }
 
 // === Player level reward claim ===

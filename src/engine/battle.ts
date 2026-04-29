@@ -19,6 +19,7 @@ import {
   onslaughtMultiplier,
   relentlessMultiplier,
   triadicStrikeBonus,
+  triadicStrikeMultiplier,
   relentlessStreakAfter,
 } from './combos';
 import { advanceCharge, chooseIntent } from './enemyAI';
@@ -67,6 +68,49 @@ import type { CardId, Perk } from './types';
 // Phase 4 will load the real card library; for the runner all we need is the
 // shape of a placed action.
 
+/**
+ * UI-facing event log emitted by endTurn(). Lets the React layer animate
+ * resolves and enemy actions in sequence rather than seeing them all flip
+ * to their final state in one frame.
+ *
+ * Events are produced in the order they conceptually happen during the
+ * turn, so the UI can replay them with delays + VFX.
+ */
+export type ResolveEvent =
+  | {
+      kind: 'action_resolve';
+      slotIndex: number;            // which slot fired (snapshot at resolve time)
+      cardId: string;
+      damageType: DamageType;
+      damageDealt: number;          // post-block HP delta on the target
+      blockConsumed: number;
+      wasCrit: boolean;
+      targetEnemyId: string | undefined;
+      enemyHpBefore: number;
+      enemyHpAfter: number;
+      enemyKilled: boolean;
+    }
+  | { kind: 'combo'; combo: 'onslaught' | 'triadic' | 'relentless' }
+  | {
+      kind: 'enemy_attack';
+      enemyId: string;
+      damageType: DamageType;
+      damageDealt: number;          // HP lost by player
+      blockConsumed: number;
+      playerHpBefore: number;
+      playerHpAfter: number;
+    }
+  | {
+      kind: 'enemy_block';
+      enemyId: string;
+      amount: number;
+    }
+  | {
+      kind: 'enemy_debuff';
+      enemyId: string;
+      status: string;
+    };
+
 export interface ActionInstance {
   cardId: string;
   damage: number;             // raw, pre-buff
@@ -77,6 +121,10 @@ export interface ActionInstance {
   // Targeting: the enemy ID this action is aimed at. Re-routes if target
   // dies mid-resolution.
   targetEnemyId?: string;
+  // The turn number this action was bound on. Used by the UI to allow
+  // "take back" of a same-turn bind. Once endTurn runs, the bound action
+  // is locked in and no longer matches state.turn.
+  boundOnTurn?: number;
 }
 
 // === Battle state ===
@@ -193,6 +241,15 @@ export class BattleRunner {
   // Recovery (clean-turn heal) to detect whether the player took damage
   // during the current turn.
   private damageTakenAtTurnStart: number = 0;
+
+  // Event log accumulated during endTurn. Reset at the start of each
+  // endTurn so the UI can read just the most recent turn's events.
+  private resolveLog: ResolveEvent[] = [];
+
+  /** Read-only view of events emitted by the most recent endTurn() call. */
+  getLastResolveLog(): ReadonlyArray<ResolveEvent> {
+    return this.resolveLog;
+  }
 
   constructor(config: BattleConfig) {
     this.rng = createRng(config.seed);
@@ -372,6 +429,7 @@ export class BattleRunner {
       hits: def.hits,
       blockPiercing: def.blockPiercing,
       targetEnemyId: target,
+      boundOnTurn: this.state.turn,
     };
     // Card leaves the hand. Bound cards live "on" the slot until they
     // resolve — at which point the runner pushes them to discard.
@@ -387,7 +445,11 @@ export class BattleRunner {
     // Auto-target the leftmost living enemy if not specified.
     const target = action.targetEnemyId
       ?? this.state.enemies.find(isEnemyAlive)?.id;
-    slot.bound = { ...action, targetEnemyId: target };
+    slot.bound = {
+      ...action,
+      targetEnemyId: target,
+      boundOnTurn: action.boundOnTurn ?? this.state.turn,
+    };
     return true;
   }
 
@@ -400,11 +462,96 @@ export class BattleRunner {
     return true;
   }
 
-  /** Empty a slot (player undoes a bind during plan phase). */
+  /** Empty a slot (player undoes a bind during plan phase). The bound card
+   * is discarded — does NOT return to hand. Use `returnSlotToHand` to undo
+   * a same-turn bind without losing the card. */
   unbindSlot(slotIndex: number): boolean {
     const slot = this.state.slots[slotIndex];
     if (!slot || !slot.bound) return false;
     slot.bound = null;
+    return true;
+  }
+
+  /**
+   * Predict which combos will fire if endTurn() is called right now and
+   * which slot indices contribute to each. UI uses this during plan phase
+   * to highlight bound slots that will participate in a combo before the
+   * player commits.
+   *
+   * Only slots with charge 0 (or that will tick to 0 this turn) are
+   * considered — anything still charging won't resolve so it's not part
+   * of the current resolve set.
+   */
+  previewCombosForEndTurn(): {
+    onslaught: number[];   // slot indices contributing to an Onslaught
+    triadic: number[];     // slot indices contributing to a Triadic
+    relentless: number[];  // slot indices contributing to a Relentless
+  } {
+    // Collect indices of slots that will resolve this turn. A slot resolves
+    // if its current charge would tick to 0 — i.e. charge <= 1 at plan time.
+    // (endTurn ticks all bound slots' charge by 1 before resolution.)
+    const resolvingSlots: { idx: number; type: DamageType }[] = [];
+    for (let si = 0; si < this.state.slots.length; si++) {
+      const slot = this.state.slots[si];
+      if (!slot.bound) continue;
+      const willResolve = slot.bound.charge <= 1;
+      if (willResolve) resolvingSlots.push({ idx: si, type: slot.bound.damageType });
+    }
+
+    if (resolvingSlots.length === 0) {
+      return { onslaught: [], triadic: [], relentless: [] };
+    }
+
+    const counts = new Map<DamageType, number>();
+    for (const s of resolvingSlots) counts.set(s.type, (counts.get(s.type) ?? 0) + 1);
+
+    const distinctCount = counts.size;
+    const allOneType = distinctCount === 1;
+    const carriedRelentless = allOneType
+      && (this.state.relentlessType === null
+        || this.state.relentlessType === resolvingSlots[0].type);
+
+    // Onslaught: any damage type with >= 2 copies fires. Each contributing
+    // slot is whichever slot has that damage type (could be multiple types
+    // each with their own onslaught cluster).
+    const onslaughtTypes = new Set<DamageType>();
+    for (const [type, c] of counts.entries()) {
+      if (c >= 2) onslaughtTypes.add(type);
+    }
+    const onslaughtSlots = resolvingSlots
+      .filter(s => onslaughtTypes.has(s.type))
+      .map(s => s.idx);
+
+    // Triadic: 3+ distinct types — every resolving slot contributes.
+    const triadicSlots = distinctCount >= 3 ? resolvingSlots.map(s => s.idx) : [];
+
+    // Relentless: needs single type AND a prior streak (or fresh streak start
+    // matching the prior type). UI shows the highlight even on fresh start
+    // since the player benefits from building it.
+    const relentlessSlots = (allOneType && (this.state.relentlessStreak > 0 || carriedRelentless))
+      ? resolvingSlots.map(s => s.idx)
+      : [];
+
+    return { onslaught: onslaughtSlots, triadic: triadicSlots, relentless: relentlessSlots };
+  }
+
+  /** Returns true if a slot's bound card can be returned to hand: it was
+   * bound on the current turn. Once endTurn runs, state.turn advances and
+   * the card becomes locked in until it resolves. */
+  canReturnSlotToHand(slotIndex: number): boolean {
+    const slot = this.state.slots[slotIndex];
+    if (!slot || !slot.bound) return false;
+    return slot.bound.boundOnTurn === this.state.turn;
+  }
+
+  /** Return a same-turn bound card from a slot back to the player's hand.
+   * Fails if the slot is empty or the card was bound on a previous turn. */
+  returnSlotToHand(slotIndex: number): boolean {
+    if (!this.canReturnSlotToHand(slotIndex)) return false;
+    const slot = this.state.slots[slotIndex]!;
+    const cardId = slot.bound!.cardId;
+    slot.bound = null;
+    this.state.hand.push(cardId);
     return true;
   }
 
@@ -525,6 +672,9 @@ export class BattleRunner {
   endTurn(): BattleState['outcome'] {
     if (this.state.outcome !== 'in_progress') return this.state.outcome;
 
+    // Reset the resolve log for this turn — UI reads via getLastResolveLog().
+    this.resolveLog = [];
+
     // Snapshot damage-taken so Swift Recovery can tell if this turn was clean.
     this.damageTakenAtTurnStart = this.state.player.damageTakenThisStage;
 
@@ -536,18 +686,20 @@ export class BattleRunner {
     }
 
     // 2. Resolution phase: slots with charge 0 fire L→R.
+    // Track the source slotIndex per action so the UI can play VFX from
+    // the right slot to the right enemy.
     const resolved: ActionInstance[] = [];
-    for (const slot of this.state.slots) {
+    const resolvedSlotIndices: number[] = [];
+    for (let si = 0; si < this.state.slots.length; si++) {
+      const slot = this.state.slots[si];
       if (slot.bound && slot.bound.charge <= 0) {
         resolved.push(slot.bound);
-        // Damage application happens in computeAndApplyResolves so combos
-        // run over the full resolve set.
+        resolvedSlotIndices.push(si);
         slot.bound = null;
       }
     }
     if (resolved.length > 0) {
-      this.computeAndApplyResolves(resolved);
-      // Resolved cards go to discard.
+      this.computeAndApplyResolves(resolved, resolvedSlotIndices);
       for (const action of resolved) {
         this.state.discard.push(action.cardId);
       }
@@ -721,8 +873,15 @@ export class BattleRunner {
     });
   }
 
-  private computeAndApplyResolves(resolvedReadonly: ReadonlyArray<ActionInstance>): void {
+  private computeAndApplyResolves(
+    resolvedReadonly: ReadonlyArray<ActionInstance>,
+    slotIndices: ReadonlyArray<number> = [],
+  ): void {
     let resolved: ActionInstance[] = [...resolvedReadonly];
+    // Parallel array of slot indices — kept in lockstep through replication
+    // below so each emitted resolve event carries the right source slot.
+    let resolvedSlots: number[] = [...slotIndices];
+    while (resolvedSlots.length < resolved.length) resolvedSlots.push(-1);
     // Group by damage type for combo evaluation.
     const counts = new Map<DamageType, number>();
     for (const a of resolved) {
@@ -736,6 +895,7 @@ export class BattleRunner {
         || this.state.relentlessType === resolved[0].damageType);
 
     const triadicBonus = triadicStrikeBonus(distinctCount);
+    const triadicMult = triadicStrikeMultiplier(distinctCount);
 
     const outgoingMult = playerOutgoingMult(this.state.player);
 
@@ -763,14 +923,17 @@ export class BattleRunner {
     const replicateChance = this.state.talents.cardReplicateChance;
     if (replicateChance > 0) {
       const expanded: ActionInstance[] = [];
-      for (const a of resolved) {
-        expanded.push(a);
+      const expandedSlots: number[] = [];
+      for (let i = 0; i < resolved.length; i++) {
+        expanded.push(resolved[i]);
+        expandedSlots.push(resolvedSlots[i]);
         if (this.rng.next() < replicateChance) {
-          expanded.push({ ...a }); // duplicate; treated as a fresh strike
+          expanded.push({ ...resolved[i] });
+          expandedSlots.push(resolvedSlots[i]); // replicas share the source slot
         }
       }
       resolved = expanded;
-      // Re-count damage types because replicas may have shifted them.
+      resolvedSlots = expandedSlots;
       counts.clear();
       for (const a of resolved) {
         counts.set(a.damageType, (counts.get(a.damageType) ?? 0) + 1);
@@ -779,7 +942,9 @@ export class BattleRunner {
 
     // Apply each strike. Combo bonuses fold into the raw damage; the damage
     // pipeline then resolves block/def/resistances at the target.
-    for (const action of resolved) {
+    for (let i = 0; i < resolved.length; i++) {
+      const action = resolved[i];
+      const sourceSlotIdx = resolvedSlots[i] ?? -1;
       const same = counts.get(action.damageType) ?? 1;
       const onMult = talentComboScale(onslaughtMultiplier(same));
       const reMult = carriedRelentless ? talentComboScale(relentlessMultiplier(this.state.relentlessStreak)) : 1;
@@ -793,12 +958,17 @@ export class BattleRunner {
       if (battlecryMult > 1) {
         this.state.talents = { ...t, firstActionUsedThisTurn: true };
       }
+      // Triadic stacks two ways:
+      //   - flat add (triadicBonus, +30 per strike when 3+ types resolve)
+      //   - multiplier (triadicMult, +25% per strike) folded into the buff
+      // chain alongside Onslaught/Relentless/equipment/talent multipliers.
       const buffedRaw = Math.round(
-        action.damage * onMult * reMult * outgoingMult * equipmentComboMult * eqTypeMult * talentTypeMult * battlecryMult * triadicTalentMult,
-      ) + (triadicBonus > 0 ? 10 : 0);
+        action.damage * onMult * reMult * triadicMult * outgoingMult * equipmentComboMult * eqTypeMult * talentTypeMult * battlecryMult * triadicTalentMult,
+      ) + triadicBonus;
 
       const target = this.findLivingTarget(action.targetEnemyId);
       if (!target) continue; // no enemies — strike wasted (still counts for combos)
+      const targetHpBefore = target.currentHp;
 
       // Hunter 4pc: first strike of stage auto-crits.
       const autoCrit = this.consumeFirstStrikeAutoCrit();
@@ -820,6 +990,8 @@ export class BattleRunner {
       this.state.enemies = this.state.enemies.map(e =>
         e.id === target.id ? applyEnemyDamage(e, result.hpDelta, result.blockConsumed) : e,
       );
+      const updatedTarget = this.state.enemies.find(e => e.id === target.id);
+      const targetHpAfter = updatedTarget?.currentHp ?? targetHpBefore;
 
       // Track player stats.
       this.state.player = {
@@ -841,11 +1013,26 @@ export class BattleRunner {
         }
       }
       const after = this.state.enemies.find(e => e.id === target.id);
-      if (after && !isEnemyAlive(after)) {
+      const wasKill = !!(after && !isEnemyAlive(after));
+      if (wasKill) {
         this.state.player = { ...this.state.player, enemiesDefeated: this.state.player.enemiesDefeated + 1 };
         this.fireReactionTrigger('onKill', { victimEnemyId: target.id });
         this.applyEquipmentOnKill();
       }
+
+      this.resolveLog.push({
+        kind: 'action_resolve',
+        slotIndex: sourceSlotIdx,
+        cardId: action.cardId,
+        damageType: action.damageType,
+        damageDealt: result.hpDelta,
+        blockConsumed: result.blockConsumed,
+        wasCrit: result.wasCrit,
+        targetEnemyId: target.id,
+        enemyHpBefore: targetHpBefore,
+        enemyHpAfter: targetHpAfter,
+        enemyKilled: wasKill,
+      });
     }
 
     // Combo bookkeeping.
@@ -855,14 +1042,17 @@ export class BattleRunner {
       if (onslaughtFired) {
         this.fireComboReaction('onslaught');
         this.applyEquipmentOnCombo('onslaught');
+        this.resolveLog.push({ kind: 'combo', combo: 'onslaught' });
       }
       if (triadicFired) {
         this.fireComboReaction('triadic');
         this.applyEquipmentOnCombo('triadic');
+        this.resolveLog.push({ kind: 'combo', combo: 'triadic' });
       }
       if (relentlessFired) {
         this.fireComboReaction('relentless');
         this.applyEquipmentOnCombo('relentless');
+        this.resolveLog.push({ kind: 'combo', combo: 'relentless' });
       }
     }
 
@@ -903,9 +1093,11 @@ export class BattleRunner {
         this.state.enemies = this.state.enemies.map(e =>
           e.id === enemy.id ? { ...e, block: e.block + intent.amount } : e,
         );
+        this.resolveLog.push({ kind: 'enemy_block', enemyId: enemy.id, amount: intent.amount });
         break;
       case 'debuff':
         this.state.player = applyPlayerStatus(this.state.player, intent.status, intent.stacks, intent.turns);
+        this.resolveLog.push({ kind: 'enemy_debuff', enemyId: enemy.id, status: intent.status });
         break;
       case 'summon':
         // Phase 4 will hook this up to the bestiary; for now no-op.
@@ -944,6 +1136,7 @@ export class BattleRunner {
       }
 
       const before = this.state.player;
+      const playerHpBefore = before.currentHp;
       // Enemy intents from the AI already fold atk into the damage value
       // (e.g., brute attack = atk * 1.5). Pass 0 to avoid double-counting.
       const { combatant, result } = takePlayerDamage(before, {
@@ -953,6 +1146,15 @@ export class BattleRunner {
         blockPiercing: intent.piercing,
       });
       this.state.player = combatant;
+      this.resolveLog.push({
+        kind: 'enemy_attack',
+        enemyId: enemy.id,
+        damageType: intent.type,
+        damageDealt: result.hpDelta,
+        blockConsumed: result.blockConsumed,
+        playerHpBefore,
+        playerHpAfter: combatant.currentHp,
+      });
 
       // onLethal: damage that would kill — fire BEFORE applying. We approximate
       // by checking after: if HP just hit 0 and we have phoenix_heart available,

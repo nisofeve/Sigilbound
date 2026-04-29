@@ -3,6 +3,7 @@ import { BattleRunner, type ActionInstance, type BattleConfig } from './battle';
 import { baseStatsForLevel } from './player';
 import type { EnemyDef } from './enemy';
 import { emptyEquippedSet, equip, type EquipmentDef } from './equipment';
+import { getAction as getActionDef } from './actionCards';
 
 const goblin: EnemyDef = {
   id: 'goblin',
@@ -115,6 +116,102 @@ describe('BattleRunner — slot binding', () => {
     runner.bindToSlot(0, strike(5));
     expect(runner.unbindSlot(0)).toBe(true);
     expect(runner.state.slots[0].bound).toBeNull();
+  });
+
+  it('returnSlotToHand: same-turn bound action returns to hand', () => {
+    const runner = new BattleRunner(defaultConfig());
+    // Find an action card in the starting hand and bind it.
+    const handIdx = runner.state.hand.findIndex(id => !!getActionDef(id));
+    expect(handIdx).toBeGreaterThanOrEqual(0);
+    const cardId = runner.state.hand[handIdx];
+    const handLenBefore = runner.state.hand.length;
+
+    expect(runner.bindHandToSlot(handIdx, 0)).toBe(true);
+    expect(runner.state.hand.length).toBe(handLenBefore - 1);
+    expect(runner.state.slots[0].bound?.cardId).toBe(cardId);
+
+    // Card was bound this turn (charge untouched) → returnable.
+    expect(runner.canReturnSlotToHand(0)).toBe(true);
+    expect(runner.returnSlotToHand(0)).toBe(true);
+    expect(runner.state.slots[0].bound).toBeNull();
+    expect(runner.state.hand).toContain(cardId);
+    expect(runner.state.hand.length).toBe(handLenBefore);
+  });
+
+  it('returnSlotToHand: card from a previous turn is locked', () => {
+    const runner = new BattleRunner(defaultConfig());
+    const def = getActionDef('act_003')!; // Heavy Swing — charge: 2
+    runner.bindToSlot(0, {
+      cardId: def.id, damage: def.damage, damageType: def.damageType,
+      charge: def.charge,
+    });
+    expect(runner.canReturnSlotToHand(0)).toBe(true);
+
+    runner.endTurn();
+    // After endTurn the charge ticked from 2 → 1 (not yet resolved). The
+    // slot's boundOnTurn is now stale relative to state.turn, so it locks.
+    expect(runner.state.slots[0].bound).not.toBeNull();
+    expect(runner.canReturnSlotToHand(0)).toBe(false);
+    expect(runner.returnSlotToHand(0)).toBe(false);
+  });
+
+  it('returnSlotToHand: empty slot returns false', () => {
+    const runner = new BattleRunner(defaultConfig());
+    expect(runner.canReturnSlotToHand(0)).toBe(false);
+    expect(runner.returnSlotToHand(0)).toBe(false);
+  });
+
+  it('endTurn emits resolve events with slot, target, hp deltas', () => {
+    const runner = new BattleRunner(defaultConfig());
+    runner.bindToSlot(0, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 0 });
+    runner.endTurn();
+    const log = runner.getLastResolveLog();
+    const resolves = log.filter(e => e.kind === 'action_resolve');
+    expect(resolves.length).toBe(1);
+    const ev = resolves[0];
+    if (ev.kind !== 'action_resolve') throw new Error('shape');
+    expect(ev.slotIndex).toBe(0);
+    expect(ev.cardId).toBe('act_001');
+    expect(ev.damageType).toBe('steel');
+    expect(ev.targetEnemyId).toBeDefined();
+    expect(ev.enemyHpAfter).toBeLessThanOrEqual(ev.enemyHpBefore);
+  });
+
+  it('previewCombosForEndTurn flags Onslaught when 2+ same-type slots resolve', () => {
+    const runner = new BattleRunner(defaultConfig());
+    runner.bindToSlot(0, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 0 });
+    runner.bindToSlot(1, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 0 });
+    const preview = runner.previewCombosForEndTurn();
+    expect(preview.onslaught.sort()).toEqual([0, 1]);
+    expect(preview.triadic).toEqual([]);
+  });
+
+  it('previewCombosForEndTurn flags Triadic when 3+ distinct types resolve', () => {
+    const runner = new BattleRunner(defaultConfig());
+    runner.bindToSlot(0, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 0 });
+    runner.bindToSlot(1, { cardId: 'act_006', damage: 5, damageType: 'pierce', charge: 0 });
+    runner.bindToSlot(2, { cardId: 'act_x', damage: 5, damageType: 'pyre', charge: 0 });
+    const preview = runner.previewCombosForEndTurn();
+    expect(preview.triadic.sort()).toEqual([0, 1, 2]);
+    expect(preview.onslaught).toEqual([]);
+  });
+
+  it('previewCombosForEndTurn ignores still-charging slots', () => {
+    const runner = new BattleRunner(defaultConfig());
+    runner.bindToSlot(0, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 0 });
+    runner.bindToSlot(1, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 3 });
+    const preview = runner.previewCombosForEndTurn();
+    expect(preview.onslaught).toEqual([]); // only one will resolve this turn
+  });
+
+  it('endTurn emits enemy_attack event when an enemy strikes', () => {
+    const runner = new BattleRunner(defaultConfig());
+    // Force the first enemy onto an attack intent so endTurn emits enemy_attack.
+    runner.state.enemies[0].intent = { kind: 'attack', damage: 3, type: 'steel' };
+    runner.endTurn();
+    const log = runner.getLastResolveLog();
+    const enemyAttacks = log.filter(e => e.kind === 'enemy_attack');
+    expect(enemyAttacks.length).toBeGreaterThanOrEqual(1);
   });
 
   it('retarget switches to a different living enemy', () => {

@@ -15,22 +15,33 @@
 //   └────────────────────────────────────┘
 
 import type { BattleRunner, CombatStageDef } from '@engine/index';
+import type { CombatClearOutcome } from '@storage/index';
 
 interface Props {
   outcome: 'cleared' | 'defeated';
   stage: CombatStageDef;
   runner: BattleRunner;
+  // Reward outcome from applyCombatClearToProfile. Optional so legacy
+  // callers (e.g. dev tooling) still render the screen, just without
+  // the chest panel.
+  clearOutcome?: CombatClearOutcome;
   onReplay: () => void;
   onNext: () => void;
   onHome: () => void;
 }
 
-export default function CombatResultScreen({ outcome, stage, runner, onReplay, onNext, onHome }: Props) {
+export default function CombatResultScreen({ outcome, stage, runner, clearOutcome, onReplay, onNext, onHome }: Props) {
   const player = runner.state.player;
   const cleared = outcome === 'cleared';
 
   const hpRatio = player.currentHp / Math.max(1, player.stats.maxHp);
-  const stars = !cleared ? 0 : hpRatio > 0.5 ? 3 : hpRatio > 0.25 ? 2 : 1;
+  // Prefer the engine-computed star tier from the clear outcome so the
+  // screen agrees with the rewards just granted. Fall back to the local
+  // HP-ratio heuristic for callers that don't pass clearOutcome.
+  const stars = clearOutcome?.stars ?? (
+    !cleared ? 0 : hpRatio > 0.5 ? 3 : hpRatio > 0.25 ? 2 : 1
+  );
+  const isFirstClearChest = (clearOutcome?.firstClearAtTier ?? 0) > 0;
 
   const damageByType = player.damageDealtByType;
   const totalDmg = player.damageDealtThisStage;
@@ -85,6 +96,14 @@ export default function CombatResultScreen({ outcome, stage, runner, onReplay, o
           <Stat label="Damage Taken" value={player.damageTakenThisStage} icon="🩸" />
           <Stat label="HP at End" value={`${player.currentHp}/${player.stats.maxHp}`} icon="❤" />
         </div>
+
+        {/* Reward chest — only when something was actually granted */}
+        {clearOutcome && clearOutcome.rewardsGranted.length > 0 && (
+          <RewardChest
+            rewards={clearOutcome.rewardsGranted}
+            firstClear={isFirstClearChest}
+          />
+        )}
 
         {/* Damage breakdown */}
         {totalDmg > 0 && (
@@ -167,6 +186,94 @@ export default function CombatResultScreen({ outcome, stage, runner, onReplay, o
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function RewardChest({ rewards, firstClear }: { rewards: ReadonlyArray<{ type: string; value: number }>; firstClear: boolean }) {
+  const iconFor = (t: string) => {
+    switch (t) {
+      case 'coins':  return '🪙';
+      case 'xp':     return '⭐';
+      case 'gems':   return '💎';
+      case 'shards': return '✨';
+      default:       return '?';
+    }
+  };
+  const labelFor = (t: string) => {
+    switch (t) {
+      case 'coins':  return 'COINS';
+      case 'xp':     return 'XP';
+      case 'gems':   return 'GEMS';
+      case 'shards': return 'SHARDS';
+      default:       return t.toUpperCase();
+    }
+  };
+  const colorFor = (t: string) => {
+    switch (t) {
+      case 'coins':  return '#fbbf24';
+      case 'xp':     return '#a78bfa';
+      case 'gems':   return '#7ec4ff';
+      case 'shards': return '#fde68a';
+      default:       return '#fbbf24';
+    }
+  };
+  return (
+    <div
+      className="sb-parchment p-3 mb-3 sb-fade-up relative"
+      style={{
+        boxShadow: firstClear
+          ? 'inset 0 0 0 1px rgba(255,235,180,0.55), 0 0 22px rgba(251,191,36,0.45), 0 4px 12px rgba(0,0,0,0.5)'
+          : undefined,
+      }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="sb-display text-[10px] tracking-[0.3em] opacity-80"
+             style={{ color: 'var(--sb-gold-dark)' }}>
+          ⛃ {firstClear ? 'FIRST CLEAR REWARD' : 'CLEAR REWARD'}
+        </div>
+        {firstClear && (
+          <span className="sb-display sb-pulse-crimson" style={{
+            fontSize: 9, padding: '2px 6px',
+            background: 'linear-gradient(180deg, #b91c1c 0%, #5b0e0e 100%)',
+            border: '1.5px solid var(--sb-gold)',
+            color: 'var(--sb-gold-light)',
+            letterSpacing: '0.18em',
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+          }}>NEW!</span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {rewards.map((r, i) => (
+          <div
+            key={`${r.type}-${i}`}
+            className="flex items-center gap-2"
+            style={{
+              background: 'rgba(74,50,28,0.45)',
+              border: '1.5px solid var(--sb-parchment-edge)',
+              borderRadius: 4,
+              padding: '6px 8px',
+            }}
+          >
+            <div style={{ fontSize: 22, lineHeight: 1, filter: `drop-shadow(0 0 6px ${colorFor(r.type)}aa)` }}>
+              {iconFor(r.type)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sb-display text-[8px] tracking-[0.2em] opacity-70" style={{ color: '#3d2810' }}>
+                {labelFor(r.type)}
+              </div>
+              <div className="sb-mono text-base font-bold" style={{ color: '#2c1810' }}>
+                +{r.value.toLocaleString()}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {!firstClear && (
+        <div className="sb-mono text-[9px] opacity-65 mt-2 text-center" style={{ color: '#3d2810' }}>
+          Replay payout — first-clear chest already claimed at this star tier.
+        </div>
+      )}
     </div>
   );
 }

@@ -31,6 +31,52 @@ interface ToneOpts {
   delay?: number;
 }
 
+// Filtered white noise burst. Used for slashes, woosh-fire, frost crackle —
+// percussive textures that pure tones can't fake. The filter sweep makes
+// the burst feel "tuned" rather than static-y.
+interface NoiseOpts {
+  duration: number;
+  startFreq: number;     // band-pass center at the start
+  endFreq?: number;
+  q?: number;
+  gain?: number;
+  delay?: number;
+  filter?: 'bandpass' | 'lowpass' | 'highpass';
+}
+function noise({ duration, startFreq, endFreq, q = 4, gain = 0.18, delay = 0, filter = 'bandpass' }: NoiseOpts) {
+  if (muted) return;
+  const c = audioContext();
+  if (!c) return;
+  const start = c.currentTime + delay;
+
+  const bufferSize = Math.max(1, Math.floor(c.sampleRate * duration));
+  const buf = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const src = c.createBufferSource();
+  src.buffer = buf;
+
+  const f = c.createBiquadFilter();
+  f.type = filter;
+  f.Q.value = q;
+  f.frequency.setValueAtTime(startFreq, start);
+  if (endFreq !== undefined) {
+    f.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), start + duration);
+  }
+
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.exponentialRampToValueAtTime(gain, start + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  src.connect(f);
+  f.connect(g);
+  g.connect(c.destination);
+  src.start(start);
+  src.stop(start + duration + 0.02);
+}
+
 function tone({ freq, endFreq, duration, type = 'sine', gain = 0.15, delay = 0 }: ToneOpts) {
   if (muted) return;
   const c = audioContext();
@@ -137,5 +183,91 @@ export const sfx = {
   endRound() {
     tone({ freq: 110, endFreq: 70, duration: 0.10, type: 'sine',     gain: 0.16 });
     tone({ freq: 90,  endFreq: 50, duration: 0.12, type: 'sine',     gain: 0.14, delay: 0.07 });
+  },
+
+  // === Combat damage-type SFX ===
+
+  // Steel — bandpass-noise slash plus a metallic ping.
+  steelHit() {
+    noise({ duration: 0.18, startFreq: 1800, endFreq: 600, q: 5, gain: 0.22 });
+    tone({ freq: 1800, endFreq: 900, duration: 0.10, type: 'square', gain: 0.07, delay: 0.02 });
+  },
+
+  // Pierce — sharp sweeping whistle + tight thwip.
+  pierceHit() {
+    tone({ freq: 2400, endFreq: 600, duration: 0.16, type: 'triangle', gain: 0.12 });
+    noise({ duration: 0.08, startFreq: 4000, endFreq: 1500, q: 6, gain: 0.10, delay: 0.04 });
+  },
+
+  // Pyre — noisy whoosh swelling into a low boom for the impact.
+  pyreHit() {
+    noise({ duration: 0.22, startFreq: 600, endFreq: 200, q: 1.4, gain: 0.20, filter: 'lowpass' });
+    tone({ freq: 110, endFreq: 50, duration: 0.18, type: 'sine', gain: 0.18, delay: 0.06 });
+  },
+
+  // Frost — high crystalline ping plus a brittle noise crackle.
+  frostHit() {
+    tone({ freq: 1760, endFreq: 2640, duration: 0.18, type: 'triangle', gain: 0.10 });
+    tone({ freq: 1320, endFreq: 1980, duration: 0.18, type: 'sine', gain: 0.08, delay: 0.02 });
+    noise({ duration: 0.10, startFreq: 5000, endFreq: 3000, q: 8, gain: 0.07, delay: 0.06 });
+  },
+
+  // Arcane — shimmer chord plus a static hiss.
+  arcaneHit() {
+    tone({ freq: 660, endFreq: 1320, duration: 0.20, type: 'triangle', gain: 0.10 });
+    tone({ freq: 880, endFreq: 1760, duration: 0.20, type: 'triangle', gain: 0.08, delay: 0.04 });
+    noise({ duration: 0.16, startFreq: 3200, endFreq: 1600, q: 3, gain: 0.06, delay: 0.04, filter: 'highpass' });
+  },
+
+  // === Combat result SFX ===
+
+  // Sparkly upper-octave punch on a critical strike.
+  critHit() {
+    tone({ freq: 1320, endFreq: 2640, duration: 0.10, type: 'square', gain: 0.10 });
+    tone({ freq: 1980, endFreq: 3960, duration: 0.10, type: 'triangle', gain: 0.10, delay: 0.04 });
+  },
+
+  // Low descending thud + breath — enemy dies.
+  enemyKill() {
+    tone({ freq: 220, endFreq: 60, duration: 0.30, type: 'sawtooth', gain: 0.18 });
+    noise({ duration: 0.30, startFreq: 800, endFreq: 200, q: 1, gain: 0.10, filter: 'lowpass', delay: 0.05 });
+  },
+
+  // Dull hit when an enemy attack lands on the player.
+  enemyAttack() {
+    tone({ freq: 180, endFreq: 90, duration: 0.16, type: 'square', gain: 0.16 });
+    noise({ duration: 0.10, startFreq: 1000, endFreq: 400, q: 2, gain: 0.10, delay: 0.02 });
+  },
+
+  // Metallic ring when the player gains block (their own or enemy's).
+  blockGain() {
+    tone({ freq: 540, endFreq: 800, duration: 0.16, type: 'triangle', gain: 0.10 });
+    tone({ freq: 800, endFreq: 1080, duration: 0.16, type: 'sine', gain: 0.08, delay: 0.04 });
+  },
+
+  // === Combo banner SFX — distinct character per combo type ===
+
+  // Onslaught: quick triple thump building into a heroic chord.
+  comboOnslaught() {
+    tone({ freq: 110, duration: 0.06, type: 'square', gain: 0.16 });
+    tone({ freq: 130, duration: 0.06, type: 'square', gain: 0.16, delay: 0.06 });
+    tone({ freq: 165, duration: 0.06, type: 'square', gain: 0.16, delay: 0.12 });
+    tone({ freq: 220, duration: 0.30, type: 'triangle', gain: 0.14, delay: 0.20 });
+    tone({ freq: 330, duration: 0.30, type: 'triangle', gain: 0.10, delay: 0.20 });
+    tone({ freq: 440, duration: 0.30, type: 'triangle', gain: 0.08, delay: 0.20 });
+  },
+
+  // Triadic Strike: rising arpeggio — three distinct tones.
+  comboTriadic() {
+    tone({ freq: 523, duration: 0.18, type: 'triangle', gain: 0.14 });
+    tone({ freq: 784, duration: 0.18, type: 'triangle', gain: 0.14, delay: 0.10 });
+    tone({ freq: 1175, duration: 0.30, type: 'triangle', gain: 0.16, delay: 0.20 });
+  },
+
+  // Relentless: deep ominous drone with a crescendo.
+  comboRelentless() {
+    tone({ freq: 82, endFreq: 165, duration: 0.50, type: 'sawtooth', gain: 0.16 });
+    tone({ freq: 110, endFreq: 220, duration: 0.50, type: 'sawtooth', gain: 0.12, delay: 0.04 });
+    noise({ duration: 0.40, startFreq: 200, endFreq: 600, q: 1, gain: 0.10, delay: 0.10, filter: 'lowpass' });
   },
 };

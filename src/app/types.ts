@@ -3,7 +3,7 @@
 // anti-cheat submit flow. Lifted out of App.tsx to keep the shell thin.
 
 import type { BattleRunner, CombatStageDef, EquippedSet, OrderCard, Perk, RunResult } from '@engine/index';
-import type { Profile, StageRunOutcome } from '@storage/index';
+import type { CombatClearOutcome, Profile, StageRunOutcome } from '@storage/index';
 
 export interface CloudRunHandle {
   runId: string;
@@ -36,4 +36,4 @@ export type Screen =
   // Cleanup of the farming branch comes in Phase 6.
   | { kind: 'combat_home' }
   | { kind: 'combat'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; carryHp?: number; customDeck?: ReadonlyArray<string> }
-  | { kind: 'combat_result'; outcome: 'cleared' | 'defeated'; stage: CombatStageDef; runner: BattleRunner; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; customDeck?: ReadonlyArray<string> };
+  | { kind: 'combat_result'; outcome: 'cleared' | 'defeated'; stage: CombatStageDef; runner: BattleRunner; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; customDeck?: ReadonlyArray<string>; clearOutcome?: CombatClearOutcome };

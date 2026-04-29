@@ -259,9 +259,9 @@ html, body, #root {
 
 /* ============================================================
  *  SIGILBOUND — Medieval Fantasy Heraldic theme
- *  Used by the combat flow (CombatHomeScreen, CombatView, CombatScene
- *  via inline styles, CombatResultScreen). Plotbound's farming UI
- *  keeps the older `.pb-*` classes above.
+ *  Used by the combat flow (CombatHomeScreen, CombatView,
+ *  CombatResultScreen). Plotbound's farming UI keeps the older
+ *  `.pb-*` classes above.
  * ============================================================ */
 
 :root {
@@ -283,7 +283,7 @@ html, body, #root {
   --sb-bronze:         #b45309;
   --sb-bronze-dark:    #78350f;
 
-  /* Damage type colors (mirrored in CombatScene helpers) */
+  /* Damage type colors (mirrored in src/game/theme.ts helpers) */
   --sb-pyre:           #fca5a5;
   --sb-frost:          #93c5fd;
   --sb-arcane:         #c4b5fd;
@@ -534,4 +534,189 @@ html, body, #root {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-6px); }
 }
+
+/* (sb-card-pop-in removed — the React layer now drives card-draw entirely
+   via inline transform overrides + CSS transitions; see drawingCards in
+   CombatView.tsx.) */
+
+/* Combo plan-phase pulse — soft, slow breathing on slots that will trigger
+   a combo when END TURN fires. The actual color comes from the inline
+   box-shadow set in the React component; this keyframe only modulates
+   the visual intensity by pulsing scale + filter brightness. */
+@keyframes sb-combo-pulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.18) saturate(1.15); }
+}
+.sb-combo-pulse { animation: sb-combo-pulse 1.5s ease-in-out infinite; }
+
+/* Slash impact arc — sweeping flash on the target after a slash/smash
+   strike lands. Duration set per-instance via --slash-duration so heavier
+   strikes can linger. */
+@keyframes sb-slash {
+  0%   { opacity: 0; transform: scaleX(0.15) scaleY(0.6); }
+  15%  { opacity: 1; transform: scaleX(1.1) scaleY(1.3); }
+  40%  { opacity: 1; transform: scaleX(1) scaleY(1.1); }
+  100% { opacity: 0; transform: scaleX(1.05) scaleY(0.7); }
+}
+.sb-slash { animation: sb-slash var(--slash-duration, 600ms) cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Charge-up aura — radial pulse that gathers + intensifies before launch.
+   Scales up from nothing, breathes once, dissipates. Duration set
+   per-instance via --aura-duration. */
+@keyframes sb-charge-aura {
+  0%   { opacity: 0; transform: scale(0.3); }
+  30%  { opacity: 0.8; transform: scale(0.85); }
+  60%  { opacity: 1; transform: scale(1.05); }
+  85%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.7); }
+}
+.sb-charge-aura { animation: sb-charge-aura var(--aura-duration, 900ms) cubic-bezier(0.4, 0, 0.6, 1) both; }
+
+/* Impact ring — expanding shockwave at the impact point. Width and
+   height grow from 0 to --ring-size; opacity fades out. */
+@keyframes sb-impact-ring {
+  0%   { opacity: 0.95; width: 0; height: 0; margin-left: 0; margin-top: 0; border-width: 6px; }
+  60%  { opacity: 0.6; }
+  100% {
+    opacity: 0;
+    width: var(--ring-size, 200px);
+    height: var(--ring-size, 200px);
+    margin-left: calc(var(--ring-size, 200px) / -2);
+    margin-top: calc(var(--ring-size, 200px) / -2);
+    border-width: 1px;
+  }
+}
+.sb-impact-ring { animation: sb-impact-ring var(--ring-duration, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Particle burst — small particles flying outward from impact, rotating
+   slightly as they fly. Each particle picks its own dx/dy/rot via
+   inline CSS variables so the burst pattern feels organic. */
+@keyframes sb-particle {
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(0.4); }
+  15%  { opacity: 1; transform: translate(calc(var(--particle-dx, 30px) * 0.2), calc(var(--particle-dy, 30px) * 0.2)) rotate(calc(var(--particle-rot, 0deg) * 0.3)) scale(1.1); }
+  100% {
+    opacity: 0;
+    transform: translate(var(--particle-dx, 30px), calc(var(--particle-dy, 30px) + 20px))
+               rotate(var(--particle-rot, 0deg)) scale(0.5);
+  }
+}
+.sb-particle { animation: sb-particle 950ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Screen shake — applied to the playfield container on impact moments.
+   Light = small jitter for normal hits. Heavy = bigger shake for crits,
+   kills, and boss attacks. */
+@keyframes sb-shake-light {
+  0%, 100% { transform: translate(0, 0); }
+  20%  { transform: translate(-3px, 1px); }
+  40%  { transform: translate(2px, -2px); }
+  60%  { transform: translate(-2px, 1px); }
+  80%  { transform: translate(2px, -1px); }
+}
+.sb-shake-light { animation: sb-shake-light 280ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+@keyframes sb-shake-heavy {
+  0%, 100% { transform: translate(0, 0); }
+  10%  { transform: translate(-8px, 3px); }
+  20%  { transform: translate(7px, -4px); }
+  30%  { transform: translate(-6px, 2px); }
+  40%  { transform: translate(5px, -3px); }
+  55%  { transform: translate(-4px, 2px); }
+  70%  { transform: translate(3px, -1px); }
+  85%  { transform: translate(-1px, 0); }
+}
+.sb-shake-heavy { animation: sb-shake-heavy 480ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+/* Beam VFX — static line that flashes in then fades. Opacity-only so the
+   inline rotate(angle) transform isn't overridden. */
+@keyframes sb-beam-fade {
+  0%   { opacity: 0; }
+  18%  { opacity: 1; }
+  60%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.sb-beam-fade { animation: sb-beam-fade var(--proj-duration, 200ms) ease-out both; }
+
+/* Combo wind-up — fast, intense pulse just before the volley launches.
+   Avoids `filter: brightness()` on the slot itself because the slot's
+   children (emoji, charge text) inherit it and get washed out. Instead
+   uses box-shadow / border-color which sit OUTSIDE the slot's child
+   bounds, leaving the icon legible. Scale stays modest for the same
+   reason. */
+@keyframes sb-combo-windup {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.10); }
+  100% { transform: scale(1.05); }
+}
+.sb-combo-windup { animation: sb-combo-windup 250ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Combat projectile — flies from start to end via CSS variables, with a
+   slight scale pulse mid-flight and a faint trail formed by the box-shadow
+   glow. Each projectile sets --proj-dx, --proj-dy, --proj-angle, and
+   --proj-duration as inline style values. */
+@keyframes sb-projectile-fly {
+  0%   {
+    transform: rotate(var(--proj-angle, 0deg)) scaleX(0.4) scaleY(0.5);
+    opacity: 0;
+  }
+  10%  {
+    transform: translate(calc(var(--proj-dx, 0) * 0.05), calc(var(--proj-dy, 0) * 0.05))
+               rotate(var(--proj-angle, 0deg)) scaleX(1.1) scaleY(1.05);
+    opacity: 1;
+  }
+  /* Mid-flight: project grows to peak size — feels weighty + theatrical
+     during the slow charge → fly window. */
+  50%  {
+    transform: translate(calc(var(--proj-dx, 0) * 0.5), calc(var(--proj-dy, 0) * 0.5))
+               rotate(var(--proj-angle, 0deg)) scaleX(1.35) scaleY(1.25);
+    opacity: 1;
+  }
+  88%  {
+    transform: translate(calc(var(--proj-dx, 0) * 0.93), calc(var(--proj-dy, 0) * 0.93))
+               rotate(var(--proj-angle, 0deg)) scaleX(1.1) scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--proj-dx, 0), var(--proj-dy, 0))
+               rotate(var(--proj-angle, 0deg)) scaleX(0.7) scaleY(0.7);
+    opacity: 0;
+  }
+}
+.sb-projectile {
+  animation: sb-projectile-fly var(--proj-duration, 320ms) cubic-bezier(0.18, 0.7, 0.4, 1) both;
+}
+
+/* Hit-shake — applied to the player's HP/profile bar when an enemy attack
+   lands. Quick stuttery offsets to read as "took a hit". */
+@keyframes sb-shake {
+  0%   { transform: translate(0, 0); }
+  15%  { transform: translate(-6px, 1px); }
+  30%  { transform: translate(5px, -2px); }
+  45%  { transform: translate(-4px, 2px); }
+  60%  { transform: translate(3px, -1px); }
+  75%  { transform: translate(-2px, 1px); }
+  100% { transform: translate(0, 0); }
+}
+.sb-shake { animation: sb-shake 380ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+/* Floating damage / status numbers — rise + fade. Used for hit damage,
+   block, status applications. The 'crit' variant scales bigger and adds a
+   shake at the start. */
+@keyframes sb-floater-rise {
+  0%   { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+  15%  { transform: translate(-50%, -55%) scale(1.15); opacity: 1; }
+  30%  { transform: translate(-50%, -65%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -120%) scale(0.85); opacity: 0; }
+}
+.sb-floater {
+  animation: sb-floater-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Combo cascade flash banner — sweep in, hold, fade out + drift up. */
+@keyframes sb-combo-flash {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6, 1); }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(1, 1); }
+  70%  { opacity: 1; transform: translate(-50%, -50%) scale(1, 1); }
+  100% { opacity: 0; transform: translate(-50%, calc(-50% - 40px)) scale(1, 1); }
+}
+.sb-combo-flash { animation: sb-combo-flash 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 

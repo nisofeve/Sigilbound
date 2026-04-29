@@ -125,9 +125,11 @@ describe('SeasonRunner — end of round mechanics', () => {
 
     run.apply({ kind: 'end_round' });
 
-    // Compute expected: with `planted` carrots same round, abundance multiplier kicks in at 2+.
-    // Loyal streak before round 1 is 0, so loyalMult = 1.
-    const abundance = planted >= 6 ? 1.7 : planted >= 5 ? 1.5 : planted >= 4 ? 1.35 : planted >= 3 ? 1.2 : planted >= 2 ? 1.1 : 1;
+    // Compute expected: with `planted` carrots same round, onslaught multiplier kicks in at 2+.
+    // Relentless streak before round 1 is 0, so relentlessMult = 1.
+    // Curve was rebalanced upward in the combat-focus pass (2025-04 design):
+    //   2 → 1.25, 3 → 1.50, 4 → 1.85, 5 → 2.30, 6+ → 3.00.
+    const abundance = planted >= 6 ? 3.00 : planted >= 5 ? 2.30 : planted >= 4 ? 1.85 : planted >= 3 ? 1.50 : planted >= 2 ? 1.25 : 1;
     const expectedCoins = Math.round(8 * abundance) * planted;
     expect(run.state.coins).toBe(expectedCoins);
     expect(run.state.relentlessStreak).toBe(1); // single-type round → streak +1

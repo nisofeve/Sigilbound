@@ -264,3 +264,82 @@ function generateObjectives(
 
   return out;
 }
+
+// ============================================================================
+// Combat clear rewards
+// ============================================================================
+// Compute the rewards a player should receive when clearing a combat stage
+// at a given star tier. Star multipliers boost the base chest from
+// rewardChest. First-clear payouts use these full values; replays clear
+// drops to currency only at a heavily reduced rate so re-grinding is
+// possible but limited.
+
+export interface CombatStageReward {
+  type: 'coins' | 'xp' | 'gems' | 'shards';
+  value: number;
+}
+
+const COMBAT_STAR_MULT: Record<1 | 2 | 3, number> = {
+  1: 1.0,
+  2: 1.5,
+  3: 2.2,
+};
+
+/**
+ * First-clear chest contents for a combat stage at the given star tier.
+ * Pulls from `stage.rewardChest` (gold, xp, crystals) and adds gems on
+ * boss stages. Multiplied by the star tier so 3-star clears feel
+ * meaningfully better than 1-star clears.
+ */
+export function combatStageRewards(stage: CombatStageDef, stars: 1 | 2 | 3): CombatStageReward[] {
+  const m = COMBAT_STAR_MULT[stars];
+  const coins = Math.max(1, Math.round(stage.rewardChest.baseGold * m));
+  const xp = Math.max(1, Math.round(stage.rewardChest.baseXp * m));
+  const shards = Math.max(0, Math.round(stage.rewardChest.baseCrystals * m));
+  const out: CombatStageReward[] = [
+    { type: 'coins', value: coins },
+    { type: 'xp', value: xp },
+  ];
+  if (shards > 0) out.push({ type: 'shards', value: shards });
+  // Bosses every 5 stages drop premium currency. Scales mildly with stage.
+  if (stage.isBoss) {
+    const gems = Math.max(1, Math.round((4 + Math.floor(stage.number / 10)) * m));
+    out.push({ type: 'gems', value: gems });
+  }
+  return out;
+}
+
+/**
+ * Replay reward — paid every time a stage is re-cleared, whether or not
+ * a new star tier was achieved. Currency only, heavily reduced versus
+ * the first-clear chest.
+ */
+export function combatStageReplayRewards(stage: CombatStageDef, stars: 1 | 2 | 3): CombatStageReward[] {
+  const m = stars === 3 ? 0.4 : stars === 2 ? 0.3 : 0.2;
+  const coins = Math.max(5, Math.round(stage.rewardChest.baseGold * m));
+  const xp = Math.max(2, Math.round(stage.rewardChest.baseXp * m));
+  return [
+    { type: 'coins', value: coins },
+    { type: 'xp', value: xp },
+  ];
+}
+
+/**
+ * Stars earned from a combat clear, derived from the player's HP at the
+ * end of the run. Mirrors the heuristic CombatResultScreen already uses.
+ *   3 stars — finished with > 50% HP
+ *   2 stars — finished with > 25% HP
+ *   1 star  — cleared at any HP > 0
+ *   0 stars — defeated
+ */
+export function combatStarsFor(opts: {
+  cleared: boolean;
+  currentHp: number;
+  maxHp: number;
+}): 0 | 1 | 2 | 3 {
+  if (!opts.cleared) return 0;
+  const ratio = opts.currentHp / Math.max(1, opts.maxHp);
+  if (ratio > 0.5) return 3;
+  if (ratio > 0.25) return 2;
+  return 1;
+}

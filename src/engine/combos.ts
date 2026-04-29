@@ -2,16 +2,20 @@ import type { CropType, HarvestResult, Perk, RoundResult } from './types';
 import { sumModifier } from './perks';
 
 // Sigilbound Combo 1 — Onslaught (Plotbound: Abundance Bonus).
-// 2 same → +10% | 3 → +20% | 4 → +35% | 5 → +50% | 6+ → +70%.
+// 2 same → +25% | 3 → +50% | 4 → +85% | 5 → +130% | 6+ → +200%.
 // In Plotbound this is "harvest N of the same crop"; in Sigilbound it's
-// "resolve N Actions of the same damage type". Same math either way — the
-// caller decides what `sameTypeCount` represents.
+// "resolve N Actions of the same damage type". The table is intentionally
+// steep at the top end — the design goal is that a player who builds a
+// turn around a single damage type clears enemies dramatically faster
+// than one who plays cards in isolation. Inherited Plotbound values were
+// too gentle for combat (an extra 10% over a 6 dmg strike is +0.6 — not
+// felt) so the curve was rebalanced upward in this pass.
 const ONSLAUGHT_TABLE: ReadonlyArray<{ count: number; bonus: number }> = [
-  { count: 6, bonus: 0.70 },
-  { count: 5, bonus: 0.50 },
-  { count: 4, bonus: 0.35 },
-  { count: 3, bonus: 0.20 },
-  { count: 2, bonus: 0.10 },
+  { count: 6, bonus: 2.00 },
+  { count: 5, bonus: 1.30 },
+  { count: 4, bonus: 0.85 },
+  { count: 3, bonus: 0.50 },
+  { count: 2, bonus: 0.25 },
 ];
 
 export function onslaughtMultiplier(sameTypeCount: number, tierBump = 0): number {
@@ -27,21 +31,33 @@ export function onslaughtMultiplier(sameTypeCount: number, tierBump = 0): number
 export const abundanceMultiplier = onslaughtMultiplier;
 
 // Sigilbound Combo 2 — Triadic Strike (Plotbound: Garden Variety).
-// 3 distinct types in the same resolve → +10 flat (coins or damage).
-// Resets the Relentless streak (because the resolve is mixed).
-// thresholdDelta < 0 (Variety Pack / Triadic Pack talent) lowers the threshold.
+// 3+ distinct damage types in the same resolve → +30 flat damage on each
+// strike. Resets the Relentless streak (because the resolve is mixed).
+// The flat bonus alone is meaningful at low gear levels; the multiplier
+// piece (triadicMultiplier below) scales with the player's per-card
+// damage so triadic stays competitive vs Onslaught at high tiers.
 export function triadicStrikeBonus(distinctTypeCount: number, thresholdDelta = 0): number {
   const threshold = Math.max(2, 3 + thresholdDelta);
-  return distinctTypeCount >= threshold ? 10 : 0;
+  return distinctTypeCount >= threshold ? 30 : 0;
+}
+
+/** Multiplier applied alongside the flat triadic bonus.
+ *  +25% on each strike when 3+ distinct types resolve together. */
+export function triadicStrikeMultiplier(distinctTypeCount: number, thresholdDelta = 0): number {
+  const threshold = Math.max(2, 3 + thresholdDelta);
+  return distinctTypeCount >= threshold ? 1.25 : 1;
 }
 
 /** @deprecated Renamed to `triadicStrikeBonus` for Sigilbound. */
 export const gardenVarietyBonus = triadicStrikeBonus;
 
 // Sigilbound Combo 3 — Relentless (Plotbound: Loyal Harvest).
-// Resolving only one type per turn builds a streak: +10%/turn, capped +50%.
-const RELENTLESS_PER_STACK = 0.10;
-const RELENTLESS_BASE_MAX_STACKS = 5;
+// Resolving only one type per turn builds a streak: +15%/turn, capped at
+// 6 stacks (+90% total). Rewards committing to a single damage type for
+// multiple turns — pairs naturally with Onslaught (same-type cluster
+// within a turn) for compounding payoff.
+const RELENTLESS_PER_STACK = 0.15;
+const RELENTLESS_BASE_MAX_STACKS = 6;
 
 export function relentlessMultiplier(streakBeforeRound: number, capDelta = 0): number {
   const maxStacks = RELENTLESS_BASE_MAX_STACKS + capDelta;

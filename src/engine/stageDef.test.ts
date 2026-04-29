@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { getStage, allStages, isBossStage } from './stageDef';
+import {
+  getStage, allStages, isBossStage,
+  combatStageRewards, combatStageReplayRewards, combatStarsFor,
+} from './stageDef';
 import { biomeForStage } from './bestiary';
 
 describe('Stage generator', () => {
@@ -99,5 +102,54 @@ describe('Stage generator', () => {
         }
       }
     }
+  });
+});
+
+describe('Combat clear rewards', () => {
+  it('combatStarsFor: 3 stars above 50% HP, 2 stars 25-50%, 1 below', () => {
+    expect(combatStarsFor({ cleared: true, currentHp: 100, maxHp: 100 })).toBe(3);
+    expect(combatStarsFor({ cleared: true, currentHp: 60, maxHp: 100 })).toBe(3);
+    expect(combatStarsFor({ cleared: true, currentHp: 40, maxHp: 100 })).toBe(2);
+    expect(combatStarsFor({ cleared: true, currentHp: 20, maxHp: 100 })).toBe(1);
+    expect(combatStarsFor({ cleared: true, currentHp: 1, maxHp: 100 })).toBe(1);
+  });
+
+  it('combatStarsFor: defeat is 0 stars regardless of HP', () => {
+    expect(combatStarsFor({ cleared: false, currentHp: 100, maxHp: 100 })).toBe(0);
+  });
+
+  it('combatStageRewards: higher stars produce strictly more coins/xp', () => {
+    const stage = getStage(10);
+    const oneStar = combatStageRewards(stage, 1);
+    const threeStar = combatStageRewards(stage, 3);
+    const coins1 = oneStar.find(r => r.type === 'coins')!.value;
+    const coins3 = threeStar.find(r => r.type === 'coins')!.value;
+    expect(coins3).toBeGreaterThan(coins1);
+    const xp1 = oneStar.find(r => r.type === 'xp')!.value;
+    const xp3 = threeStar.find(r => r.type === 'xp')!.value;
+    expect(xp3).toBeGreaterThan(xp1);
+  });
+
+  it('combatStageRewards: boss stages drop gems', () => {
+    const boss = getStage(5);
+    const rewards = combatStageRewards(boss, 3);
+    const gems = rewards.find(r => r.type === 'gems');
+    expect(gems).toBeDefined();
+    expect(gems!.value).toBeGreaterThan(0);
+  });
+
+  it('combatStageRewards: non-boss stages do not drop gems', () => {
+    const normal = getStage(7);
+    const rewards = combatStageRewards(normal, 3);
+    expect(rewards.find(r => r.type === 'gems')).toBeUndefined();
+  });
+
+  it('combatStageReplayRewards: pays meaningfully less than first-clear', () => {
+    const stage = getStage(20);
+    const first = combatStageRewards(stage, 3);
+    const replay = combatStageReplayRewards(stage, 3);
+    const firstCoins = first.find(r => r.type === 'coins')!.value;
+    const replayCoins = replay.find(r => r.type === 'coins')!.value;
+    expect(replayCoins).toBeLessThan(firstCoins);
   });
 });
