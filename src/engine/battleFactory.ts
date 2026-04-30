@@ -38,10 +38,10 @@ export interface StageRunInput {
   // Hardcore arc — initial HP carry-over.
   initialHp?: number;
   hardcore?: boolean;
-  // Stronghold upgrades the player has bought. Stat-shaped effects fold into
-  // computePlayerStats; runtime effects are compiled into UpgradeBuffs and
-  // applied by BattleRunner at the relevant hooks.
+  // Stronghold upgrades the player has bought.
   ownedUpgradeIds?: ReadonlyArray<string>;
+  // Phase 3: card tier multipliers (maps card id to tier 1..5).
+  cardTierMultipliers?: Record<string, number>;
 }
 
 export interface StageRunOutput {
@@ -63,7 +63,9 @@ export function buildStageRun(input: StageRunInput): StageRunOutput {
     }
   }
 
-  const compiled = input.equipment ? compileEquipment(input.equipment) : null;
+  const compiled = input.equipment
+    ? compileEquipment(input.equipment, input.cardTierMultipliers)
+    : null;
   const talentStatModifiers = (input.talents ?? [])
     .map(t => talentToStatModifier(t))
     .filter((m): m is NonNullable<ReturnType<typeof talentToStatModifier>> => m !== null);
@@ -95,6 +97,7 @@ export function buildStageRun(input: StageRunInput): StageRunOutput {
     initialHp: input.initialHp,
     hardcore: input.hardcore,
     ownedUpgradeIds: input.ownedUpgradeIds,
+    cardTierMultipliers: input.cardTierMultipliers,
   };
 
   return { runner: new BattleRunner(config), stage };

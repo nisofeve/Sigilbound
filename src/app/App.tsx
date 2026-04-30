@@ -401,6 +401,7 @@ export default function App() {
           Routed via the "⚔ Combat" entrypoint on the home screen. */}
       {screen.kind === 'combat_home' && (
         <CombatHomeScreen
+          profile={profile}
           currentStage={profile.currentStage}
           ownedUpgradeIds={profile.upgradesOwned}
           onBegin={({ stageNumber, talents, equipment, hardcore }) =>
@@ -425,6 +426,7 @@ export default function App() {
           initialHp={screen.carryHp}
           customDeck={screen.customDeck}
           ownedUpgradeIds={screen.ownedUpgradeIds}
+          cardTierMultipliers={profile.combatCardTiers}
           playerName={profile.displayName ?? 'Sigilist'}
           playerAvatar={profile.avatarEmoji || '🛡️'}
           onOutcome={(outcome, stage, runner) => {

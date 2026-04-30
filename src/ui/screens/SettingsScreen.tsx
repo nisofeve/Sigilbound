@@ -1,11 +1,47 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { sfx } from '@game/sfx';
-import { resetProfile, type Profile } from '@storage/index';
+import { resetProfile, saveProfile, type Profile } from '@storage/index';
 
 interface Props {
   profile: Profile;
   onProfileChange: (p: Profile) => void;
   onBack: () => void;
+}
+
+interface CodeResult {
+  success: boolean;
+  message: string;
+  detail?: string;
+}
+
+// ── Code definitions ────────────────────────────────────────────────────────
+const CODE_REWARDS: Record<string, (profile: Profile) => { profile: Profile; result: CodeResult }> = {
+  kulbaq: (profile) => {
+    const next: Profile = {
+      ...profile,
+      bankCoins: profile.bankCoins + 100_000,
+      gems: profile.gems + 100_000,
+    };
+    saveProfile(next);
+    return {
+      profile: next,
+      result: {
+        success: true,
+        message: '✦ CODE ACCEPTED ✦',
+        detail: '+100,000 Coins  ·  +100,000 Gems',
+      },
+    };
+  },
+};
+
+// Codes that have already been redeemed this session (localStorage-backed)
+const REDEEMED_KEY = 'sigilbound:redeemedCodes';
+function getRedeemed(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(REDEEMED_KEY) ?? '[]')); } catch { return new Set(); }
+}
+function markRedeemed(code: string) {
+  const s = getRedeemed(); s.add(code);
+  localStorage.setItem(REDEEMED_KEY, JSON.stringify([...s]));
 }
 
 const SFX_KEY = 'plotbound:settings:sfxMuted';
@@ -20,13 +56,25 @@ function saveSfxMuted(muted: boolean) {
   localStorage.setItem(SFX_KEY, muted ? '1' : '0');
 }
 
-export default function SettingsScreen({ onProfileChange, onBack }: Props) {
+export default function SettingsScreen({ profile, onProfileChange, onBack }: Props) {
   const [sfxMuted, setSfxMuted] = useState<boolean>(() => {
     const m = loadSfxMuted();
     sfx.setMuted(m);
     return m;
   });
   const [confirmReset, setConfirmReset] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [codeInput, setCodeInput] = useState('');
+  const [codeNotif, setCodeNotif] = useState<CodeResult | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when modal opens so mobile virtual keyboard appears
+  useEffect(() => {
+    if (showCodeModal) {
+      setCodeInput('');
+      setTimeout(() => inputRef.current?.focus(), 80);
+    }
+  }, [showCodeModal]);
 
   function toggleSfx() {
     const next = !sfxMuted;
@@ -40,6 +88,30 @@ export default function SettingsScreen({ onProfileChange, onBack }: Props) {
     const fresh = resetProfile();
     onProfileChange(fresh);
     setConfirmReset(false);
+  }
+
+  function redeemCode() {
+    const code = codeInput.trim().toLowerCase();
+    if (!code) return;
+
+    if (getRedeemed().has(code)) {
+      setShowCodeModal(false);
+      setCodeNotif({ success: false, message: '✦ ALREADY REDEEMED ✦', detail: 'This code has already been used.' });
+      return;
+    }
+
+    const handler = CODE_REWARDS[code];
+    if (!handler) {
+      setShowCodeModal(false);
+      setCodeNotif({ success: false, message: '✦ INVALID CODE ✦', detail: 'That code doesn\'t exist or has expired.' });
+      return;
+    }
+
+    const { profile: next, result } = handler(profile);
+    onProfileChange(next);
+    markRedeemed(code);
+    setShowCodeModal(false);
+    setCodeNotif(result);
   }
 
   return (
@@ -76,12 +148,26 @@ export default function SettingsScreen({ onProfileChange, onBack }: Props) {
           </Row>
         </Section>
 
-        <Section title="Profile">
-          <div className="text-sm leading-relaxed" style={{ color: 'var(--sb-parchment)' }}>
-            Account, achievements, level rewards and stats now live on the
-            <strong style={{ color: 'var(--sb-gold)' }}> Sigilist Profile </strong>
-            screen — tap <strong>PROFILE</strong> from the home hub.
+        {/* Redeem Code */}
+        <Section title="Redeem Code">
+          <div className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--sb-parchment)', opacity: 0.8 }}>
+            Have a special code? Enter it below to claim exclusive rewards.
           </div>
+          <button
+            id="settings-enter-code-btn"
+            onClick={() => setShowCodeModal(true)}
+            className="sb-btn"
+            style={{
+              fontSize: '12px',
+              padding: '10px 20px',
+              background: 'linear-gradient(180deg, #7c3aed 0%, #3b0764 100%)',
+              border: '1.5px solid #a78bfa',
+              boxShadow: '0 0 18px rgba(124,58,237,0.4)',
+              letterSpacing: '0.15em',
+            }}
+          >
+            🔑 ENTER CODE
+          </button>
         </Section>
 
         <Section title="Danger Zone">
@@ -150,6 +236,186 @@ export default function SettingsScreen({ onProfileChange, onBack }: Props) {
 
         <div style={{ height: 24 }} />
       </div>
+
+      {/* ── Enter Code Modal ─────────────────────────────────────────────── */}
+      {showCodeModal && (
+        <div
+          id="code-modal-overlay"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowCodeModal(false); }}
+        >
+          <div
+            id="code-modal-panel"
+            style={{
+              width: '100%', maxWidth: 400,
+              background: 'linear-gradient(180deg, #1e1230 0%, #0d0820 100%)',
+              border: '2px solid #7c3aed',
+              borderRadius: '8px',
+              boxShadow: '0 0 40px rgba(124,58,237,0.5), inset 0 1px 0 rgba(167,139,250,0.2)',
+              padding: '28px 24px 24px',
+            }}
+          >
+            {/* Modal header */}
+            <div className="text-center mb-5">
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🔑</div>
+              <div
+                className="sb-display"
+                style={{ fontSize: 14, letterSpacing: '0.3em', color: '#a78bfa' }}
+              >
+                ✦ ENTER CODE ✦
+              </div>
+              <div
+                className="text-xs mt-2"
+                style={{ color: 'var(--sb-parchment)', opacity: 0.7 }}
+              >
+                Type your redeem code below
+              </div>
+            </div>
+
+            {/* Code input */}
+            <input
+              id="code-input-field"
+              ref={inputRef}
+              type="text"
+              inputMode="text"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              value={codeInput}
+              onChange={(e) => setCodeInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') redeemCode(); }}
+              placeholder="Enter code…"
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '12px 14px',
+                marginBottom: 16,
+                background: 'rgba(167,139,250,0.08)',
+                border: '1.5px solid rgba(167,139,250,0.4)',
+                borderRadius: 6,
+                color: '#e2d9f3',
+                fontSize: 18,
+                fontFamily: 'inherit',
+                letterSpacing: '0.12em',
+                textAlign: 'center',
+                outline: 'none',
+                caretColor: '#a78bfa',
+                boxSizing: 'border-box',
+              }}
+            />
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                id="code-redeem-btn"
+                onClick={redeemCode}
+                className="sb-btn"
+                style={{
+                  flex: 1,
+                  fontSize: '12px',
+                  padding: '11px',
+                  background: 'linear-gradient(180deg, #7c3aed 0%, #3b0764 100%)',
+                  border: '1.5px solid #a78bfa',
+                  letterSpacing: '0.12em',
+                }}
+              >
+                REDEEM
+              </button>
+              <button
+                id="code-cancel-btn"
+                onClick={() => setShowCodeModal(false)}
+                className="sb-btn sb-btn-steel"
+                style={{ fontSize: '12px', padding: '11px 16px' }}
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Code Result Notification ──────────────────────────────────────── */}
+      {codeNotif && (
+        <div
+          id="code-notif-overlay"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1100,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={() => setCodeNotif(null)}
+        >
+          <div
+            id="code-notif-panel"
+            style={{
+              width: '100%', maxWidth: 360,
+              background: codeNotif.success
+                ? 'linear-gradient(180deg, #14532d 0%, #052e16 100%)'
+                : 'linear-gradient(180deg, #450a0a 0%, #1c0202 100%)',
+              border: `2px solid ${codeNotif.success ? '#4ade80' : '#f87171'}`,
+              borderRadius: '8px',
+              boxShadow: codeNotif.success
+                ? '0 0 40px rgba(74,222,128,0.45), inset 0 1px 0 rgba(134,239,172,0.2)'
+                : '0 0 40px rgba(248,113,113,0.45), inset 0 1px 0 rgba(252,165,165,0.2)',
+              padding: '28px 24px',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 48, marginBottom: 10 }}>
+              {codeNotif.success ? '🎉' : '❌'}
+            </div>
+            <div
+              className="sb-display"
+              style={{
+                fontSize: 13,
+                letterSpacing: '0.25em',
+                color: codeNotif.success ? '#86efac' : '#fca5a5',
+                marginBottom: 10,
+              }}
+            >
+              {codeNotif.message}
+            </div>
+            {codeNotif.detail && (
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: codeNotif.success ? '#d1fae5' : '#fee2e2',
+                  marginBottom: 20,
+                  letterSpacing: '0.05em',
+                }}
+              >
+                {codeNotif.detail}
+              </div>
+            )}
+            <button
+              id="code-notif-ok-btn"
+              onClick={() => setCodeNotif(null)}
+              className="sb-btn"
+              style={{
+                fontSize: '12px',
+                padding: '10px 28px',
+                background: codeNotif.success
+                  ? 'linear-gradient(180deg, #16a34a 0%, #052e16 100%)'
+                  : 'linear-gradient(180deg, #dc2626 0%, #450a0a 100%)',
+                border: `1.5px solid ${codeNotif.success ? '#4ade80' : '#f87171'}`,
+                letterSpacing: '0.12em',
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

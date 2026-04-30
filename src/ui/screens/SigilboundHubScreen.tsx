@@ -183,9 +183,9 @@ export default function SigilboundHubScreen({
       >
         <DockButton onClick={onCombat}     icon="⚔"  label="Combat"    highlight />
         <DockButton onClick={onDeck}       icon="🃏" label="Deck" />
-        <DockButton onClick={onBestiary}   icon="📖" label="Bestiary" />
-        <DockButton onClick={onStronghold} icon="🏰" label="Stronghold" />
         <DockButton onClick={onShop}       icon="🛒" label="Shop" />
+        <DockButton onClick={onStronghold} icon="🏰" label="Stronghold" />
+        <DockButton onClick={onBestiary}   icon="📖" label="Bestiary" />
       </nav>
 
       {/* version mark */}

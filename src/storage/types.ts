@@ -95,6 +95,8 @@ export interface Profile {
   // Card collection for combat. Maps Action/Tactic card id → count of
   // copies owned. No grade dimension in v1 — every copy is identical.
   combatCardInventory: Record<string, number>;
+  // Card tier levels. Unmapped implies tier 1.
+  combatCardTiers: Record<string, number>;
   // Player-built combat deck. Ordered list of card ids (duplicates allowed).
   // Empty array → BattleRunner falls back to the gear-only auto-deck.
   combatDeck: string[];
@@ -102,7 +104,9 @@ export interface Profile {
   // because the combat shop uses crystals/soul-shards rather than coins/gems
   // and rotates daily-rolled Action/Tactic cards instead of seeds/tools.
   combatShopISO: string | null;
-  combatShopBoughtIds: string[];          // card ids bought today (one purchase per slot)
+  combatShopBoughtIds: string[];          // legacy: used before copies existed
+  combatShopBoughtCounts: Record<string, number>; // tracks copies purchased per cardId
+  combatShopRerolls: number;
 }
 
 export interface DeckEntry {
@@ -160,10 +164,9 @@ export interface BuyDailyPerkOptions {
 // the migration knob if the shape ever changes incompatibly.
 export const STORAGE_KEY = 'plotbound:profile:v3';
 
-// Phase 2: every player starts with a couple of common perks unlocked so
-// they can sample the system on session 1 without grinding shards. These
-// are the PERMANENT perks — they don't consume a charge per run.
-export const STARTER_PERKS = ['perk.early_bird', 'perk.extra_draw'];
+// Phase 2: Sigilbound permanent starting talents.
+// These never consume charges when equipped.
+export const STARTER_PERKS = ['talent.battlecry', 'talent.vigorous'];
 
 // Mirror of the engine's DEFAULT_STARTER_DECK so a new account starts with
 // a playable deck preset + matching inventory. Kept in sync manually —

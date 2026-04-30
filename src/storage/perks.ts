@@ -1,5 +1,5 @@
 // Perk-inventory helpers. Tracks consumable charges, equip/unequip, and
-// run-start consumption. Starter perks (perk.early_bird, perk.extra_draw)
+// run-start consumption. Starter perks (talent.battlecry, talent.vigorous)
 // are permanent and never decrement.
 
 import { saveProfile } from './profile';

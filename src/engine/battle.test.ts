@@ -663,7 +663,9 @@ describe('BattleRunner — Phase 6 tactic play', () => {
     expect(idx).toBeGreaterThanOrEqual(0);
     const blockBefore = runner.state.player.block;
     expect(runner.playTactic(idx)).toBe('played');
-    expect(runner.state.player.block).toBe(blockBefore + 8);
+    // Block tactic authored amount = 8. Card-level system applies the
+    // level-1 baseline multiplier (0.6×) → round(8 × 0.6) = 5.
+    expect(runner.state.player.block).toBe(blockBefore + 5);
     expect(runner.state.staminaThisTurn).toBe(4); // 5 - 1
     expect(runner.state.hand).toHaveLength(4);
     expect(runner.state.discard).toContain('tac_001');
@@ -679,7 +681,8 @@ describe('BattleRunner — Phase 6 tactic play', () => {
     runner.state.player.currentHp = 50;
     const idx = findInHand(runner, 'tac_004');
     expect(runner.playTactic(idx)).toBe('played');
-    expect(runner.state.player.currentHp).toBe(60);
+    // Heal tactic authored amount = 10. Level-1 baseline = round(10 × 0.6) = 6.
+    expect(runner.state.player.currentHp).toBe(56);
   });
 
   it('Inspire draws 2 cards', () => {

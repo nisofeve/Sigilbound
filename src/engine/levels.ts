@@ -59,10 +59,17 @@ export function levelProgress(xp: number): { level: number; intoLevelXp: number;
 
 // === Reward generator ===
 //
-// Each level grants ONE reward chest. Every 5th level is "milestone": bigger
-// rewards drawn from a richer pool. Determinstic per (level, profile-seed)
-// pair so a player's reward at L17 is always the same — no rerolling by
-// reloading.
+// Each level grants ONE reward chest. Every 5th level is a "milestone": a
+// bonus pack stacks an extra card bundle, more currency, and (from L10+) a
+// talent charge on top of the normal reward.
+//
+// Sigilbound theme: card rewards are combat actions/tactics (routed to
+// `combatCardInventory` by the claim path), perks are non-starter combat
+// talents. Lower-tier (common) cards dominate early-game; uncommon unlocks
+// in the pool from L10, rare from L25 milestones only — keeps the feeling
+// of a real progression instead of dumping legendaries into an L3 chest.
+//
+// Deterministic per level so reloading doesn't reroll a chest.
 
 export type LevelReward =
   | { type: 'coins'; value: number }
@@ -71,45 +78,63 @@ export type LevelReward =
   | { type: 'card'; cardId: CardId; count: number }
   | { type: 'perk'; perkId: string; count: number };
 
-// Stable cards used for level rewards — mostly common starter seeds and a
-// handful of tools. Players get most cards through the daily shop; the level
-// track is more about coins/gems with occasional card drops.
-const REWARD_CARDS: { id: CardId; weight: number }[] = [
-  { id: 'seed.humble_carrot', weight: 12 },
-  { id: 'seed.golden_corn',   weight: 10 },
-  { id: 'seed.lettuce_leaf',  weight: 10 },
-  { id: 'tool.watering_can',  weight: 8 },
-  { id: 'tool.fertilizer_bag',weight: 6 },
-  { id: 'tool.scarecrow',     weight: 4 },
+// Combat card pools split by tier. Players can pull commons every level;
+// uncommons unlock in the rotation at L10; rares only ever drop on L25+
+// milestones (and even then weighted toward 1-of-1 picks). Mid-tier cards
+// rotate in via `cardPoolForLevel` below.
+const COMMON_CARDS: ReadonlyArray<CardId> = [
+  // Actions across all 5 damage families so leveled players get variety.
+  'act_001', 'act_002', 'act_003', 'act_004',  // physical
+  'act_013', 'act_014',                          // fire
+  'act_023', 'act_024',                          // ice
+  'act_032',                                     // thunder
+  'act_040', 'act_041',                          // nature
+  'act_049', 'act_050',                          // holy
+  'act_057',                                     // dark
+  // Common tactics — block/heal/draw staples.
+  'tac_001', 'tac_002', 'tac_003', 'tac_004', 'tac_005',
 ];
 
-// Perks given as level rewards. Pulled from the common/uncommon pool —
-// the high-end perks stay shop-exclusive so leveling doesn't trivialise
-// the gem economy. Hard-coded by id so this file doesn't depend on the
-// data file at import time (perks data is loaded at module init).
-const REWARD_PERKS: { id: string; weight: number }[] = [
-  { id: 'perk.carrot_specialist', weight: 6 },
-  { id: 'perk.watering_pro',      weight: 5 },
-  { id: 'perk.early_bird',        weight: 0 }, // skip starter — already permanent
-  { id: 'perk.extra_draw',        weight: 0 },
-  { id: 'perk.tycoon_touch',      weight: 4 },
-  { id: 'perk.bigger_hand',       weight: 4 },
-  { id: 'perk.plot_plus',         weight: 3 },
-  { id: 'perk.lucky_streak',      weight: 3 },
-  { id: 'perk.combo_cascade',     weight: 2 },
+const UNCOMMON_CARDS: ReadonlyArray<CardId> = [
+  'act_005', 'act_006',                          // physical
+  'act_015', 'act_016',                          // fire
+  'act_025', 'act_026',                          // ice
+  'act_033', 'act_034',                          // thunder
+  'act_042', 'act_043',                          // nature
+  'act_051',                                     // holy
+  'act_058',                                     // dark
+  'tac_006', 'tac_008', 'tac_010', 'tac_012',
 ];
 
-function pickPerkId(rng: () => number): string {
-  const eligible = REWARD_PERKS.filter(p => p.weight > 0);
-  const total = eligible.reduce((a, b) => a + b.weight, 0);
-  if (total === 0) return REWARD_PERKS[0]?.id ?? 'perk.tycoon_touch';
-  let r = rng() * total;
-  for (const p of eligible) {
-    r -= p.weight;
-    if (r <= 0) return p.id;
-  }
-  return eligible[eligible.length - 1].id;
+const RARE_CARDS: ReadonlyArray<CardId> = [
+  'act_008', 'act_017', 'act_027', 'act_044',
+  'tac_009', 'tac_013',
+];
+
+// Picks a card id appropriate to the level — common-only pre-10, common +
+// uncommon from 10..24, common + uncommon + rare on 25+ milestones. The
+// `richer` flag (passed for milestone bonus packs) tilts the roll toward
+// the higher-tier pool when available.
+function cardPoolForLevel(level: number, richer: boolean): ReadonlyArray<CardId> {
+  if (level >= 25 && richer) return RARE_CARDS;
+  if (level >= 25)           return UNCOMMON_CARDS;
+  if (level >= 10)           return richer ? UNCOMMON_CARDS : COMMON_CARDS;
+  return COMMON_CARDS;
 }
+
+// Talent pool for level rewards. Starter perks (battlecry/vigorous) are
+// excluded — they're already permanently owned. High-rarity talents stay
+// shop-exclusive so the level track doesn't trivialise the gem economy.
+const REWARD_TALENT_POOL: ReadonlyArray<string> = [
+  'talent.quick_draw',
+  'talent.steel_specialist',
+  'talent.pyre_specialist',
+  'talent.tacticians_mark',
+  'talent.iron_discipline',
+  'talent.bigger_hand',
+  'talent.extra_sigil',
+  'talent.swift_recovery',
+];
 
 function deterministicRand(seed: number): () => number {
   // Mulberry32 inline so this module doesn't depend on rng.ts wrapping.
@@ -123,50 +148,68 @@ function deterministicRand(seed: number): () => number {
   };
 }
 
-function pickCard(rng: () => number): CardId {
-  const total = REWARD_CARDS.reduce((a, b) => a + b.weight, 0);
-  let r = rng() * total;
-  for (const c of REWARD_CARDS) {
-    r -= c.weight;
-    if (r <= 0) return c.id;
-  }
-  return REWARD_CARDS[0].id;
+function pickFrom<T>(pool: ReadonlyArray<T>, rng: () => number): T {
+  return pool[Math.floor(rng() * pool.length) % pool.length];
 }
 
 // Returns the reward(s) granted at level `level`. Stable for a given level.
-// Most levels grant ONE reward; milestone levels (every 5) grant 2-3.
+//
+// Layout:
+//   - Every level grants a guaranteed main reward (currency OR a card).
+//   - Every 5th level is a milestone: in addition to the main reward, the
+//     player gets a "bonus pack" — a card bundle, gems, and (from L10+) a
+//     talent charge + soul shards. The bonus pack scales with level so L50
+//     feels meaningfully bigger than L5.
 export function rewardsForLevel(level: number): LevelReward[] {
   const milestone = level % 5 === 0;
   const seed = level * 0x9e3779b1;
   const rng = deterministicRand(seed);
 
-  // Coin / gem scaling — quadratic so L50 milestone is genuinely impressive.
-  const coinAmt = milestone ? 200 + level * 40 : 50 + level * 12;
-  const gemAmt  = milestone ? 25 + Math.floor(level / 2) : Math.max(1, Math.floor(level / 4));
-  const shardAmt = milestone ? 10 + Math.floor(level / 3) : Math.max(1, Math.floor(level / 6));
+  // Currency scaling — quadratic on milestones so L50 lands ~2k coins,
+  // ~50 gems, ~25 shards in the bonus pack. Non-milestones keep modest.
+  const coinMain     = milestone ? 200 + level * 40 : 50 + level * 12;
+  const gemBonus     = 15 + Math.floor(level / 2);
+  const shardBonus   = 8 + Math.floor(level / 3);
 
   const out: LevelReward[] = [];
-  if (milestone) {
-    // Milestone: coins, gems, a card pack, and (from L10+) a perk charge.
-    out.push({ type: 'coins', value: coinAmt });
-    out.push({ type: 'gems',  value: gemAmt });
-    const cardCount = Math.min(6, 2 + Math.floor(level / 10));
-    out.push({ type: 'card', cardId: pickCard(rng), count: cardCount });
-    if (level >= 10) out.push({ type: 'shards', value: shardAmt });
-    if (level >= 10) {
-      // Higher milestones grant 2 charges; massive milestones (L25+) grant 3.
-      const perkCount = level >= 25 ? 3 : 2;
-      out.push({ type: 'perk', perkId: pickPerkId(rng), count: perkCount });
-    }
+
+  // 1. Main reward — every level gets exactly one of these.
+  //    Bias toward a card on every 3rd level so the player consistently
+  //    builds their collection alongside the currency drip.
+  const mainRoll = rng();
+  const giveCardAsMain = (level % 3 === 0) || mainRoll < 0.30;
+  if (giveCardAsMain) {
+    const cardId = pickFrom(cardPoolForLevel(level, false), rng);
+    const count = milestone ? 2 : 1;
+    out.push({ type: 'card', cardId, count });
+  } else if (mainRoll < 0.70) {
+    out.push({ type: 'coins', value: coinMain });
+  } else if (mainRoll < 0.88) {
+    out.push({ type: 'gems', value: Math.max(1, Math.floor(level / 4) + 2) });
   } else {
-    // Normal level: cycle between currencies, occasional card / perk drops.
-    const r = rng();
-    if (r < 0.5) out.push({ type: 'coins', value: coinAmt });
-    else if (r < 0.7) out.push({ type: 'gems', value: gemAmt });
-    else if (r < 0.83) out.push({ type: 'shards', value: shardAmt });
-    else if (r < 0.93) out.push({ type: 'card', cardId: pickCard(rng), count: 1 });
-    else out.push({ type: 'perk', perkId: pickPerkId(rng), count: 1 });
+    out.push({ type: 'shards', value: Math.max(1, Math.floor(level / 5) + 1) });
   }
+
+  // 2. Milestone bonus pack — every 5 levels stacks extra rewards on top.
+  if (milestone) {
+    // Bonus card bundle. Size grows with level: L5 → 2 cards, L25 → 4, L50 → 6.
+    const bundleCount = Math.min(6, 2 + Math.floor(level / 10));
+    const bundleCardId = pickFrom(cardPoolForLevel(level, true), rng);
+    out.push({ type: 'card', cardId: bundleCardId, count: bundleCount });
+
+    // Gem stipend on every milestone.
+    out.push({ type: 'gems', value: gemBonus });
+
+    // From L10 the bonus pack also includes shards + a talent charge.
+    if (level >= 10) {
+      out.push({ type: 'shards', value: shardBonus });
+      // L25+ milestones grant 2 talent charges (was 1) so endgame milestones
+      // genuinely feel like a haul.
+      const talentCount = level >= 25 ? 2 : 1;
+      out.push({ type: 'perk', perkId: pickFrom(REWARD_TALENT_POOL, rng), count: talentCount });
+    }
+  }
+
   return out;
 }
 

@@ -46,6 +46,8 @@ interface Props {
   hardcore?: boolean;
   // Stronghold upgrades — feed into stat block + runtime buffs at battle start.
   ownedUpgradeIds?: ReadonlyArray<string>;
+  // Card tier damage multipliers (Phase 3). Maps card id → tier (1..5).
+  cardTierMultipliers?: Record<string, number>;
   // Player profile fragments for the bottom player bar. Optional so
   // dev/test callers don't have to wire them.
   playerName?: string;
@@ -119,6 +121,7 @@ function useIsMobile(): boolean {
 
 export default function CombatView({
   stageNumber, playerLevel, equipment, talents, reactions, customDeck, initialHp, hardcore, ownedUpgradeIds,
+  cardTierMultipliers,
   playerName = 'Sigilist', playerAvatar = '🛡️',
   onOutcome, onExit,
 }: Props) {
@@ -128,9 +131,10 @@ export default function CombatView({
     const result = buildStageRun({
       stageNumber, playerLevel, equipment, talents, reactions,
       customDeck, initialHp, hardcore, ownedUpgradeIds,
+      cardTierMultipliers,
     });
     return { runner: result.runner, stage: result.stage };
-  }, [stageNumber, playerLevel, equipment, talents, reactions, customDeck, initialHp, hardcore, ownedUpgradeIds]);
+  }, [stageNumber, playerLevel, equipment, talents, reactions, customDeck, initialHp, hardcore, ownedUpgradeIds, cardTierMultipliers]);
 
   const [, setTick] = useState(0);
   const repaint = useCallback(() => setTick(t => t + 1), []);

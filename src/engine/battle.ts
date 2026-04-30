@@ -60,6 +60,7 @@ import {
   type EquippedSet,
 } from './equipment';
 import { getAction as getActionDef, getTactic as getTacticDef, type TacticEffect } from './actionCards';
+import { scaleStatForLevel } from './cardLevels';
 import type { DamageType } from './damage';
 import { clearSleepOnHit, applyStatus } from './status';
 import type { CardId, Perk } from './types';
@@ -238,10 +239,11 @@ export interface BattleConfig {
   // Whether this run is part of a Hardcore arc. Cosmetic for the runner —
   // the result-screen flow uses it to decide salvage rules.
   hardcore?: boolean;
-  // Stronghold upgrades the player has bought. Combat-time effects (regen,
-  // starting block, on-kill heal, etc.) are compiled into UpgradeBuffs at
-  // construction and applied at the appropriate runner hooks.
+  // Stronghold upgrades the player has bought.
   ownedUpgradeIds?: ReadonlyArray<string>;
+  // Card tier multipliers (Phase 3). Maps card id → tier (1..5).
+  // The runner scales each action card's base damage by TIER_DAMAGE_MULT[tier-1].
+  cardTierMultipliers?: Record<string, number>;
 }
 
 // === Public API ===
@@ -250,9 +252,12 @@ export class BattleRunner {
   state: BattleState;
   private rng: Rng;
   private defs: Map<string, EnemyDef>;
-  // Snapshot of damage-taken at the moment endTurn() began. Used by Swift
-  // Recovery (clean-turn heal) to detect whether the player took damage
-  // during the current turn.
+  // Universal card-level multipliers (Phase 8). Maps card/equipment id →
+  // current level (1..10). The runner pulls this map at bind/play time and
+  // scales numeric stats via levelStatMultiplier(level). Missing entries
+  // default to level 1 (= 0.6× authored stats — the new baseline).
+  private readonly tierMults: Record<string, number>;
+
   private damageTakenAtTurnStart: number = 0;
 
   // Event log accumulated during endTurn. Reset at the start of each
@@ -267,12 +272,13 @@ export class BattleRunner {
   constructor(config: BattleConfig) {
     this.rng = createRng(config.seed);
     this.defs = new Map(config.enemyDefs.map(d => [d.id, d]));
+    this.tierMults = config.cardTierMultipliers ?? {};
 
     // Compile equipment if provided. Caller may pass either:
     //   - playerStats directly (tests, cloud replay)
     //   - level + equipment (production: storage layer hands these off)
     const compiled: CompiledEquipment | null = config.equipment
-      ? compileEquipment(config.equipment)
+      ? compileEquipment(config.equipment, this.tierMults)
       : null;
 
     const playerStats: PlayerStats = config.playerStats
@@ -454,9 +460,14 @@ export class BattleRunner {
     const slot = this.state.slots[slotIndex];
     if (!slot || slot.bound) return false;
     const target = this.state.enemies.find(isEnemyAlive)?.id;
+    // Universal card-level scaling. Each level from 1..10 scales the card's
+    // authored damage payload via levelStatMultiplier (level 1 = 0.6×,
+    // level 10 = 1.275×). Multi-strike `hits` count is fixed by design —
+    // upgrades make each hit harder, not add new hits.
+    const level = this.tierMults[cardId] ?? 1;
     slot.bound = {
       cardId: def.id,
-      damage: def.damage,
+      damage: scaleStatForLevel(def.damage, level),
       damageType: def.damageType,
       charge: def.charge,
       hits: def.hits,
@@ -604,22 +615,30 @@ export class BattleRunner {
     this.state.staminaThisTurn -= effectiveCost;
     this.discardFromHand(handIndex);
 
-    this.applyTacticEffect(def.effect, targetEnemyId);
+    this.applyTacticEffect(def.effect, targetEnemyId, this.tierMults[cardId] ?? 1);
     return 'played';
   }
 
   /** Resolve a tactic effect against the current state. Visible internally
-   * + to enable test scaffolding. */
-  private applyTacticEffect(effect: TacticEffect, _targetEnemyId?: string): void {
+   * + to enable test scaffolding.
+   *
+   * `level` is the tactic's current upgrade level (1..10). Numeric
+   * payloads (block, heal) are multiplied by levelStatMultiplier so that
+   * leveling a tactic actually increases its power. Integer counts (draw,
+   * stamina) and pure flags/percentages stay flat. */
+  private applyTacticEffect(effect: TacticEffect, _targetEnemyId?: string, level: number = 1): void {
+    const scale = (n: number) => scaleStatForLevel(n, level);
     switch (effect.kind) {
       case 'block':
-        this.state.player = addBlock(this.state.player, effect.amount);
+        this.state.player = addBlock(this.state.player, scale(effect.amount));
         this.fireReactionTrigger('onBlockApplied');
         break;
-      case 'heal':
-        this.state.player = healPlayer(this.state.player, effect.amount);
-        this.fireReactionTrigger('onHeal', { damage: effect.amount });
+      case 'heal': {
+        const healed = scale(effect.amount);
+        this.state.player = healPlayer(this.state.player, healed);
+        this.fireReactionTrigger('onHeal', { damage: healed });
         break;
+      }
       case 'draw':
         this.drawCards(effect.cards);
         break;
@@ -1102,7 +1121,8 @@ export class BattleRunner {
           this.applyEquipmentOnKill();
           // Self-heal on kill.
           if (cardDef?.selfHealOnKill && cardDef.selfHealOnKill > 0) {
-            this.state.player = healPlayer(this.state.player, cardDef.selfHealOnKill);
+            const cardLevel = this.tierMults[action.cardId] ?? 1;
+            this.state.player = healPlayer(this.state.player, scaleStatForLevel(cardDef.selfHealOnKill, cardLevel));
           }
           // Stronghold "Life Drain" — passive heal per kill.
           if (this.state.upgradeBuffs.onKillHeal > 0) {
@@ -1131,12 +1151,14 @@ export class BattleRunner {
         }
       }
 
-      // Self-effects fire once per card (not per AOE target).
+      // Self-effects fire once per card (not per AOE target). Block/heal
+      // amounts scale with the card's level — same multiplier as damage.
+      const cardLevel = this.tierMults[action.cardId] ?? 1;
       if (cardDef?.selfBlock && cardDef.selfBlock > 0) {
-        this.state.player = addBlock(this.state.player, cardDef.selfBlock);
+        this.state.player = addBlock(this.state.player, scaleStatForLevel(cardDef.selfBlock, cardLevel));
       }
       if (cardDef?.selfHeal && cardDef.selfHeal > 0) {
-        this.state.player = healPlayer(this.state.player, cardDef.selfHeal);
+        this.state.player = healPlayer(this.state.player, scaleStatForLevel(cardDef.selfHeal, cardLevel));
       }
       if (cardDef?.selfDrawCard && cardDef.selfDrawCard > 0) {
         this.drawCards(cardDef.selfDrawCard);

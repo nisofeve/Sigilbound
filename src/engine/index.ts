@@ -39,3 +39,7 @@ export * from './battleFactory';
 export * from './upgradeBuffs';
 // Phase 7 — combat shop.
 export * from './combatShop';
+// Universal card upgrade ladder (actions, tactics, equipment).
+export * from './cardLevels';
+// Phase 3 — drop tables (equipment from enemies, talents from 3-star clears).
+export * from './dropTables';
