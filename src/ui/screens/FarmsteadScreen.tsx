@@ -1,7 +1,4 @@
-// Sigilbound Stronghold — heraldic re-skin of the legacy Plotbound farmstead
-// screen. The engine still uses old UpgradeZone keys (land/barn/greenhouse/
-// market) — only the player-facing names are re-mapped. File name kept
-// to avoid an import sweep across the app.
+// Sigilbound Stronghold — permanent upgrade screen.
 
 import { allUpgrades, canBuy, type Upgrade, type UpgradeZone } from '@engine/index';
 import { buyUpgrade, type Profile } from '@storage/index';
@@ -12,18 +9,26 @@ interface Props {
   onBack: () => void;
 }
 
-const zoneMeta: Record<UpgradeZone, { name: string; icon: string; accent: string; tint: string; description: string }> = {
-  land:       { name: 'Keep',     icon: '🏰', accent: '#fca5a5', tint: 'rgba(185,28,28,0.30)',  description: 'Combat capacity. Sigil slots, hand size, max HP.' },
-  barn:       { name: 'Archive',  icon: '📚', accent: '#fde68a', tint: 'rgba(217,119,6,0.30)',  description: 'Card vault. Deck size, draft rerolls, card upgrades.' },
-  greenhouse: { name: 'Armory',   icon: '⚒',  accent: '#cbd5e1', tint: 'rgba(71,85,105,0.30)',  description: 'Forge. Equipment drop quality, crafting, upgrade stones.' },
-  market:     { name: 'Treasury', icon: '🪙', accent: '#fbbf24', tint: 'rgba(202,138,4,0.30)',  description: 'Economy. Gold gain, vendor stock, win-streak bonuses.' },
+// Only the 5 active zones are shown in the UI. Legacy zones from old save
+// data are silently skipped when rendering.
+const ACTIVE_ZONES: UpgradeZone[] = ['armory', 'sanctum', 'library', 'forge', 'shrine'];
+
+const zoneMeta: Record<string, { name: string; icon: string; accent: string; tint: string; description: string }> = {
+  armory:  { name: 'Armory',   icon: '⚔️',  accent: '#fca5a5', tint: 'rgba(185,28,28,0.30)',  description: 'Combat power. Sigil slots, attack, crit, combo damage.' },
+  sanctum: { name: 'Sanctum',  icon: '🛡️',  accent: '#86efac', tint: 'rgba(22,163,74,0.20)',  description: 'Defence & survival. Max HP, block, regen, aegis, revive.' },
+  library: { name: 'Library',  icon: '📚',  accent: '#fde68a', tint: 'rgba(217,119,6,0.25)',  description: 'Card flow. Hand size, stamina, draft offers, combo cascade.' },
+  forge:   { name: 'Forge',    icon: '⚒️',  accent: '#cbd5e1', tint: 'rgba(71,85,105,0.25)',  description: 'Equipment & elements. Resistances, damage bonuses, gold.' },
+  shrine:  { name: 'Shrine',   icon: '✨',  accent: '#c4b5fd', tint: 'rgba(109,40,217,0.25)', description: 'Mastery. Perk & talent slots, combo master, astral convergence.' },
 };
 
 export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Props) {
   const ownedSet = new Set(profile.upgradesOwned);
   const all = allUpgrades();
-  const grouped: Record<UpgradeZone, Upgrade[]> = { land: [], barn: [], greenhouse: [], market: [] };
-  for (const u of all) grouped[u.zone].push(u);
+  const grouped: Record<string, Upgrade[]> = {};
+  for (const z of ACTIVE_ZONES) grouped[z] = [];
+  for (const u of all) {
+    if (grouped[u.zone]) grouped[u.zone].push(u);
+  }
 
   function handleBuy(u: Upgrade) {
     const next = buyUpgrade(profile, u.id, u.cost);
@@ -68,7 +73,7 @@ export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Pr
           </div>
         </div>
 
-        {(Object.keys(grouped) as UpgradeZone[]).map((zone, zi) => {
+        {ACTIVE_ZONES.map((zone, zi) => {
           const meta = zoneMeta[zone];
           const ownedCount = grouped[zone].filter(u => ownedSet.has(u.id)).length;
           return (

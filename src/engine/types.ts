@@ -130,18 +130,54 @@ export interface EventCard {
 
 // === Phase 2 — Upgrades ===
 
-export type UpgradeZone = 'land' | 'barn' | 'greenhouse' | 'market';
+export type UpgradeZone = 'armory' | 'sanctum' | 'library' | 'forge' | 'shrine'
+  // Legacy zones kept for backward compat with old save data.
+  | 'land' | 'barn' | 'greenhouse' | 'market';
 
 export type UpgradeEffect =
+  // Legacy effects
   | { type: 'plot_count_delta'; value: number }
-  | { type: 'hand_size_delta'; value: number }
   | { type: 'starting_deck_extra'; value: number }
+  | { type: 'starting_deck_extra_card'; cardId: CardId; value: number }
+  | { type: 'first_seed_grow_delta'; value: number }
+  | { type: 'starting_coins'; value: number }
+  | { type: 'global_sale_mult'; value: number }
+  // Active effects
+  | { type: 'hand_size_delta'; value: number }
   | { type: 'draft_count_delta'; value: number }
   | { type: 'perk_slots_delta'; value: number }
-  | { type: 'global_sale_mult'; value: number }
-  | { type: 'starting_coins'; value: number }
-  | { type: 'first_seed_grow_delta'; value: number }            // Greenhouse Built / Grow Lamps
-  | { type: 'starting_deck_extra_card'; cardId: CardId; value: number } // Auto-Irrigation, Hybrid Lab
+  | { type: 'sigil_slots_delta'; value: number }
+  | { type: 'atk_bonus'; value: number }
+  | { type: 'def_bonus'; value: number }
+  | { type: 'max_hp_bonus'; value: number }
+  | { type: 'stamina_bonus'; value: number }
+  | { type: 'speed_bonus'; value: number }
+  | { type: 'crit_chance_bonus'; value: number }
+  | { type: 'crit_damage_bonus'; value: number }
+  | { type: 'first_action_damage_bonus'; value: number }
+  | { type: 'all_combo_damage_mult'; mult: number }
+  | { type: 'combo_damage_bonus'; value: number }
+  | { type: 'combo_stamina_refund'; value: number }
+  | { type: 'card_replicate_chance'; value: number }
+  | { type: 'tactic_stamina_discount'; value: number }
+  | { type: 'turn_one_extra_draw'; value: number }
+  | { type: 'starting_block'; value: number }
+  | { type: 'regen_per_turn'; value: number }
+  | { type: 'block_carry_cap'; value: number }
+  | { type: 'on_kill_heal'; value: number }
+  | { type: 'stage_start_heal'; value: number }
+  | { type: 'on_lethal_survive'; value: number }
+  | { type: 'auto_block_low_hp'; threshold: number; block: number }
+  | { type: 'global_block_piercing'; value: number }
+  | { type: 'gold_drop_bonus'; value: number }
+  | { type: 'craft_discount'; value: number }
+  | { type: 'unlock_upgrade_tier'; value: number }
+  | { type: 'unlock_talent_tier'; value: number }
+  | { type: 'reaction_slots_delta'; value: number }
+  | { type: 'free_reroll_per_run'; value: number }
+  | { type: 'resistance_bonus'; element: string; value: number }
+  | { type: 'all_resist_bonus'; value: number }
+  | { type: 'damage_type_bonus'; element: string; value: number }
   | { type: 'noop' };
 
 export interface Upgrade {

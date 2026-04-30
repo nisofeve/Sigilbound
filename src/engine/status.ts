@@ -15,11 +15,17 @@
 // regardless of stacks.
 
 export type StatusId =
-  | 'burn'        // 3 dmg/turn for N turns (Pyre signature)
-  | 'bleed'       // 4 dmg/turn for N turns (Steel/brute signature)
+  | 'burn'        // 3 dmg/turn for N turns (Fire signature)
+  | 'bleed'       // 4 dmg/turn for N turns (Physical/brute signature)
+  | 'poison'      // 2 dmg/turn × stacks (Nature signature)
   | 'frozen'      // skip next plan phase
-  | 'chill'       // marker for stacking Frost combos; ≥3 stacks → "skip enemy turn" payload
+  | 'chill'       // marker for stacking Ice combos; ≥3 stacks → "skip enemy turn"
+  | 'sleep'       // skip N turns; cleared on hit
+  | 'stun'        // skip next action (1 turn)
+  | 'entangled'   // cannot gain block, -50% speed (Nature signature)
+  | 'charmed'     // attacks own side next turn (Holy signature)
   | 'weakened'    // -25% damage dealt for N turns
+  | 'empowered'   // +30% damage dealt for N turns (self-buff)
   | 'marked'      // next attack against this entity +50%
   | 'vulnerable'  // takes +50% damage for N turns
   | 'curse'       // -1 stamina (player) / -1 attack (enemy) per turn
@@ -48,9 +54,15 @@ export interface StatusDef {
 export const STATUS_DEFS: Record<StatusId, StatusDef> = {
   burn:       { id: 'burn',       icon: '🔥', name: 'Burn',       decayKind: 'damage' },
   bleed:      { id: 'bleed',      icon: '🩸', name: 'Bleed',      decayKind: 'damage' },
+  poison:     { id: 'poison',     icon: '☠️', name: 'Poison',     decayKind: 'damage' },
   frozen:     { id: 'frozen',     icon: '❄️', name: 'Frozen',     decayKind: 'turns' },
   chill:      { id: 'chill',      icon: '🧊', name: 'Chill',      decayKind: 'turns' },
+  sleep:      { id: 'sleep',      icon: '💤', name: 'Sleep',      decayKind: 'turns' },
+  stun:       { id: 'stun',       icon: '💫', name: 'Stun',       decayKind: 'turns' },
+  entangled:  { id: 'entangled',  icon: '🌿', name: 'Entangled',  decayKind: 'turns' },
+  charmed:    { id: 'charmed',    icon: '💛', name: 'Charmed',    decayKind: 'turns' },
   weakened:   { id: 'weakened',   icon: '🌀', name: 'Weakened',   decayKind: 'turns' },
+  empowered:  { id: 'empowered',  icon: '💪', name: 'Empowered',  decayKind: 'turns' },
   marked:     { id: 'marked',     icon: '👁',  name: 'Marked',     decayKind: 'turns' },
   vulnerable: { id: 'vulnerable', icon: '💥', name: 'Vulnerable', decayKind: 'turns' },
   curse:      { id: 'curse',      icon: '💀', name: 'Curse',      decayKind: 'turns' },
@@ -99,14 +111,18 @@ export function tickDamageOverTime(bag: StatusBag): { damage: number; bag: Statu
   let next: StatusBag = bag;
   const burn = bag.burn;
   if (burn && burn.stacks > 0) {
-    damage += 3 * burn.stacks; // 3 dmg per stack (Pyre signature)
-    // Stacks decay by 1 per tick (Slay-the-Spire pattern).
+    damage += 3 * burn.stacks;
     next = applyStackChange(next, 'burn', -1);
   }
   const bleed = bag.bleed;
   if (bleed && bleed.stacks > 0) {
-    damage += 4 * bleed.stacks; // 4 dmg per stack (brute / Steel signature)
+    damage += 4 * bleed.stacks;
     next = applyStackChange(next, 'bleed', -1);
+  }
+  const poison = bag.poison;
+  if (poison && poison.stacks > 0) {
+    damage += 2 * poison.stacks; // 2 dmg per stack (Nature signature)
+    next = applyStackChange(next, 'poison', -1);
   }
   return { damage, bag: next };
 }
@@ -148,9 +164,29 @@ export function decayStatuses(bag: StatusBag): StatusBag {
 
 // === Damage modifiers ===
 
-// Multiplier applied to damage the owner DEALS (Weakened halves output).
+// Multiplier applied to damage the owner DEALS.
+// Weakened: -25%. Empowered: +30%. Stack multiplicatively.
 export function outgoingDamageMult(bag: StatusBag): number {
-  return hasStatus(bag, 'weakened') ? 0.75 : 1;
+  let m = 1;
+  if (hasStatus(bag, 'weakened'))  m *= 0.75;
+  if (hasStatus(bag, 'empowered')) m *= 1.30;
+  return m;
+}
+
+// Returns true if the entity is unable to act this turn (sleep, stun, frozen, charmed).
+export function isSkippingTurn(bag: StatusBag): boolean {
+  return hasStatus(bag, 'sleep') || hasStatus(bag, 'stun') || hasStatus(bag, 'frozen') || hasStatus(bag, 'charmed');
+}
+
+// Called when a sleeping entity is hit — clears sleep immediately.
+export function clearSleepOnHit(bag: StatusBag): StatusBag {
+  if (!hasStatus(bag, 'sleep')) return bag;
+  return clearStatus(bag, 'sleep');
+}
+
+// Returns true if the entity cannot gain block (entangled).
+export function isEntangled(bag: StatusBag): boolean {
+  return hasStatus(bag, 'entangled');
 }
 
 // Multiplier applied to damage the owner RECEIVES. Marked = +50% next hit

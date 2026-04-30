@@ -25,7 +25,15 @@ export const SB_COLORS = {
   goldLt:     0xfde68a,
   goldDk:     0x92400e,
 
-  // Damage types
+  // Element colors (7-element system)
+  physical:   0xcbd5e1,
+  fire:       0xfca5a5,
+  ice:        0x93c5fd,
+  thunder:    0xfde68a,
+  nature:     0x86efac,
+  holy:       0xfef08a,
+  dark:       0xc4b5fd,
+  // Legacy damage type aliases
   pyre:       0xfca5a5,
   frost:      0x93c5fd,
   arcane:     0xc4b5fd,
@@ -53,6 +61,15 @@ export const SB_HEX = {
   ember:      '#fcd34d',
   bone:       '#fef3c7',
   smoke:      '#1a0f0a',
+  // 7-element system
+  physical:   '#cbd5e1',
+  fire:       '#fca5a5',
+  ice:        '#93c5fd',
+  thunder:    '#fde68a',
+  nature:     '#86efac',
+  holy:       '#fef08a',
+  dark:       '#c4b5fd',
+  // Legacy aliases
   steel:      '#cbd5e1',
   pyre:       '#fca5a5',
   frost:      '#93c5fd',
@@ -76,22 +93,43 @@ export function rarityColor(r: Rarity | string | undefined): number {
 
 export function damageTypeColorHex(t: string | undefined): string {
   switch (t) {
-    case 'steel':  return SB_HEX.steel;
-    case 'pierce': return SB_HEX.pierce;
-    case 'pyre':   return SB_HEX.pyre;
-    case 'frost':  return SB_HEX.frost;
-    case 'arcane': return SB_HEX.arcane;
-    default:       return '#ffffff';
+    case 'physical': return SB_HEX.physical;
+    case 'fire':     return SB_HEX.fire;
+    case 'ice':      return SB_HEX.ice;
+    case 'thunder':  return SB_HEX.thunder;
+    case 'nature':   return SB_HEX.nature;
+    case 'holy':     return SB_HEX.holy;
+    case 'dark':     return SB_HEX.dark;
+    // Legacy aliases
+    case 'steel':    return SB_HEX.physical;
+    case 'pierce':   return SB_HEX.physical;
+    case 'pyre':     return SB_HEX.fire;
+    case 'frost':    return SB_HEX.ice;
+    case 'arcane':   return SB_HEX.dark;
+    default:         return '#ffffff';
   }
 }
 
 export function damageTypeColor(t: string | undefined): number {
   switch (t) {
-    case 'steel':  return SB_COLORS.steelDmg;
-    case 'pierce': return SB_COLORS.pierce;
-    case 'pyre':   return SB_COLORS.pyre;
-    case 'frost':  return SB_COLORS.frost;
-    case 'arcane': return SB_COLORS.arcane;
-    default:       return 0xffffff;
+    case 'physical': return SB_COLORS.physical;
+    case 'fire':     return SB_COLORS.fire;
+    case 'ice':      return SB_COLORS.ice;
+    case 'thunder':  return SB_COLORS.thunder;
+    case 'nature':   return SB_COLORS.nature;
+    case 'holy':     return SB_COLORS.holy;
+    case 'dark':     return SB_COLORS.dark;
+    case 'steel':    return SB_COLORS.physical;
+    case 'pierce':   return SB_COLORS.physical;
+    case 'pyre':     return SB_COLORS.fire;
+    case 'frost':    return SB_COLORS.ice;
+    case 'arcane':   return SB_COLORS.dark;
+    default:         return 0xffffff;
   }
 }
+
+export const ELEMENT_ICON: Partial<Record<string, string>> = {
+  physical: '⚔',  fire: '🔥', ice: '❄',
+  thunder: '⚡', nature: '🌿', holy: '✨', dark: '🌑',
+  steel: '⚔', pierce: '🗡', pyre: '🔥', frost: '❄', arcane: '🌑',
+};

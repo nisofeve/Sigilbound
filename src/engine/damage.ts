@@ -3,14 +3,25 @@
 // resolver multiplies the raw `damage` field on the action; this module then
 // applies attacker buffs, defender block/def, resistances, and crits).
 //
-// GDD §Damage Types — 5 types: Steel, Pierce, Pyre, Frost, Arcane. Each
-// damage instance has exactly one type. Resistances are stored as a multiplier
-// on the defender (e.g., `pyre: 0.5` = takes half Pyre damage; `pyre: 2.0`
-// = takes double; default 1.0 = neutral).
+// GDD §Elements — 7 types: Physical, Fire, Ice, Thunder, Nature, Holy, Dark.
+// Resistances are stored as a multiplier on the defender
+// (e.g., `fire: 0.5` = takes half Fire; `fire: 1.5` = weak to Fire).
+// Legacy types (steel, pierce, pyre, frost, arcane) kept for backward compat.
 
-export type DamageType = 'steel' | 'pierce' | 'pyre' | 'frost' | 'arcane';
+export type DamageType =
+  | 'physical' | 'fire' | 'ice' | 'thunder' | 'nature' | 'holy' | 'dark'
+  // Legacy — deprecated, kept for backward compat with tests + old save data
+  | 'steel' | 'pierce' | 'pyre' | 'frost' | 'arcane';
 
-export const DAMAGE_TYPES: ReadonlyArray<DamageType> = ['steel', 'pierce', 'pyre', 'frost', 'arcane'];
+export const DAMAGE_TYPES: ReadonlyArray<DamageType> = [
+  'physical', 'fire', 'ice', 'thunder', 'nature', 'holy', 'dark',
+];
+
+export const ELEMENT_LABELS: Partial<Record<DamageType, string>> = {
+  physical: 'Physical', fire: 'Fire',   ice: 'Ice',
+  thunder:  'Thunder',  nature: 'Nature', holy: 'Holy', dark: 'Dark',
+  steel: 'Steel', pierce: 'Pierce', pyre: 'Pyre', frost: 'Frost', arcane: 'Arcane',
+};
 
 // Per-type multipliers on the defender. 1.0 = neutral, <1 = resistant,
 // >1 = vulnerable. Missing entry defaults to 1.0.
@@ -39,6 +50,7 @@ export interface DamageOutput {
   wasCrit: boolean;
   // Useful for floating combat text + combo tracking.
   finalDamage: number;          // The damage value AFTER crit + resistance, BEFORE block/def.
+  resistMult: number;           // The resistance multiplier that was applied (1.0 = neutral).
 }
 
 const DEFAULT_CRIT_BONUS = 1.5;
@@ -62,7 +74,7 @@ export function computeDamage(input: DamageInput): DamageOutput {
   // Defense is flat reduction AFTER block. Floor at 0.
   const hpDelta = Math.max(0, afterBlock - input.defenderDef);
 
-  return { hpDelta, blockConsumed, wasCrit, finalDamage };
+  return { hpDelta, blockConsumed, wasCrit, finalDamage, resistMult };
 }
 
 function clamp01(n: number): number {
@@ -75,4 +87,11 @@ function clamp01(n: number): number {
 // 1.0 (neutral) when unspecified.
 export function resistanceFor(resistances: Resistances | undefined, type: DamageType): number {
   return resistances?.[type] ?? 1;
+}
+
+// Classify a resistance multiplier for UI display.
+export function elementalHitLabel(resistMult: number): 'weakness' | 'resisted' | null {
+  if (resistMult >= 1.4) return 'weakness';
+  if (resistMult <= 0.7) return 'resisted';
+  return null;
 }

@@ -24,8 +24,13 @@ import {
   type ResolveEvent,
   getAction,
   getTactic,
+  onslaughtMultiplier,
+  triadicStrikeBonus,
+  triadicStrikeMultiplier,
+  relentlessMultiplier,
 } from '@engine/index';
 import { damageTypeColorHex } from '@game/theme';
+import { elementalHitLabel } from '../../engine/damage';
 import { sfx } from '@game/sfx';
 
 interface Props {
@@ -160,6 +165,21 @@ export default function CombatView({
   const [hoveredHandIdx, setHoveredHandIdx] = useState<number | null>(null);
   // Mobile-only: tactics drawer open/closed.
   const [tacticsOpen, setTacticsOpen] = useState(false);
+
+  // Which enemy the player has targeted for this round. All newly bound slots
+  // and existing live slots point to this enemy.
+  const [selectedEnemyId, setSelectedEnemyId] = useState<string | null>(null);
+
+  // Confirmation dialogs.
+  const [confirmDialog, setConfirmDialog] = useState<'end_turn_empty' | 'exit' | null>(null);
+
+  // Info modal — long-press on an enemy card or the player bar reveals stats.
+  const [infoModal, setInfoModal] = useState<
+    | { kind: 'enemy'; enemy: EnemyState }
+    | { kind: 'player' }
+    | null
+  >(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Refs for hand cards, slots, and enemies — used to measure DOM rects so
   // animations (flying bind, projectile attacks) can travel between exact
@@ -363,6 +383,7 @@ export default function CombatView({
     if (log.length === 0) return;
 
     setAnimating(true);
+    setSelectedEnemyId(null);
     // Snapshot the pre-resolve HP for every enemy and the player. We override
     // the displayed HP so the bars don't snap to final state immediately.
     const initialEnemyHp: Record<string, number> = {};
@@ -673,6 +694,17 @@ export default function CombatView({
         ev.wasCrit,
       );
 
+      // Elemental effectiveness badge — shows slightly above the damage number.
+      const elemLabel = elementalHitLabel(ev.resistMult);
+      if (elemLabel) {
+        spawnFloater(
+          cx, r.top + r.height * 0.05,
+          elemLabel === 'weakness' ? '⚡ WEAKNESS!' : '🛡 RESISTED',
+          elemLabel === 'weakness' ? '#fde68a' : '#94a3b8',
+          false,
+        );
+      }
+
       if (ev.wasCrit) {
         sfx.critHit();
         shakeScreen('heavy');
@@ -834,8 +866,16 @@ export default function CombatView({
     await wait(timing.impactMs);
   }
 
-  function handleEndTurn(): void {
+  function handleEndTurn(force = false): void {
     if (animating) return;
+    // If no cards are bound to any slot, confirm before ending the turn.
+    if (!force) {
+      const hasAnyBound = runner.state.slots.some(s => s.bound);
+      if (!hasAnyBound) {
+        setConfirmDialog('end_turn_empty');
+        return;
+      }
+    }
     // Capture the combo preview BEFORE endTurn() because endTurn empties
     // the slots — afterwards previewCombosForEndTurn would return nothing.
     // We pass the map down so the sequencer can group volleys correctly.
@@ -880,6 +920,7 @@ export default function CombatView({
 
   function commitBind(realHandIndex: number, slotIndex: number): void {
     if (runner.bindHandToSlot(realHandIndex, slotIndex)) {
+      if (selectedEnemyId) runner.retarget(slotIndex, selectedEnemyId);
       setSelectedHandIdx(null);
       repaint();
     }
@@ -1018,6 +1059,31 @@ export default function CombatView({
     });
   }
 
+  function handleEnemySelect(enemyId: string): void {
+    if (animating) return;
+    setSelectedEnemyId(prev => {
+      const next = prev === enemyId ? null : enemyId;
+      // Retarget all live bound slots to the new selection immediately.
+      if (next) {
+        runner.state.slots.forEach((slot, idx) => {
+          if (slot.bound) runner.retarget(idx, next);
+        });
+        repaint();
+      }
+      return next;
+    });
+  }
+
+  function startLongPress(cb: () => void): void {
+    longPressTimerRef.current = setTimeout(cb, 550);
+  }
+  function cancelLongPress(): void {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }
+
   const actionsInHand = runner.state.hand
     .map((id, i) => ({ id, def: getAction(id), realIndex: i }))
     .filter((x): x is { id: string; def: NonNullable<ReturnType<typeof getAction>>; realIndex: number } => !!x.def);
@@ -1036,6 +1102,47 @@ export default function CombatView({
   const onslaughtSet = new Set(comboPreview.onslaught);
   const triadicSet = new Set(comboPreview.triadic);
   const relentlessSet = new Set(comboPreview.relentless);
+
+  // Per-slot damage preview — shows approximate effective damage above each
+  // slot. Uses the same multiplier functions as the battle engine so the
+  // numbers match what actually resolves on END TURN.
+  type SlotDmgInfo = { base: number; effective: number; willResolve: boolean; combo: 'onslaught' | 'triadic' | 'relentless' | null } | null;
+  const slotDamagePreview: SlotDmgInfo[] = (() => {
+    if (animating) return runner.state.slots.map(() => null);
+    const slots = runner.state.slots;
+    // Resolving slots: charge <= 1 (will tick to 0 on end turn).
+    const resolvingIdxs = slots
+      .map((s, i) => ({ s, i }))
+      .filter(({ s }) => s.bound && s.bound.charge <= 1);
+    const counts = new Map<string, number>();
+    for (const { s } of resolvingIdxs) counts.set(s.bound!.damageType, (counts.get(s.bound!.damageType) ?? 0) + 1);
+    const distinctCount = counts.size;
+    const allOneType = distinctCount === 1;
+    const carriedRelentless = allOneType && (
+      runner.state.relentlessType === null ||
+      runner.state.relentlessType === (resolvingIdxs[0]?.s.bound?.damageType ?? null)
+    );
+    const triadicActive = distinctCount >= 3;
+    const tMult = triadicStrikeMultiplier(distinctCount);
+    const tBonus = triadicStrikeBonus(distinctCount);
+    const rMult = carriedRelentless ? relentlessMultiplier(runner.state.relentlessStreak) : 1;
+
+    return slots.map((slot, idx) => {
+      if (!slot.bound) return null;
+      const hits = slot.bound.hits ?? 1;
+      const base = slot.bound.damage * hits;
+      const willResolve = slot.bound.charge <= 1;
+      if (!willResolve) return { base, effective: base, willResolve: false, combo: null };
+      const sameCount = counts.get(slot.bound.damageType) ?? 1;
+      const onMult = onslaughtMultiplier(sameCount);
+      const effective = Math.round(base * onMult * rMult * tMult) + (triadicActive ? tBonus : 0);
+      const combo = onslaughtSet.has(idx) ? 'onslaught'
+                  : relentlessSet.has(idx) ? 'relentless'
+                  : triadicSet.has(idx)    ? 'triadic'
+                  : null;
+      return { base, effective, willResolve: true, combo } as SlotDmgInfo & object;
+    });
+  })();
   // Per-slot combo "winding up" state during resolve animation. Set true
   // for the brief pre-volley moment when the slots glow + pulse before
   // their projectiles launch together.
@@ -1151,6 +1258,9 @@ export default function CombatView({
         key="player-bar"
         ref={(el) => { if (el) playerHpRef.current = el; }}
         className={playerFlashing ? 'sb-shake' : undefined}
+        onPointerDown={() => startLongPress(() => { cancelLongPress(); setInfoModal({ kind: 'player' }); })}
+        onPointerUp={cancelLongPress}
+        onPointerLeave={cancelLongPress}
         style={{
           display: 'flex', alignItems: 'center', gap: compact ? 8 : 12,
           padding: compact ? '6px 8px' : '8px 12px',
@@ -1239,6 +1349,16 @@ export default function CombatView({
     const ratioLow = ratio < 0.3;
     const ribbon = rarityColor(archetypeToRarity(e.archetype));
     const flashing = hitFlashes.has(e.id);
+    const selected = selectedEnemyId === e.id && !dead;
+    const multipleEnemies = runner.state.enemies.filter(en => en.currentHp > 0).length > 1;
+
+    let borderColor = flashing ? '#ff6b6b' : ribbon;
+    if (selected) borderColor = '#facc15';
+    let boxShadow = flashing
+      ? 'inset 0 0 0 2px rgba(255,107,107,0.85), 0 0 26px rgba(255,107,107,0.7), 0 4px 10px rgba(0,0,0,0.5)'
+      : 'inset 0 0 0 1px rgba(255,235,180,0.35), 0 4px 10px rgba(0,0,0,0.5)';
+    if (selected) boxShadow = '0 0 0 3px #facc15, 0 0 28px rgba(250,204,21,0.6), 0 4px 10px rgba(0,0,0,0.5)';
+
     return (
       <div
         key={e.id}
@@ -1246,22 +1366,25 @@ export default function CombatView({
           if (el) enemyRefs.current.set(e.id, el);
           else enemyRefs.current.delete(e.id);
         }}
+        onClick={() => { if (!dead) handleEnemySelect(e.id); }}
+        onPointerDown={() => startLongPress(() => { cancelLongPress(); setInfoModal({ kind: 'enemy', enemy: e }); })}
+        onPointerUp={cancelLongPress}
+        onPointerLeave={cancelLongPress}
         style={{
           width: cardW, height: cardH,
           background: dead
             ? 'linear-gradient(180deg, #44372a 0%, #2a1f15 100%)'
             : 'linear-gradient(180deg, var(--sb-parchment) 0%, var(--sb-parchment-dark) 100%)',
-          border: `2.5px solid ${flashing ? '#ff6b6b' : ribbon}`,
+          border: `2.5px solid ${borderColor}`,
           borderRadius: 4,
           color: dead ? '#5b3a1f' : '#2c1810',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           opacity: dead ? 0.45 : 1,
-          boxShadow: flashing
-            ? 'inset 0 0 0 2px rgba(255,107,107,0.85), 0 0 26px rgba(255,107,107,0.7), 0 4px 10px rgba(0,0,0,0.5)'
-            : 'inset 0 0 0 1px rgba(255,235,180,0.35), 0 4px 10px rgba(0,0,0,0.5)',
+          boxShadow,
           position: 'relative',
           paddingTop: 14,
           flexShrink: 0,
+          cursor: dead ? 'default' : (multipleEnemies ? 'pointer' : 'default'),
           transition: 'box-shadow 180ms ease, border-color 180ms ease',
         }}
       >
@@ -1316,6 +1439,24 @@ export default function CombatView({
         }}>
           {dead ? '💀' : intentDisplay(e.intent)}
         </div>
+        {/* Selected target badge */}
+        {selected && (
+          <div aria-hidden style={{
+            position: 'absolute', top: 0, left: 0, right: 0,
+            display: 'flex', justifyContent: 'center',
+            pointerEvents: 'none',
+          }}>
+            <div className="sb-display" style={{
+              fontSize: 8, fontWeight: 700, letterSpacing: '0.18em',
+              background: '#facc15', color: '#1a0f0a',
+              padding: '1px 6px',
+              borderRadius: '0 0 4px 4px',
+              boxShadow: '0 2px 6px rgba(250,204,21,0.5)',
+            }}>
+              ▼ TARGET
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -2002,20 +2143,230 @@ export default function CombatView({
     </div>
   );
 
+  // Confirmation dialog — end-turn-empty and exit prompts.
+  const ConfirmDialogLayer = confirmDialog && (
+    <>
+      <div
+        onClick={() => setConfirmDialog(null)}
+        style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.7)' }}
+      />
+      <div style={{
+        position: 'fixed', zIndex: 61,
+        left: '50%', top: '50%',
+        transform: 'translate(-50%, -50%)',
+        maxWidth: 'min(320px, calc(100vw - 32px))',
+        width: '100%',
+        background: 'linear-gradient(180deg, #2a1810 0%, #1a0f0a 100%)',
+        border: '2px solid var(--sb-gold)',
+        borderRadius: 6, padding: '18px 20px',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.9)',
+        color: 'var(--sb-gold-light)',
+        textAlign: 'center',
+      }}>
+        <div className="sb-display" style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, letterSpacing: '0.1em' }}>
+          {confirmDialog === 'exit' ? '⚠ FLEE BATTLE?' : '⚠ SKIP TURN?'}
+        </div>
+        <div className="sb-mono" style={{ fontSize: 11, opacity: 0.8, marginBottom: 16, lineHeight: 1.5 }}>
+          {confirmDialog === 'exit'
+            ? 'Leaving mid-battle will count as a defeat. Are you sure?'
+            : 'No cards are in your slots. End turn without attacking?'}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setConfirmDialog(null)}
+            style={{
+              flex: 1, padding: '8px',
+              background: 'var(--sb-leather)', border: '1.5px solid var(--sb-bronze)',
+              color: 'var(--sb-gold)', fontFamily: 'var(--sb-font-display)',
+              fontSize: 11, letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 3,
+            }}
+          >
+            CANCEL
+          </button>
+          <button
+            onClick={() => {
+              setConfirmDialog(null);
+              if (confirmDialog === 'exit') onExit();
+              else handleEndTurn(true);
+            }}
+            style={{
+              flex: 1, padding: '8px',
+              background: 'linear-gradient(180deg, var(--sb-crimson) 0%, var(--sb-crimson-dark) 100%)',
+              border: '1.5px solid var(--sb-gold)',
+              color: 'var(--sb-gold-light)', fontFamily: 'var(--sb-font-display)',
+              fontSize: 11, letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 3,
+            }}
+          >
+            {confirmDialog === 'exit' ? 'FLEE' : 'SKIP TURN'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
+  // Info modal — shown on long-press of enemy or player card.
+  const InfoModal = infoModal && (
+    <>
+      <div
+        onClick={() => setInfoModal(null)}
+        style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.65)' }}
+      />
+      <div style={{
+        position: 'fixed', zIndex: 51,
+        left: '50%', top: '50%',
+        transform: 'translate(-50%, -50%)',
+        maxWidth: 'min(340px, calc(100vw - 32px))',
+        width: '100%',
+        background: 'linear-gradient(180deg, #2a1810 0%, #1a0f0a 100%)',
+        border: '2px solid var(--sb-gold)',
+        borderRadius: 6,
+        padding: '14px 16px',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.85)',
+        color: 'var(--sb-gold-light)',
+      }}>
+        {infoModal.kind === 'enemy' ? (() => {
+          const en = infoModal.enemy;
+          const rows: [string, string][] = [
+            ['HP', `${en.currentHp} / ${en.maxHp}`],
+            ['DEF', String(en.def ?? 0)],
+            ['Intent', intentDisplay(en.intent)],
+            ...Object.entries(en.resistances ?? {})
+              .filter(([, v]) => v !== 0)
+              .map(([k, v]): [string, string] => [k.toUpperCase(), v > 0 ? `+${Math.round(v * 100)}%` : `${Math.round(v * 100)}%`]),
+          ];
+          return (
+            <>
+              <div className="sb-display" style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, letterSpacing: '0.1em' }}>
+                {en.archetype === 'boss' ? '👑' : '👹'} {en.defId.replace(/_/g, ' ').toUpperCase()}
+              </div>
+              {rows.map(([label, val]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <span className="sb-mono" style={{ fontSize: 11, opacity: 0.7 }}>{label}</span>
+                  <span className="sb-mono" style={{ fontSize: 11, fontWeight: 700 }}>{val}</span>
+                </div>
+              ))}
+            </>
+          );
+        })() : (() => {
+          const stats = p.stats;
+          const rows: [string, string][] = [
+            ['HP', `${p.currentHp} / ${stats.maxHp}`],
+            ['ATK', String(stats.atk)],
+            ['DEF', String(stats.def)],
+            ['BLOCK', String(p.block)],
+            ['CRIT', `${Math.round(stats.critChance * 100)}%`],
+            ['DECK', String(runner.state.deck.length)],
+            ['DISCARD', String(runner.state.discard.length)],
+          ];
+          return (
+            <>
+              <div className="sb-display" style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, letterSpacing: '0.1em' }}>
+                {playerAvatar} {playerName.toUpperCase()}
+              </div>
+              {rows.map(([label, val]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <span className="sb-mono" style={{ fontSize: 11, opacity: 0.7 }}>{label}</span>
+                  <span className="sb-mono" style={{ fontSize: 11, fontWeight: 700 }}>{val}</span>
+                </div>
+              ))}
+            </>
+          );
+        })()}
+        <button
+          onClick={() => setInfoModal(null)}
+          style={{
+            marginTop: 10, width: '100%', padding: '6px',
+            background: 'var(--sb-leather)', border: '1.5px solid var(--sb-bronze)',
+            color: 'var(--sb-gold)', fontFamily: 'var(--sb-font-display)',
+            fontSize: 11, letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 3,
+          }}
+        >
+          CLOSE
+        </button>
+      </div>
+    </>
+  );
+
+  // Damage preview row above the slot hexes. Shows per-slot effective damage
+  // and a combo summary banner when a combo is ready.
+  function SlotDamageRow({ slotSize, gap }: { slotSize: number; gap: number }) {
+    const comboSlots = slotDamagePreview.filter(d => d?.combo && d.willResolve);
+    const activeCombo = comboSlots.length > 0 ? comboSlots[0]!.combo : null;
+    const comboTotal = comboSlots.reduce((sum, d) => sum + (d?.effective ?? 0), 0);
+    const comboColor = activeCombo === 'onslaught' ? '#ff5757'
+                     : activeCombo === 'relentless' ? '#c084fc'
+                     : '#7ec4ff';
+    const comboLabel = activeCombo === 'onslaught' ? '⚔ ONSLAUGHT'
+                     : activeCombo === 'relentless' ? '◈ RELENTLESS'
+                     : '✦ TRIADIC STRIKE';
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+        {/* Per-slot damage chips aligned with each slot */}
+        <div style={{ display: 'flex', gap, alignItems: 'flex-end' }}>
+          {slotDamagePreview.map((info, idx) => (
+            <div key={idx} style={{
+              width: slotSize, display: 'flex', justifyContent: 'center',
+            }}>
+              {info ? (
+                <div className="sb-mono" style={{
+                  fontSize: 10, fontWeight: 700,
+                  padding: '2px 5px',
+                  background: 'rgba(0,0,0,0.7)',
+                  border: `1px solid ${info.combo ? comboColor : (info.willResolve ? 'var(--sb-crimson)' : 'var(--sb-bronze-dark)')}`,
+                  color: info.combo ? comboColor : (info.willResolve ? 'var(--sb-crimson-light)' : 'rgba(255,235,180,0.45)'),
+                  borderRadius: 3,
+                  textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  ⚔ {info.effective}
+                </div>
+              ) : (
+                <div style={{ height: 18 }} />
+              )}
+            </div>
+          ))}
+        </div>
+        {/* Combo summary banner */}
+        {activeCombo && (
+          <div className="sb-display" style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+            padding: '2px 10px',
+            background: `${comboColor}22`,
+            border: `1px solid ${comboColor}`,
+            color: comboColor,
+            borderRadius: 3,
+            textShadow: `0 0 8px ${comboColor}`,
+            whiteSpace: 'nowrap',
+          }}>
+            {comboLabel} · {comboTotal} total
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const ComboFlashLayer = comboFlash && (
-    <div className="absolute z-30 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 sb-combo-flash" style={{
-      padding: isMobile ? '10px 22px' : '14px 36px',
-      background: comboFlash === 'onslaught' ? 'rgba(185,28,28,0.92)'
-               : comboFlash === 'triadic'    ? 'rgba(79,195,247,0.92)'
-               :                                'rgba(167,139,250,0.92)',
-      border: '3px solid var(--sb-gold)',
-      color: 'var(--sb-gold-light)',
-      fontFamily: 'var(--sb-font-display)',
-      fontSize: isMobile ? 18 : 26, fontWeight: 700, letterSpacing: '0.18em',
-      textShadow: '0 2px 4px rgba(0,0,0,0.85)',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(253,230,138,0.5)',
-      whiteSpace: 'nowrap',
-    }}>
+    <div
+      aria-live="polite"
+      className="sb-combo-flash"
+      style={{
+        position: 'absolute', zIndex: 30,
+        left: '50%', top: '50%',
+        transform: 'translate(-50%, -50%)',
+        maxWidth: 'calc(100% - 24px)',
+        textAlign: 'center',
+        padding: isMobile ? '10px 22px' : '14px 36px',
+        background: comboFlash === 'onslaught' ? 'rgba(185,28,28,0.92)'
+                 : comboFlash === 'triadic'    ? 'rgba(79,195,247,0.92)'
+                 :                                'rgba(167,139,250,0.92)',
+        border: '3px solid var(--sb-gold)',
+        color: 'var(--sb-gold-light)',
+        fontFamily: 'var(--sb-font-display)',
+        fontSize: isMobile ? 18 : 26, fontWeight: 700, letterSpacing: '0.18em',
+        textShadow: '0 2px 4px rgba(0,0,0,0.85)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(253,230,138,0.5)',
+      }}
+    >
       {comboFlash === 'onslaught' && '⚔  ONSLAUGHT  ⚔'}
       {comboFlash === 'triadic'    && '✦  TRIADIC STRIKE  ✦'}
       {comboFlash === 'relentless' && '◈  RELENTLESS  ◈'}
@@ -2056,7 +2407,7 @@ export default function CombatView({
         {/* Top status row: flee · stage · turn · hardcore */}
         <div className="relative z-10 flex items-center gap-1.5 px-2 pt-2 pb-1 flex-shrink-0">
           <button
-            onClick={onExit}
+            onClick={() => setConfirmDialog('exit')}
             className="sb-chip"
             style={{ cursor: 'pointer', padding: '4px 8px', fontSize: '10px', flexShrink: 0 }}
           >
@@ -2110,9 +2461,12 @@ export default function CombatView({
             rather than getting pushed all the way down to the hand. */}
         <div style={{ flex: 1, minHeight: 4 }} />
 
-        {/* Sigil slot row — anchored toward the middle of the screen */}
-        <div className="relative z-10 flex justify-center gap-2 px-2 py-2 flex-shrink-0" style={{ overflowX: 'auto' }}>
-          {runner.state.slots.map((slot, slotIdx) => SigilSlot({ slot, slotIdx, size: slotSize }))}
+        {/* Damage preview above slots + slot row */}
+        <div className="relative z-10 flex flex-col items-center gap-1 px-2 py-2 flex-shrink-0" style={{ overflowX: 'auto' }}>
+          {SlotDamageRow({ slotSize, gap: 8 })}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {runner.state.slots.map((slot, slotIdx) => SigilSlot({ slot, slotIdx, size: slotSize }))}
+          </div>
         </div>
 
         {/* Bottom spacer — balances the top spacer to roughly center the slots. */}
@@ -2158,7 +2512,7 @@ export default function CombatView({
           background: 'linear-gradient(180deg, transparent 0%, rgba(15,10,7,0.65) 100%)',
         }}>
           <button
-            onClick={handleEndTurn}
+            onClick={() => handleEndTurn()}
             disabled={animating}
             style={{
               flex: 1, height: 44,
@@ -2235,6 +2589,8 @@ export default function CombatView({
         {SlashLayer}
         {ParticleLayer}
         {FloaterLayer}
+        {InfoModal}
+        {ConfirmDialogLayer}
       </div>
     );
   }
@@ -2270,7 +2626,7 @@ export default function CombatView({
       </div>
 
       <button
-        onClick={onExit}
+        onClick={() => setConfirmDialog('exit')}
         className="absolute top-2 left-2 z-20 sb-chip"
         style={{ cursor: 'pointer', padding: '5px 11px', fontSize: '11px' }}
       >
@@ -2290,13 +2646,14 @@ export default function CombatView({
         {runner.state.enemies.map(e => EnemyCard({ e, cardW: 194, cardH: 270 }))}
       </div>
 
-      {/* Sigil slots — pulled toward the vertical middle of the playfield
-          so the player has a clear "battlefield" zone between enemies and
-          the hand fan. */}
-      <div className="absolute z-10 left-0 right-0 flex justify-center gap-4" style={{
+      {/* Sigil slots with damage preview above — pulled toward vertical middle */}
+      <div className="absolute z-10 left-0 right-0 flex flex-col items-center gap-2" style={{
         top: '50%', transform: 'translateY(-25%)',
       }}>
-        {runner.state.slots.map((slot, slotIdx) => SigilSlot({ slot, slotIdx, size: 92 }))}
+        {SlotDamageRow({ slotSize: 92, gap: 16 })}
+        <div style={{ display: 'flex', gap: 16 }}>
+          {runner.state.slots.map((slot, slotIdx) => SigilSlot({ slot, slotIdx, size: 92 }))}
+        </div>
       </div>
 
       {/* Hand fan — cards bumped 30% (88→114 wide, 122→159 tall) with
@@ -2329,7 +2686,7 @@ export default function CombatView({
           this button anchors at bottom:100 so its bottom edge is just
           above the player bar's top edge. */}
       <button
-        onClick={handleEndTurn}
+        onClick={() => handleEndTurn()}
         disabled={animating}
         className="absolute z-20"
         style={{
@@ -2388,6 +2745,8 @@ export default function CombatView({
       {SlashLayer}
       {ParticleLayer}
       {FloaterLayer}
+      {InfoModal}
+      {ConfirmDialogLayer}
     </div>
   );
 }

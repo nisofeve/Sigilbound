@@ -61,6 +61,7 @@ import {
 } from './equipment';
 import { getAction as getActionDef, getTactic as getTacticDef, type TacticEffect } from './actionCards';
 import type { DamageType } from './damage';
+import { clearSleepOnHit, applyStatus } from './status';
 import type { CardId, Perk } from './types';
 
 // === Action card (a strike-card on a sigil slot) ===
@@ -85,6 +86,7 @@ export type ResolveEvent =
       damageDealt: number;          // post-block HP delta on the target
       blockConsumed: number;
       wasCrit: boolean;
+      resistMult: number;           // resistance multiplier applied (>1.4 = weakness, <0.7 = resisted)
       targetEnemyId: string | undefined;
       enemyHpBefore: number;
       enemyHpAfter: number;
@@ -966,73 +968,130 @@ export class BattleRunner {
         action.damage * onMult * reMult * triadicMult * outgoingMult * equipmentComboMult * eqTypeMult * talentTypeMult * battlecryMult * triadicTalentMult,
       ) + triadicBonus;
 
-      const target = this.findLivingTarget(action.targetEnemyId);
-      if (!target) continue; // no enemies — strike wasted (still counts for combos)
-      const targetHpBefore = target.currentHp;
+      // Look up the card def once per action for AOE + self-effect data.
+      const cardDef = getActionDef(action.cardId);
+      const isAoe = cardDef?.aoe === true;
+
+      // Build target list: AOE = all living enemies; otherwise single target.
+      const targets = isAoe
+        ? this.state.enemies.filter(isEnemyAlive)
+        : [this.findLivingTarget(action.targetEnemyId)].filter((t): t is NonNullable<typeof t> => !!t);
+
+      if (targets.length === 0) continue; // no enemies left — strike wasted
 
       // Hunter 4pc: first strike of stage auto-crits.
       const autoCrit = this.consumeFirstStrikeAutoCrit();
       const critChance = autoCrit ? 1 : this.state.player.stats.critChance;
-      const critRoll = autoCrit ? 0 : this.rng.next();
 
-      const result = computeDamage({
-        raw: buffedRaw,
-        type: action.damageType,
-        attackerAtk: this.state.player.stats.atk,
-        attackerCritChance: critChance,
-        defenderDef: target.def,
-        defenderBlock: target.block,
-        defenderResistances: target.resistances,
-        critRoll,
-        blockPiercing: action.blockPiercing,
-      });
+      let firstTarget = targets[0];
 
-      this.state.enemies = this.state.enemies.map(e =>
-        e.id === target.id ? applyEnemyDamage(e, result.hpDelta, result.blockConsumed) : e,
-      );
-      const updatedTarget = this.state.enemies.find(e => e.id === target.id);
-      const targetHpAfter = updatedTarget?.currentHp ?? targetHpBefore;
+      for (const target of targets) {
+        const targetHpBefore = target.currentHp;
+        const critRoll = autoCrit ? 0 : this.rng.next();
 
-      // Track player stats.
-      this.state.player = {
-        ...this.state.player,
-        damageDealtThisStage: this.state.player.damageDealtThisStage + result.hpDelta,
-        damageDealtByType: {
-          ...this.state.player.damageDealtByType,
-          [action.damageType]: (this.state.player.damageDealtByType[action.damageType] ?? 0) + result.hpDelta,
-        },
-      };
+        const result = computeDamage({
+          raw: buffedRaw,
+          type: action.damageType,
+          attackerAtk: this.state.player.stats.atk,
+          attackerCritChance: critChance,
+          defenderDef: target.def,
+          defenderBlock: target.block,
+          defenderResistances: target.resistances,
+          critRoll,
+          blockPiercing: action.blockPiercing,
+        });
 
-      // Reaction: onCrit, onKill.
-      if (result.wasCrit) {
-        this.fireReactionTrigger('onCrit', { damage: result.hpDelta, damageType: action.damageType });
-        // Equipment on_crit triggers (Dragonfang Sabre etc.) — not yet wired.
-        // Talent: Lucky Streak heals N HP on every crit.
-        if (this.state.talents.critHeal > 0) {
-          this.state.player = healPlayer(this.state.player, this.state.talents.critHeal);
+        // Clear sleep on hit.
+        this.state.enemies = this.state.enemies.map(e =>
+          e.id === target.id
+            ? { ...applyEnemyDamage(e, result.hpDelta, result.blockConsumed),
+                statuses: clearSleepOnHit(e.statuses) }
+            : e,
+        );
+
+        // Apply on-hit statuses (single or multiple) from the card def.
+        const allStatuses = [
+          ...(cardDef?.applyStatus ? [cardDef.applyStatus] : []),
+          ...(cardDef?.applyStatuses ?? []),
+        ];
+        for (const s of allStatuses) {
+          this.state.enemies = this.state.enemies.map(e =>
+            e.id === target.id
+              ? { ...e, statuses: applyStatus(e.statuses, s.id, s.stacks, s.turns) }
+              : e,
+          );
+        }
+
+        const updatedTarget = this.state.enemies.find(e => e.id === target.id);
+        const targetHpAfter = updatedTarget?.currentHp ?? targetHpBefore;
+
+        // Track player stats.
+        this.state.player = {
+          ...this.state.player,
+          damageDealtThisStage: this.state.player.damageDealtThisStage + result.hpDelta,
+          damageDealtByType: {
+            ...this.state.player.damageDealtByType,
+            [action.damageType]: (this.state.player.damageDealtByType[action.damageType] ?? 0) + result.hpDelta,
+          },
+        };
+
+        if (result.wasCrit) {
+          this.fireReactionTrigger('onCrit', { damage: result.hpDelta, damageType: action.damageType });
+          if (this.state.talents.critHeal > 0) {
+            this.state.player = healPlayer(this.state.player, this.state.talents.critHeal);
+          }
+        }
+        const afterState = this.state.enemies.find(e => e.id === target.id);
+        const wasKill = !!(afterState && !isEnemyAlive(afterState));
+        if (wasKill) {
+          this.state.player = { ...this.state.player, enemiesDefeated: this.state.player.enemiesDefeated + 1 };
+          this.fireReactionTrigger('onKill', { victimEnemyId: target.id });
+          this.applyEquipmentOnKill();
+          // Self-heal on kill.
+          if (cardDef?.selfHealOnKill && cardDef.selfHealOnKill > 0) {
+            this.state.player = healPlayer(this.state.player, cardDef.selfHealOnKill);
+          }
+        }
+
+        // Emit per-target resolve event.
+        this.resolveLog.push({
+          kind: 'action_resolve',
+          slotIndex: sourceSlotIdx,
+          cardId: action.cardId,
+          damageType: action.damageType,
+          damageDealt: result.hpDelta,
+          blockConsumed: result.blockConsumed,
+          wasCrit: result.wasCrit,
+          resistMult: result.resistMult,
+          targetEnemyId: target.id,
+          enemyHpBefore: targetHpBefore,
+          enemyHpAfter: targetHpAfter,
+          enemyKilled: wasKill,
+        });
+
+        if (target.id === firstTarget.id) {
+          firstTarget = this.state.enemies.find(e => e.id === target.id) ?? firstTarget;
         }
       }
-      const after = this.state.enemies.find(e => e.id === target.id);
-      const wasKill = !!(after && !isEnemyAlive(after));
-      if (wasKill) {
-        this.state.player = { ...this.state.player, enemiesDefeated: this.state.player.enemiesDefeated + 1 };
-        this.fireReactionTrigger('onKill', { victimEnemyId: target.id });
-        this.applyEquipmentOnKill();
-      }
 
-      this.resolveLog.push({
-        kind: 'action_resolve',
-        slotIndex: sourceSlotIdx,
-        cardId: action.cardId,
-        damageType: action.damageType,
-        damageDealt: result.hpDelta,
-        blockConsumed: result.blockConsumed,
-        wasCrit: result.wasCrit,
-        targetEnemyId: target.id,
-        enemyHpBefore: targetHpBefore,
-        enemyHpAfter: targetHpAfter,
-        enemyKilled: wasKill,
-      });
+      // Self-effects fire once per card (not per AOE target).
+      if (cardDef?.selfBlock && cardDef.selfBlock > 0) {
+        this.state.player = addBlock(this.state.player, cardDef.selfBlock);
+      }
+      if (cardDef?.selfHeal && cardDef.selfHeal > 0) {
+        this.state.player = healPlayer(this.state.player, cardDef.selfHeal);
+      }
+      if (cardDef?.selfDrawCard && cardDef.selfDrawCard > 0) {
+        this.drawCards(cardDef.selfDrawCard);
+      }
+      if (cardDef?.selfDamageBuff) {
+        this.state.player = applyPlayerStatus(
+          this.state.player,
+          'empowered',
+          Math.round(cardDef.selfDamageBuff.pct * 10),
+          cardDef.selfDamageBuff.turns,
+        );
+      }
     }
 
     // Combo bookkeeping.

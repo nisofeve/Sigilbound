@@ -28,15 +28,21 @@ export interface ActionCardDef {
   damageType: DamageType;
   damage: number;
   charge: number;
-  cost: number;                 // stamina cost (Phase 5)
-  hits?: number;                // multi-strike (Blade Dance, Volley)
-  // Free-form effect text. The runner handles a small set of effect
-  // patterns; the rest is documentation for the UI.
-  effect?: string;
+  cost: number;                 // stamina cost
+  hits?: number;                // multi-strike
+  effect?: string;              // human-readable description for UI
   emoji: string;
   blockPiercing?: number;       // 0..1 — bypass that fraction of enemy block
-  // On-hit status to apply to the target.
+  aoe?: boolean;                // hits all living enemies
+  // On-hit status to apply to the target (single or multiple).
   applyStatus?: { id: StatusId; stacks: number; turns: number };
+  applyStatuses?: Array<{ id: StatusId; stacks: number; turns: number }>;
+  // Self-effects applied when this card resolves.
+  selfBlock?: number;           // grant player this much block
+  selfHeal?: number;            // heal player this much
+  selfHealOnKill?: number;      // heal player this much if target killed
+  selfDrawCard?: number;        // draw N cards
+  selfDamageBuff?: { pct: number; turns: number }; // +% damage for N turns
 }
 
 // === TACTIC cards (instant effects, played from hand) ===

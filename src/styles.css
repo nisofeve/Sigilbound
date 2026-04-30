@@ -658,20 +658,18 @@ html, body, #root {
     transform: rotate(var(--proj-angle, 0deg)) scaleX(0.4) scaleY(0.5);
     opacity: 0;
   }
-  10%  {
-    transform: translate(calc(var(--proj-dx, 0) * 0.05), calc(var(--proj-dy, 0) * 0.05))
+  8%  {
+    transform: translate(calc(var(--proj-dx, 0) * 0.08), calc(var(--proj-dy, 0) * 0.08))
                rotate(var(--proj-angle, 0deg)) scaleX(1.1) scaleY(1.05);
     opacity: 1;
   }
-  /* Mid-flight: project grows to peak size — feels weighty + theatrical
-     during the slow charge → fly window. */
   50%  {
     transform: translate(calc(var(--proj-dx, 0) * 0.5), calc(var(--proj-dy, 0) * 0.5))
                rotate(var(--proj-angle, 0deg)) scaleX(1.35) scaleY(1.25);
     opacity: 1;
   }
-  88%  {
-    transform: translate(calc(var(--proj-dx, 0) * 0.93), calc(var(--proj-dy, 0) * 0.93))
+  90%  {
+    transform: translate(calc(var(--proj-dx, 0) * 0.9), calc(var(--proj-dy, 0) * 0.9))
                rotate(var(--proj-angle, 0deg)) scaleX(1.1) scaleY(1);
     opacity: 1;
   }
@@ -682,7 +680,7 @@ html, body, #root {
   }
 }
 .sb-projectile {
-  animation: sb-projectile-fly var(--proj-duration, 320ms) cubic-bezier(0.18, 0.7, 0.4, 1) both;
+  animation: sb-projectile-fly var(--proj-duration, 320ms) linear both;
 }
 
 /* Hit-shake — applied to the player's HP/profile bar when an enemy attack
