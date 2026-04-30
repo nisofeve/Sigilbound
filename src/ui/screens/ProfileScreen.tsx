@@ -1,3 +1,8 @@
+// Sigilbound profile — heraldic statistics dossier.
+//
+// Layout: dark leather panels with parchment + iron banners, gold accents,
+// crimson highlights. Matches the Combat Hub / Shop / Stronghold aesthetic.
+
 import { useState } from 'react';
 import {
   MAX_LEVEL,
@@ -29,18 +34,18 @@ interface Props {
 
 type Tab = 'overview' | 'levels' | 'achievements' | 'account';
 
-const AVATAR_OPTIONS = ['🌱', '🌾', '🥕', '🌽', '🍅', '🍓', '🍄', '🌻', '🐔', '🐮', '🐷', '🦊', '🐸', '🦉', '👨‍🌾', '👩‍🌾'];
+const AVATAR_OPTIONS = ['⚔️', '🛡️', '🏹', '🗡️', '🪓', '⚒️', '🪄', '📜', '🦌', '🐺', '🦅', '🐉', '🔥', '❄️', '⚡', '✨', '🌑', '👑', '💀', '🦴'];
 
-const rarityColor: Record<Rarity, string> = {
-  common: '#a5d6a7',
-  uncommon: '#90caf9',
-  rare: '#ce93d8',
-  epic: '#ffab76',
-  legendary: '#ffd54f',
-  mythic: '#ff80ab',
+const RARITY_COLOR: Record<Rarity, string> = {
+  common:    '#94a3b8',
+  uncommon:  '#4ade80',
+  rare:      '#60a5fa',
+  epic:      '#a78bfa',
+  legendary: '#fbbf24',
+  mythic:    '#ec4899',
 };
 
-const rarityOrder: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+const RARITY_ORDER: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
 
 export default function ProfileScreen({ profile, auth, onProfileChange, onBack }: Props) {
   const [tab, setTab] = useState<Tab>('overview');
@@ -48,8 +53,6 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
   const [nameDraft, setNameDraft] = useState(profile.displayName ?? '');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
-  // Reward popup — set when a level claim succeeds, cleared by the modal's
-  // Collect button. Carries the source level for the subtitle.
   const [claimPopup, setClaimPopup] = useState<{ level: number; rewards: ClaimableReward[] } | null>(null);
 
   const lp = levelProgress(profile.playerXp);
@@ -76,9 +79,6 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
       return;
     }
     onProfileChange(res.profile);
-    // Show the celebratory popup. Translate the engine reward shape into the
-    // modal's ClaimableReward shape — currencies map 1:1, perks need their
-    // human-readable name + icon resolved from the data file.
     const rewards: ClaimableReward[] = res.rewards.map(r => {
       if (r.type === 'card') return { type: 'card', cardId: r.cardId, count: r.count };
       if (r.type === 'perk') {
@@ -95,9 +95,15 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
   return (
     <div className="sb-bg sb-bg-stone relative h-full w-full overflow-y-auto safe-top safe-bottom">
       <div className="relative z-10">
-        <div className="max-w-3xl mx-auto px-3 sm:px-5 py-4 sm:py-6 sb-fade-up">
+        <div className="max-w-3xl mx-auto px-3 sm:px-5 py-4 sb-fade-up">
+
+          {/* === Top bar === */}
           <div className="flex items-center justify-between mb-4">
-            <button onClick={onBack} className="sb-chip" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '11px' }}>
+            <button
+              onClick={onBack}
+              className="sb-chip"
+              style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '11px' }}
+            >
               ← HOME
             </button>
             <div
@@ -109,7 +115,7 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
             <div style={{ width: 50 }} />
           </div>
 
-          {/* Hero: avatar + name + level bar */}
+          {/* === Hero block === */}
           <HeroBlock
             profile={profile}
             lp={lp}
@@ -122,23 +128,39 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
             onCancelName={() => setEditingName(false)}
           />
 
-          {/* Avatar picker drawer */}
+          {/* === Avatar picker === */}
           {pickerOpen && (
-            <div className="pb-panel px-3 py-3 mb-4 pb-pop-in" style={{ color: '#3e2723' }}>
-              <div className="text-[10px] uppercase tracking-[0.3em] font-extrabold mb-2 text-center" style={{ color: '#6d4c2a' }}>
-                Pick an avatar
+            <div
+              className="sb-leather sb-fade-up px-3 py-3 mb-4"
+              style={{ borderRadius: 6 }}
+            >
+              <div
+                className="sb-display text-center mb-2"
+                style={{
+                  fontSize: '10px',
+                  letterSpacing: '0.3em',
+                  color: 'var(--sb-gold-light)',
+                  opacity: 0.8,
+                }}
+              >
+                CHOOSE YOUR SIGIL
               </div>
               <div className="grid grid-cols-8 gap-1.5">
                 {AVATAR_OPTIONS.map(e => (
                   <button
                     key={e}
                     onClick={() => changeAvatar(e)}
-                    className="text-2xl rounded-lg transition active:scale-95"
+                    className="text-2xl transition active:scale-95"
                     style={{
-                      background: profile.avatarEmoji === e ? '#ffd54f' : 'rgba(255,255,255,0.5)',
-                      border: `2px solid ${profile.avatarEmoji === e ? '#c17900' : 'rgba(120,80,30,0.3)'}`,
+                      background: profile.avatarEmoji === e
+                        ? 'linear-gradient(180deg, var(--sb-gold) 0%, var(--sb-bronze) 100%)'
+                        : 'rgba(15,10,7,0.55)',
+                      border: `1.5px solid ${profile.avatarEmoji === e ? 'var(--sb-gold-light)' : 'var(--sb-bronze-dark)'}`,
+                      borderRadius: 4,
                       padding: '6px 4px',
-                      boxShadow: profile.avatarEmoji === e ? 'inset 0 1px 0 rgba(255,255,255,0.5)' : 'none',
+                      boxShadow: profile.avatarEmoji === e
+                        ? 'inset 0 1px 0 rgba(255,255,255,0.4), 0 0 10px rgba(251,191,36,0.4)'
+                        : 'inset 0 1px 0 rgba(255,235,180,0.08)',
                     }}
                   >
                     {e}
@@ -148,35 +170,38 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
             </div>
           )}
 
+          {/* === Toast === */}
           {msg && (
             <div
-              className="rounded-xl p-2.5 text-sm mb-3 font-bold pb-pop-in"
+              className="sb-display sb-fade-up text-center px-3 py-2 mb-3"
               style={{
-                background: msg.kind === 'ok' ? 'rgba(46,125,50,0.25)' : 'rgba(198,40,40,0.18)',
-                border: `2px solid ${msg.kind === 'ok' ? '#2e7d32' : '#c62828'}`,
-                color: '#fff',
+                fontSize: '11px',
+                letterSpacing: '0.18em',
+                background: msg.kind === 'ok' ? 'rgba(74,222,128,0.20)' : 'rgba(220,38,38,0.20)',
+                border: `1.5px solid ${msg.kind === 'ok' ? '#4ade80' : 'var(--sb-crimson-light)'}`,
+                borderRadius: '3px',
+                color: msg.kind === 'ok' ? '#86efac' : '#fecaca',
               }}
             >
-              {msg.kind === 'ok' ? '✓' : '⚠'} {msg.text}
+              {msg.kind === 'ok' ? '✓' : '⚠'} {msg.text.toUpperCase()}
             </div>
           )}
 
-          {/* Tabs */}
+          {/* === Tabs === */}
           <div className="grid grid-cols-2 sm:flex gap-1.5 sm:gap-2 mb-3">
-            <TabButton active={tab === 'overview'}      onClick={() => setTab('overview')}>📊 Stats</TabButton>
-            <TabButton active={tab === 'levels'}        onClick={() => setTab('levels')}>🎁 Rewards</TabButton>
-            <TabButton active={tab === 'achievements'}  onClick={() => setTab('achievements')}>🏆 Achievements</TabButton>
-            <TabButton active={tab === 'account'}       onClick={() => setTab('account')}>☁ Account</TabButton>
+            <TabButton active={tab === 'overview'}      onClick={() => setTab('overview')}>📊 STATS</TabButton>
+            <TabButton active={tab === 'levels'}        onClick={() => setTab('levels')}>🎁 REWARDS</TabButton>
+            <TabButton active={tab === 'achievements'}  onClick={() => setTab('achievements')}>🏆 ACHIEVEMENTS</TabButton>
+            <TabButton active={tab === 'account'}       onClick={() => setTab('account')}>☁ ACCOUNT</TabButton>
           </div>
 
-          {tab === 'overview' && <OverviewTab profile={profile} />}
-          {tab === 'levels' && <LevelsTab profile={profile} onClaim={claim} />}
+          {tab === 'overview'     && <OverviewTab profile={profile} />}
+          {tab === 'levels'       && <LevelsTab profile={profile} onClaim={claim} />}
           {tab === 'achievements' && <AchievementsTab profile={profile} />}
-          {tab === 'account' && <AccountTab profile={profile} auth={auth} onProfileChange={onProfileChange} />}
+          {tab === 'account'      && <AccountTab profile={profile} auth={auth} onProfileChange={onProfileChange} />}
         </div>
       </div>
 
-      {/* Reward popup — anchored to the screen, fires on level claim. */}
       {claimPopup && (
         <RewardClaimModal
           source="level"
@@ -189,9 +214,7 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
   );
 }
 
-// ===================================================
-// Hero block
-// ===================================================
+// ─── Hero block ──────────────────────────────────────────────────────────────
 
 function HeroBlock(props: {
   profile: Profile;
@@ -209,24 +232,35 @@ function HeroBlock(props: {
   const claimable = countClaimableLevels(profile);
 
   return (
-    <div className="pb-panel-dark px-4 py-4 mb-4 pb-pop-in">
+    <div
+      className="sb-fade-up px-4 py-4 mb-4 relative"
+      style={{
+        background: 'linear-gradient(180deg, #2c1810 0%, var(--sb-leather-dark) 100%)',
+        border: '2px solid var(--sb-bronze)',
+        borderRadius: 6,
+        color: 'var(--sb-gold-light)',
+        boxShadow: 'inset 0 1px 0 rgba(255,235,180,0.18), var(--sb-shadow-md)',
+      }}
+    >
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Avatar */}
+        {/* Avatar shield */}
         <button
           onClick={onChangeAvatar}
-          className="flex-shrink-0 rounded-2xl flex items-center justify-center transition active:scale-95"
+          className="flex-shrink-0 flex items-center justify-center transition active:scale-95"
           style={{
-            width: 84,
-            height: 84,
-            background: 'linear-gradient(180deg, #ffd54f 0%, #f9a825 100%)',
-            border: '3px solid rgba(255,243,176,0.7)',
-            boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.4), 0 4px 0 rgba(0,0,0,0.25), 0 6px 14px rgba(0,0,0,0.3)',
-            fontSize: 56,
+            width: 88,
+            height: 88,
+            background: 'linear-gradient(180deg, var(--sb-gold) 0%, var(--sb-bronze) 100%)',
+            border: '3px solid var(--sb-gold-light)',
+            borderRadius: 8,
+            boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.35), 0 4px 14px rgba(0,0,0,0.45), var(--sb-glow-gold)',
+            fontSize: 52,
             lineHeight: 1,
+            color: '#1a0f0a',
           }}
           aria-label="Change avatar"
         >
-          {profile.avatarEmoji || '🌱'}
+          {profile.avatarEmoji || '⚔️'}
         </button>
 
         {/* Name + level meta */}
@@ -240,28 +274,39 @@ function HeroBlock(props: {
                 placeholder="Your hero name"
                 maxLength={20}
                 autoFocus
-                className="flex-1 rounded-lg px-2 py-1.5 text-sm font-extrabold focus:outline-none"
+                className="flex-1 px-2 py-1.5 sb-display focus:outline-none"
                 style={{
-                  background: 'rgba(255,255,255,0.85)',
-                  border: '2px solid rgba(120,80,30,0.4)',
-                  color: '#3e2723',
+                  fontSize: '14px',
+                  letterSpacing: '0.04em',
+                  background: 'rgba(15,10,7,0.7)',
+                  border: '1.5px solid var(--sb-gold)',
+                  borderRadius: 3,
+                  color: 'var(--sb-gold-light)',
                 }}
               />
-              <button onClick={onCommitName} className="pb-btn pb-btn-gold pb-btn-sm !px-2">✓</button>
-              <button onClick={onCancelName} className="pb-btn pb-btn-cream pb-btn-sm !px-2">✕</button>
+              <button onClick={onCommitName} className="sb-btn sb-btn-gold" style={{ fontSize: '11px', padding: '6px 12px' }}>✓</button>
+              <button onClick={onCancelName} className="sb-btn sb-btn-steel" style={{ fontSize: '11px', padding: '6px 12px' }}>✕</button>
             </div>
           ) : (
             <button
               onClick={onEditName}
-              className="text-left fredoka text-2xl sm:text-3xl truncate w-full"
-              style={{ color: '#ffd54f', textShadow: '0 2px 0 rgba(0,0,0,0.4)' }}
+              className="text-left sb-display truncate w-full"
+              style={{
+                fontSize: 'clamp(20px, 5vw, 28px)',
+                color: 'var(--sb-gold-light)',
+                letterSpacing: '0.04em',
+                textShadow: '0 2px 0 rgba(0,0,0,0.5), 0 0 14px rgba(251,191,36,0.18)',
+              }}
             >
               {profile.displayName ?? 'Anon Sigilist'}
               <span className="ml-2 text-xs opacity-50">✏</span>
             </button>
           )}
           {profile.farmCode && (
-            <div className="text-[10px] font-mono opacity-75 truncate mt-0.5" style={{ letterSpacing: '0.1em' }}>
+            <div
+              className="sb-mono text-[10px] mt-0.5 opacity-65 truncate"
+              style={{ letterSpacing: '0.1em', color: 'var(--sb-gold-light)' }}
+            >
               {profile.farmCode}
             </div>
           )}
@@ -269,27 +314,41 @@ function HeroBlock(props: {
           {/* Level + XP bar */}
           <div className="mt-2.5">
             <div className="flex items-baseline justify-between mb-1">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[10px] uppercase tracking-widest opacity-75 font-bold">Level</span>
-                <span className="fredoka text-2xl" style={{ color: '#ffe082' }}>{lp.level}</span>
-                <span className="text-[10px] opacity-60">/ {MAX_LEVEL}</span>
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="sb-mono text-[10px] uppercase font-bold"
+                  style={{ letterSpacing: '0.18em', color: 'var(--sb-gold)', opacity: 0.7 }}
+                >
+                  LEVEL
+                </span>
+                <span className="sb-display" style={{ fontSize: '24px', color: 'var(--sb-gold-light)' }}>
+                  {lp.level}
+                </span>
+                <span className="sb-mono text-[10px] opacity-55">/ {MAX_LEVEL}</span>
               </div>
-              <div className="text-[10px] opacity-75 font-bold">
+              <div className="sb-mono text-[10px] opacity-75 font-bold" style={{ letterSpacing: '0.05em' }}>
                 {isMax ? 'MAX' : `${lp.intoLevelXp} / ${lp.nextLevelXp} XP`}
               </div>
             </div>
-            <div className="h-3 bg-black/45 rounded-full overflow-hidden relative" style={{ boxShadow: 'inset 0 2px 3px rgba(0,0,0,0.5)' }}>
+            <div
+              className="relative overflow-hidden"
+              style={{
+                height: 14,
+                background: 'rgba(0,0,0,0.6)',
+                border: '1.5px solid var(--sb-bronze-dark)',
+                borderRadius: 2,
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)',
+              }}
+            >
               <div
-                className="h-full rounded-full relative"
+                className="h-full"
                 style={{
                   width: `${Math.round(lp.pct * 100)}%`,
-                  background: 'linear-gradient(90deg, #80deea 0%, #1976d2 100%)',
+                  background: 'linear-gradient(180deg, var(--sb-gold-light) 0%, var(--sb-gold) 50%, var(--sb-bronze) 100%)',
                   transition: 'width 400ms ease',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)',
                 }}
-              >
-                {lp.pct > 0.08 && <div className="absolute inset-0 pb-shimmer" />}
-              </div>
+              />
             </div>
           </div>
         </div>
@@ -297,15 +356,19 @@ function HeroBlock(props: {
 
       {claimable > 0 && (
         <div
-          className="mt-3 px-3 py-2 rounded-lg text-center text-xs font-extrabold pb-pulse"
+          className="sb-display sb-pulse-crimson mt-3 px-3 py-2 text-center"
           style={{
-            background: 'linear-gradient(180deg, #ffd54f 0%, #f9a825 100%)',
-            color: '#4a2e00',
-            border: '2px solid rgba(255,243,176,0.7)',
-            boxShadow: '0 3px 0 rgba(0,0,0,0.18)',
+            background: 'linear-gradient(180deg, var(--sb-gold) 0%, var(--sb-bronze) 100%)',
+            color: '#1a0f0a',
+            border: '1.5px solid var(--sb-gold-light)',
+            borderRadius: 3,
+            fontSize: '11px',
+            letterSpacing: '0.18em',
+            textShadow: '0 1px 0 rgba(255,255,255,0.3)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 0 14px rgba(251,191,36,0.5)',
           }}
         >
-          🎁 {claimable} reward{claimable === 1 ? '' : 's'} ready to claim — open the Rewards tab!
+          🎁 {claimable} REWARD{claimable === 1 ? '' : 'S'} READY · OPEN REWARDS TAB
         </div>
       )}
     </div>
@@ -320,44 +383,67 @@ function countClaimableLevels(profile: Profile): number {
   return n;
 }
 
-// ===================================================
-// Tab: Stats
-// ===================================================
+// ─── Stats tab ───────────────────────────────────────────────────────────────
 
 function OverviewTab({ profile }: { profile: Profile }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pb-fade-up">
-      <StatCard label="Battles Played" value={profile.seasonsPlayed} icon="⚔️" />
-      <StatCard label="Best Score"     value={profile.bestScore}     icon="🏆" color="#ffd54f" />
-      <StatCard label="Lifetime Gold"  value={profile.totalCoinsEarned} icon="💰" color="#fff176" />
-      <StatCard label="Bank"           value={profile.bankCoins}     icon="🏦" color="#ffe082" />
-      <StatCard label="Crystals"       value={profile.gems}          icon="💎" color="#80deea" />
-      <StatCard label="Soul Shards"    value={profile.perkShards}    icon="✨" color="#ffd54f" />
-      <StatCard label="Upgrades"       value={profile.upgradesOwned.length} icon="🏗" />
-      <StatCard label="Talents Owned"  value={profile.perksOwned.length}    icon="💎" color="#ce93d8" />
-      <StatCard label="HR (PvP)"       value={profile.hr}            icon="⚔" color="#f48fb1" />
-      <StatCard label="Onslaught"      value={profile.lifetimeCombos.onslaught} icon="⚔️" color="#fff176" />
-      <StatCard label="Triadic"        value={profile.lifetimeCombos.triadic} icon="🌈" color="#80deea" />
-      <StatCard label="Relentless"     value={profile.lifetimeCombos.relentless} icon="🔁" color="#f8bbd0" />
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sb-fade-up">
+      <StatCard label="Battles Played"  value={profile.seasonsPlayed}              icon="⚔️" />
+      <StatCard label="Best Score"      value={profile.bestScore}                  icon="🏆" color="var(--sb-gold)" />
+      <StatCard label="Lifetime Gold"   value={profile.totalCoinsEarned}           icon="💰" color="var(--sb-gold-light)" />
+      <StatCard label="Bank Gold"       value={profile.bankCoins}                  icon="🏦" color="var(--sb-gold-light)" />
+      <StatCard label="Crystals"        value={profile.gems}                       icon="💎" color="#93c5fd" />
+      <StatCard label="Soul Shards"     value={profile.perkShards}                 icon="✨" color="var(--sb-arcane)" />
+      <StatCard label="Upgrades"        value={profile.upgradesOwned.length}       icon="🏰" />
+      <StatCard label="Talents Owned"   value={profile.perksOwned.length}          icon="💎" color="var(--sb-arcane)" />
+      <StatCard label="Sigil Rating"    value={profile.hr}                         icon="⚔" color="var(--sb-crimson-light)" />
+      <StatCard label="Onslaught"       value={profile.lifetimeCombos.onslaught}   icon="🔥" color="var(--sb-pyre)" />
+      <StatCard label="Triadic"         value={profile.lifetimeCombos.triadic}     icon="🌈" color="var(--sb-frost)" />
+      <StatCard label="Relentless"      value={profile.lifetimeCombos.relentless}  icon="🔁" color="#ec4899" />
     </div>
   );
 }
 
-function StatCard({ label, value, icon, color = '#ffffff' }: { label: string; value: number | string; icon: string; color?: string }) {
+function StatCard({ label, value, icon, color = 'var(--sb-gold-light)' }: {
+  label: string; value: number | string; icon: string; color?: string;
+}) {
   return (
-    <div className="pb-panel-dark px-3 py-2.5">
+    <div
+      className="px-3 py-2.5"
+      style={{
+        background: 'linear-gradient(180deg, rgba(20,14,8,0.85) 0%, rgba(10,7,5,0.95) 100%)',
+        border: '1px solid var(--sb-bronze-dark)',
+        borderRadius: 4,
+        color: 'var(--sb-gold-light)',
+        boxShadow: 'inset 0 1px 0 rgba(255,235,180,0.08)',
+      }}
+    >
       <div className="flex items-center gap-1.5">
         <span className="text-base">{icon}</span>
-        <span className="text-[9px] uppercase tracking-widest opacity-70 font-extrabold truncate">{label}</span>
+        <span
+          className="sb-mono uppercase truncate"
+          style={{
+            fontSize: '9px',
+            letterSpacing: '0.18em',
+            color: 'var(--sb-gold)',
+            opacity: 0.65,
+            fontWeight: 700,
+          }}
+        >
+          {label}
+        </span>
       </div>
-      <div className="font-extrabold text-base mt-0.5" style={{ color }}>{typeof value === 'number' ? value.toLocaleString() : value}</div>
+      <div
+        className="sb-display mt-1"
+        style={{ fontSize: '17px', color, letterSpacing: '0.03em' }}
+      >
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </div>
     </div>
   );
 }
 
-// ===================================================
-// Tab: Levels & Rewards
-// ===================================================
+// ─── Levels tab ──────────────────────────────────────────────────────────────
 
 function LevelsTab({ profile, onClaim }: { profile: Profile; onClaim: (level: number) => void }) {
   const lp = levelProgress(profile.playerXp);
@@ -365,7 +451,7 @@ function LevelsTab({ profile, onClaim }: { profile: Profile; onClaim: (level: nu
   const levels = Array.from({ length: MAX_LEVEL }, (_, i) => i + 1);
 
   return (
-    <div className="space-y-2 pb-fade-up">
+    <div className="space-y-1.5 sb-fade-up">
       {levels.map(level => {
         const reached = level <= lp.level;
         const claimed = claimedSet.has(level);
@@ -399,49 +485,94 @@ function LevelRow(props: {
 }) {
   const { level, milestone, reached, claimed, current, rewards, onClaim } = props;
   const claimable = reached && !claimed;
+
+  let bg: string;
+  let border: string;
+  if (current) {
+    border = 'var(--sb-gold)';
+    bg = 'linear-gradient(180deg, rgba(251,191,36,0.18) 0%, rgba(120,53,15,0.12) 100%)';
+  } else if (milestone && reached) {
+    border = 'var(--sb-bronze)';
+    bg = 'linear-gradient(180deg, rgba(180,83,9,0.18) 0%, rgba(40,28,14,0.55) 100%)';
+  } else if (reached) {
+    border = 'var(--sb-bronze-dark)';
+    bg = 'linear-gradient(180deg, rgba(20,14,8,0.85) 0%, rgba(10,7,5,0.95) 100%)';
+  } else {
+    border = 'rgba(120,53,15,0.35)';
+    bg = 'linear-gradient(180deg, rgba(10,7,5,0.85) 0%, rgba(5,4,3,0.92) 100%)';
+  }
+
   return (
     <div
-      className="flex items-center gap-2 p-2.5 rounded-xl"
+      className="flex items-center gap-2 p-2.5"
       style={{
-        background: milestone ? 'linear-gradient(180deg, rgba(255,213,79,0.22) 0%, rgba(249,168,37,0.12) 100%)' : reached ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.32)',
-        border: `2px solid ${current ? '#ffd54f' : milestone ? 'rgba(255,213,79,0.55)' : reached ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)'}`,
-        boxShadow: current ? '0 0 0 2px rgba(255,213,79,0.35)' : 'none',
-        opacity: reached ? 1 : 0.65,
+        background: bg,
+        border: `1.5px solid ${border}`,
+        borderRadius: 4,
+        opacity: reached ? 1 : 0.6,
+        boxShadow: current ? '0 0 12px rgba(251,191,36,0.35)' : 'inset 0 1px 0 rgba(255,235,180,0.06)',
       }}
     >
       <div
-        className="w-11 h-11 rounded-full flex flex-col items-center justify-center font-extrabold flex-shrink-0"
+        className="sb-display flex flex-col items-center justify-center flex-shrink-0"
         style={{
+          width: 44,
+          height: 44,
           background: reached
             ? milestone
-              ? 'linear-gradient(180deg, #ffd54f 0%, #c17900 100%)'
-              : 'linear-gradient(180deg, #80deea 0%, #1976d2 100%)'
-            : 'linear-gradient(180deg, #424242 0%, #212121 100%)',
-          color: reached ? (milestone ? '#4a2e00' : '#fff') : '#9e9e9e',
-          border: `2px solid ${reached ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.15)'}`,
-          textShadow: reached ? '0 1px 0 rgba(0,0,0,0.25)' : 'none',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 0 rgba(0,0,0,0.18)',
+              ? 'linear-gradient(180deg, var(--sb-gold) 0%, var(--sb-bronze) 100%)'
+              : 'linear-gradient(180deg, #475569 0%, #1e293b 100%)'
+            : 'linear-gradient(180deg, #18120e 0%, #0a0604 100%)',
+          color: reached ? (milestone ? '#1a0f0a' : 'var(--sb-gold-light)') : 'rgba(255,235,180,0.35)',
+          border: `1.5px solid ${reached ? 'var(--sb-bronze)' : 'rgba(120,53,15,0.4)'}`,
+          borderRadius: 4,
+          textShadow: reached && milestone ? '0 1px 0 rgba(255,255,255,0.3)' : '0 1px 2px rgba(0,0,0,0.7)',
+          boxShadow: reached ? 'inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.4)' : 'inset 0 1px 0 rgba(255,235,180,0.04)',
         }}
       >
         <div className="text-base leading-none">{level}</div>
         {milestone && <div className="text-[8px] leading-none opacity-90 mt-0.5">★</div>}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-extrabold flex items-center gap-1.5">
-          Level {level}
-          {milestone && <span className="text-[9px] uppercase tracking-widest font-extrabold px-1.5 py-0.5 rounded-full" style={{ background: '#ffd54f', color: '#4a2e00' }}>MILESTONE</span>}
+        <div className="sb-display text-sm flex items-center gap-1.5" style={{ color: 'var(--sb-gold-light)' }}>
+          LEVEL {level}
+          {milestone && (
+            <span
+              className="sb-mono text-[8px] uppercase font-extrabold px-1.5 py-0.5"
+              style={{
+                background: 'var(--sb-gold)',
+                color: '#1a0f0a',
+                letterSpacing: '0.18em',
+                borderRadius: 2,
+              }}
+            >
+              MILESTONE
+            </span>
+          )}
         </div>
         <div className="flex flex-wrap gap-1 mt-1">
           {rewards.map((r, i) => <RewardChip key={i} reward={r} muted={!reached} />)}
         </div>
       </div>
       {claimed ? (
-        <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg flex-shrink-0"
-              style={{ background: 'rgba(46,125,50,0.55)', color: '#fff' }}>
+        <span
+          className="sb-display flex-shrink-0 px-2.5 py-1.5"
+          style={{
+            background: 'linear-gradient(180deg, #4ade80 0%, #16a34a 100%)',
+            color: '#0a2a14',
+            border: '1.5px solid #86efac',
+            borderRadius: 3,
+            fontSize: '10px',
+            letterSpacing: '0.1em',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)',
+          }}
+        >
           ✓
         </span>
       ) : claimable ? (
-        <button onClick={onClaim} className="pb-btn pb-btn-gold pb-btn-sm flex-shrink-0">Claim</button>
+        <button onClick={onClaim} className="sb-btn sb-btn-gold flex-shrink-0" style={{ fontSize: '11px', padding: '7px 12px' }}>
+          CLAIM
+        </button>
       ) : (
         <span className="text-base opacity-40 flex-shrink-0">⏳</span>
       )}
@@ -450,35 +581,39 @@ function LevelRow(props: {
 }
 
 function RewardChip({ reward, muted }: { reward: LevelReward; muted?: boolean }) {
-  const baseStyle = {
-    background: 'rgba(0,0,0,0.35)',
-    border: '1px solid rgba(255,255,255,0.18)',
-    color: '#fff',
+  const baseStyle: React.CSSProperties = {
+    background: 'rgba(0,0,0,0.55)',
+    border: '1px solid rgba(255,235,180,0.18)',
+    color: 'var(--sb-gold-light)',
     opacity: muted ? 0.55 : 1,
+    fontFamily: 'var(--sb-font-mono)',
+    fontSize: '10px',
+    fontWeight: 700,
+    padding: '2px 6px',
+    borderRadius: 3,
+    letterSpacing: '0.04em',
   };
   switch (reward.type) {
     case 'coins':
-      return <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded" style={baseStyle}>💰 {reward.value.toLocaleString()}</span>;
+      return <span style={baseStyle}>💰 {reward.value.toLocaleString()}</span>;
     case 'gems':
-      return <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded" style={baseStyle}>💎 {reward.value}</span>;
+      return <span style={baseStyle}>💎 {reward.value}</span>;
     case 'shards':
-      return <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded" style={baseStyle}>✨ {reward.value}</span>;
+      return <span style={baseStyle}>✨ {reward.value}</span>;
     case 'card': {
       const card = (() => { try { return getCard(reward.cardId); } catch { return null; } })();
       const emoji = card?.emoji ?? '🃏';
-      return <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded" style={baseStyle}>{emoji} ×{reward.count}</span>;
+      return <span style={baseStyle}>{emoji} ×{reward.count}</span>;
     }
     case 'perk': {
       const perk = (() => { try { return getPerk(reward.perkId); } catch { return null; } })();
       const icon = perk?.icon ?? '💎';
-      return <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded" style={baseStyle}>{icon} ×{reward.count}</span>;
+      return <span style={baseStyle}>{icon} ×{reward.count}</span>;
     }
   }
 }
 
-// ===================================================
-// Tab: Achievements
-// ===================================================
+// ─── Achievements tab ────────────────────────────────────────────────────────
 
 function AchievementsTab({ profile }: { profile: Profile }) {
   const all = allAchievements();
@@ -486,44 +621,46 @@ function AchievementsTab({ profile }: { profile: Profile }) {
   const unlocked = all.filter(a => unlockedSet.has(a.id));
   const locked = all.filter(a => !unlockedSet.has(a.id));
 
-  // Sort each list by rarity (commons first, mythic last) then name.
   const sortFn = (a: Achievement, b: Achievement) => {
-    const ra = rarityOrder.indexOf(a.rarity);
-    const rb = rarityOrder.indexOf(b.rarity);
+    const ra = RARITY_ORDER.indexOf(a.rarity);
+    const rb = RARITY_ORDER.indexOf(b.rarity);
     if (ra !== rb) return ra - rb;
     return a.name.localeCompare(b.name);
   };
   unlocked.sort(sortFn);
   locked.sort(sortFn);
 
+  const pct = Math.round((unlocked.length / Math.max(1, all.length)) * 100);
+
   return (
-    <div className="pb-fade-up">
-      <div className="pb-panel-dark px-3 py-2 mb-3 flex items-center justify-between">
-        <div className="text-sm font-extrabold">
-          <span className="text-yellow-200">{unlocked.length}</span>
-          <span className="opacity-70"> / {all.length} unlocked</span>
+    <div className="sb-fade-up">
+      {/* Summary banner */}
+      <div
+        className="sb-banner-iron flex items-center justify-between px-4 py-3 mb-3"
+        style={{ borderRadius: 4 }}
+      >
+        <div className="sb-display" style={{ fontSize: '14px', letterSpacing: '0.05em' }}>
+          <span style={{ color: 'var(--sb-gold)' }}>{unlocked.length}</span>
+          <span style={{ opacity: 0.6 }}> / {all.length} UNLOCKED</span>
         </div>
-        <div className="text-[10px] uppercase tracking-widest opacity-75 font-bold">
-          {Math.round((unlocked.length / Math.max(1, all.length)) * 100)}% complete
+        <div
+          className="sb-mono text-[10px] uppercase font-bold"
+          style={{ letterSpacing: '0.18em', color: 'var(--sb-gold-light)', opacity: 0.75 }}
+        >
+          {pct}% COMPLETE
         </div>
       </div>
 
       {unlocked.length > 0 && (
         <>
-          <div className="text-[10px] uppercase tracking-[0.3em] font-extrabold opacity-90 mb-1.5 px-1"
-               style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-            ⭐ Unlocked
-          </div>
+          <SectionHeader icon="⭐" label="UNLOCKED" />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
             {unlocked.map(a => <AchievementCard key={a.id} a={a} unlocked />)}
           </div>
         </>
       )}
 
-      <div className="text-[10px] uppercase tracking-[0.3em] font-extrabold opacity-80 mb-1.5 px-1"
-           style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-        🔒 Locked
-      </div>
+      <SectionHeader icon="🔒" label="LOCKED" />
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {locked.map(a => <AchievementCard key={a.id} a={a} unlocked={false} />)}
       </div>
@@ -531,118 +668,203 @@ function AchievementsTab({ profile }: { profile: Profile }) {
   );
 }
 
-function AchievementCard({ a, unlocked }: { a: Achievement; unlocked: boolean }) {
-  const accent = rarityColor[a.rarity];
+function SectionHeader({ icon, label }: { icon: string; label: string }) {
   return (
     <div
-      className="rounded-xl p-2.5 flex gap-2"
+      className="sb-display flex items-center gap-2 mb-1.5 px-1"
+      style={{ fontSize: '11px', letterSpacing: '0.25em', color: 'var(--sb-gold-light)', opacity: 0.85 }}
+    >
+      <span>{icon}</span>
+      <span>{label}</span>
+      <div style={{ flex: 1, height: 1, background: 'rgba(255,235,180,0.15)', marginLeft: 6 }} />
+    </div>
+  );
+}
+
+function AchievementCard({ a, unlocked }: { a: Achievement; unlocked: boolean }) {
+  const accent = RARITY_COLOR[a.rarity];
+  return (
+    <div
+      className="p-2.5 flex gap-2 relative"
       style={{
-        background: unlocked ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.35)',
-        border: `2px solid ${accent}`,
-        color: unlocked ? '#3e2723' : '#fff',
-        opacity: unlocked ? 1 : 0.7,
+        background: unlocked
+          ? 'linear-gradient(180deg, rgba(20,14,8,0.85) 0%, rgba(10,7,5,0.92) 100%)'
+          : 'linear-gradient(180deg, rgba(10,7,5,0.85) 0%, rgba(5,4,3,0.92) 100%)',
+        border: `1.5px solid ${unlocked ? accent : 'rgba(120,53,15,0.4)'}`,
+        borderRadius: 4,
+        color: 'var(--sb-gold-light)',
+        opacity: unlocked ? 1 : 0.65,
+        boxShadow: unlocked ? `0 0 8px ${accent}40, inset 0 1px 0 rgba(255,235,180,0.08)` : 'inset 0 1px 0 rgba(255,235,180,0.04)',
       }}
     >
       <div
         className="text-2xl flex-shrink-0"
-        style={{ filter: unlocked ? 'drop-shadow(0 2px 2px rgba(0,0,0,0.25))' : 'grayscale(80%)' }}
+        style={{ filter: unlocked ? 'drop-shadow(0 2px 3px rgba(0,0,0,0.7))' : 'grayscale(80%) brightness(0.6)' }}
       >
         {a.icon}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
-          <div className="text-[12px] font-extrabold leading-tight truncate">{a.name}</div>
           <div
-            className="text-[8px] uppercase tracking-widest font-extrabold px-1 py-0.5 rounded"
-            style={{ background: accent, color: '#1b3a1f' }}
+            className="sb-display text-[12px] leading-tight truncate"
+            style={{ color: unlocked ? 'var(--sb-gold-light)' : 'rgba(255,235,180,0.55)' }}
+          >
+            {a.name}
+          </div>
+          <div
+            className="sb-mono text-[8px] uppercase font-extrabold px-1 py-0.5"
+            style={{
+              background: accent,
+              color: '#0f172a',
+              letterSpacing: '0.15em',
+              borderRadius: 2,
+            }}
           >
             {a.rarity}
           </div>
         </div>
-        <div className="text-[10px] opacity-80 leading-snug mt-0.5">{a.description}</div>
+        <div
+          className="text-[10px] leading-snug mt-1"
+          style={{ color: 'rgba(255,235,180,0.7)' }}
+        >
+          {a.description}
+        </div>
       </div>
     </div>
   );
 }
 
-// ===================================================
-// Tab: Account
-// ===================================================
+// ─── Account tab ─────────────────────────────────────────────────────────────
 
-function AccountTab({ profile, auth, onProfileChange }: { profile: Profile; auth: AuthStatus; onProfileChange: (p: Profile) => void }) {
+function AccountTab({ profile, auth, onProfileChange }: {
+  profile: Profile; auth: AuthStatus; onProfileChange: (p: Profile) => void;
+}) {
   void onProfileChange;
   const [signedOut, setSignedOut] = useState(false);
 
   return (
-    <div className="space-y-3 pb-fade-up">
-      <div className="pb-panel px-4 py-3" style={{ color: '#3e2723' }}>
-        <div className="text-[10px] uppercase tracking-[0.3em] font-extrabold mb-2" style={{ color: '#6d4c2a' }}>
-          Cloud Sync
-        </div>
+    <div className="space-y-3 sb-fade-up">
+      {/* Cloud panel */}
+      <div
+        className="px-4 py-3"
+        style={{
+          background: 'linear-gradient(180deg, rgba(20,14,8,0.85) 0%, rgba(10,7,5,0.95) 100%)',
+          border: '1.5px solid var(--sb-bronze-dark)',
+          borderRadius: 4,
+          color: 'var(--sb-gold-light)',
+          boxShadow: 'inset 0 1px 0 rgba(255,235,180,0.08)',
+        }}
+      >
+        <SectionHeader icon="☁" label="CLOUD SYNC" />
         {auth.kind === 'cloud_disabled' && (
-          <div className="text-sm">
-            <div className="font-extrabold">📴 Local-only</div>
-            <div className="text-[11px] opacity-80 mt-1">No Firebase configured. Progress is saved locally only.</div>
+          <div className="text-sm mt-1">
+            <div className="sb-display" style={{ color: 'var(--sb-gold-light)' }}>📴 LOCAL-ONLY</div>
+            <div className="text-[11px] opacity-75 mt-1">No Firebase configured. Progress is saved locally only.</div>
           </div>
         )}
-        {auth.kind === 'signing_in' && <div className="text-sm opacity-70 font-bold">☁ Signing in…</div>}
+        {auth.kind === 'signing_in' && (
+          <div className="text-sm opacity-75 sb-mono mt-1" style={{ letterSpacing: '0.05em' }}>☁ SIGNING IN…</div>
+        )}
         {auth.kind === 'error' && (
-          <div className="text-sm">
-            <div className="font-extrabold" style={{ color: '#c62828' }}>⚠ Sign-in error</div>
-            <div className="text-[11px] opacity-80 mt-1">{auth.message}</div>
+          <div className="text-sm mt-1">
+            <div className="sb-display" style={{ color: 'var(--sb-crimson-light)' }}>⚠ SIGN-IN ERROR</div>
+            <div className="text-[11px] opacity-75 mt-1">{auth.message}</div>
           </div>
         )}
         {auth.kind === 'signed_in' && (
-          <div className="text-sm">
-            <div className="font-extrabold">{auth.isAnonymous ? '👤 Anonymous account' : '✅ Signed in'}</div>
-            <div className="text-[10px] opacity-65 mt-1 font-mono break-all">{auth.uid}</div>
+          <div className="text-sm mt-1">
+            <div className="sb-display" style={{ color: '#86efac' }}>
+              {auth.isAnonymous ? '👤 ANONYMOUS ACCOUNT' : '✅ SIGNED IN'}
+            </div>
+            <div className="sb-mono text-[10px] opacity-65 mt-1 break-all" style={{ letterSpacing: '0.04em' }}>
+              {auth.uid}
+            </div>
             {profile.farmCode && (
               <div className="text-[11px] opacity-85 mt-1">
-                Sigil code: <span className="font-extrabold font-mono">{profile.farmCode}</span>
+                Sigil code: <span className="sb-mono font-extrabold" style={{ color: 'var(--sb-gold)' }}>{profile.farmCode}</span>
               </div>
             )}
             <button
               onClick={async () => { await signOut(); setSignedOut(true); }}
-              className="pb-btn pb-btn-cream pb-btn-sm mt-3"
+              className="sb-btn sb-btn-steel mt-3"
+              style={{ fontSize: '11px', padding: '7px 14px' }}
             >
-              Sign out
+              SIGN OUT
             </button>
             {signedOut && (
-              <div className="text-[11px] opacity-75 mt-2">Reload the page to sign back in.</div>
+              <div className="text-[11px] opacity-70 mt-2">Reload the page to sign back in.</div>
             )}
           </div>
         )}
       </div>
 
-      <div className="pb-panel px-4 py-3" style={{ color: '#3e2723' }}>
-        <div className="text-[10px] uppercase tracking-[0.3em] font-extrabold mb-2" style={{ color: '#6d4c2a' }}>
-          PvP Record
+      {/* PvP record */}
+      <div
+        className="px-4 py-3"
+        style={{
+          background: 'linear-gradient(180deg, rgba(20,14,8,0.85) 0%, rgba(10,7,5,0.95) 100%)',
+          border: '1.5px solid var(--sb-bronze-dark)',
+          borderRadius: 4,
+          color: 'var(--sb-gold-light)',
+          boxShadow: 'inset 0 1px 0 rgba(255,235,180,0.08)',
+        }}
+      >
+        <SectionHeader icon="⚔" label="PVP RECORD" />
+        <div className="grid grid-cols-3 gap-2 text-center mt-2">
+          <PvpStat label="WINS"   value={profile.pvpWins}   color="#86efac" tint="rgba(74,222,128,0.18)"  border="rgba(74,222,128,0.45)" />
+          <PvpStat label="LOSSES" value={profile.pvpLosses} color="#fecaca" tint="rgba(220,38,38,0.18)"   border="rgba(220,38,38,0.45)" />
+          <PvpStat label="DRAWS"  value={profile.pvpDraws}  color="#cbd5e1" tint="rgba(100,116,139,0.18)" border="rgba(100,116,139,0.45)" />
         </div>
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-lg py-2" style={{ background: 'rgba(165,214,167,0.5)' }}>
-            <div className="text-[10px] uppercase tracking-widest font-bold opacity-75">Wins</div>
-            <div className="font-extrabold text-base mt-0.5" style={{ color: '#1b5e20' }}>{profile.pvpWins}</div>
-          </div>
-          <div className="rounded-lg py-2" style={{ background: 'rgba(239,154,154,0.5)' }}>
-            <div className="text-[10px] uppercase tracking-widest font-bold opacity-75">Losses</div>
-            <div className="font-extrabold text-base mt-0.5" style={{ color: '#b71c1c' }}>{profile.pvpLosses}</div>
-          </div>
-          <div className="rounded-lg py-2" style={{ background: 'rgba(189,189,189,0.5)' }}>
-            <div className="text-[10px] uppercase tracking-widest font-bold opacity-75">Draws</div>
-            <div className="font-extrabold text-base mt-0.5">{profile.pvpDraws}</div>
-          </div>
-        </div>
-        <div className="text-[11px] mt-2 text-center opacity-85">
-          Sigil Rating: <span className="font-extrabold" style={{ color: '#ad1457' }}>⚔ {profile.hr}</span>
+        <div
+          className="sb-mono text-[11px] mt-3 text-center"
+          style={{ letterSpacing: '0.1em', color: 'var(--sb-gold-light)', opacity: 0.85 }}
+        >
+          SIGIL RATING:&nbsp;
+          <span className="sb-display font-extrabold" style={{ color: 'var(--sb-crimson-light)' }}>
+            ⚔ {profile.hr}
+          </span>
         </div>
       </div>
     </div>
   );
 }
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function PvpStat({ label, value, color, tint, border }: {
+  label: string; value: number; color: string; tint: string; border: string;
+}) {
   return (
-    <button onClick={onClick} className={`pb-btn pb-btn-${active ? 'gold' : 'cream'} pb-btn-sm flex-1 !text-[12px]`}>
+    <div
+      className="py-2"
+      style={{
+        background: tint,
+        border: `1px solid ${border}`,
+        borderRadius: 3,
+      }}
+    >
+      <div
+        className="sb-mono text-[9px] uppercase font-bold"
+        style={{ letterSpacing: '0.18em', opacity: 0.75, color: 'var(--sb-gold-light)' }}
+      >
+        {label}
+      </div>
+      <div className="sb-display mt-1" style={{ fontSize: '17px', color }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+// ─── Tab button ──────────────────────────────────────────────────────────────
+
+function TabButton({ active, onClick, children }: {
+  active: boolean; onClick: () => void; children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`sb-btn flex-1 ${active ? 'sb-btn-gold' : 'sb-btn-steel'}`}
+      style={{ fontSize: '11px', padding: '8px 10px', letterSpacing: '0.1em' }}
+    >
       {children}
     </button>
   );

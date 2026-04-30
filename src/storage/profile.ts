@@ -36,6 +36,7 @@ import {
   type StageReward,
   type CombatStageDef,
   type CombatStageReward,
+  sumUpgradeEffect,
 } from '@engine/index';
 import { adjustInventory } from './inventory';
 import { addPerkCharges, isStarterPerk } from './perks';
@@ -514,14 +515,24 @@ export function applyCombatClearToProfile(
     rewardsGranted = combatStageReplayRewards(stage, stars);
   }
 
+  // Stronghold "Treasure Sense" / "Hoarder" boost coin drops.
+  const goldBonus = sumUpgradeEffect(profile.upgradesOwned, 'gold_drop_bonus');
+  const coinMult = 1 + goldBonus;
+  // Stronghold "Merchant Blessing" / "Trade Network" / "Diamond Market" —
+  // sales bonus also folds into stage gold (treats the chest as a "sale").
+  const saleMult = 1 + sumUpgradeEffect(profile.upgradesOwned, 'global_sale_mult');
+  const totalCoinMult = coinMult * saleMult;
+
   // Apply reward currencies. Mirrors the farming-side applyStageRewards
   // behaviour for coins/xp/gems/shards.
   for (const r of rewardsGranted) {
     switch (r.type) {
-      case 'coins':
-        next.bankCoins = next.bankCoins + r.value;
-        next.totalCoinsEarned = next.totalCoinsEarned + r.value;
+      case 'coins': {
+        const amount = Math.round(r.value * totalCoinMult);
+        next.bankCoins = next.bankCoins + amount;
+        next.totalCoinsEarned = next.totalCoinsEarned + amount;
         break;
+      }
       case 'gems':
         next.gems = next.gems + r.value;
         break;

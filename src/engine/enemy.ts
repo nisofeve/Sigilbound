@@ -44,6 +44,7 @@ export interface EnemyDef {
   def: number;
   speed: number;               // affects intent ordering vs player
   damageType: DamageType;
+  biome?: string;
   resistances?: Resistances;
   // Optional override of the archetype's default behaviour table — lets us
   // give a single boss a hand-tuned move set without spawning a new archetype.

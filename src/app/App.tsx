@@ -20,6 +20,7 @@ import CombatView from '@ui/components/CombatView';
 import SigilboundHubScreen from '@ui/screens/SigilboundHubScreen';
 import CombatDeckScreen from '@ui/screens/CombatDeckScreen';
 import CombatShopScreen from '@ui/screens/CombatShopScreen';
+import BestiaryScreen from '@ui/screens/BestiaryScreen';
 import {
   applyStageOutcomeToProfile,
   applyCombatClearToProfile,
@@ -222,6 +223,7 @@ export default function App() {
           onSettings={() => setScreen({ kind: 'settings' })}
           onDeck={() => setScreen({ kind: 'deck' })}
           onShop={() => setScreen({ kind: 'shop' })}
+          onBestiary={() => setScreen({ kind: 'bestiary' })}
         />
       )}
       {screen.kind === 'home' && (
@@ -399,11 +401,15 @@ export default function App() {
           Routed via the "⚔ Combat" entrypoint on the home screen. */}
       {screen.kind === 'combat_home' && (
         <CombatHomeScreen
+          currentStage={profile.currentStage}
+          ownedUpgradeIds={profile.upgradesOwned}
           onBegin={({ stageNumber, talents, equipment, hardcore }) =>
             setScreen({
               kind: 'combat', stageNumber, talents, equipment, hardcore,
               // Phase 7: forward the player's custom combat deck.
               customDeck: profile.combatDeck,
+              // Stronghold upgrades — flow into combat as stat mods + buffs.
+              ownedUpgradeIds: profile.upgradesOwned,
             })
           }
           onBack={() => setScreen({ kind: 'sigilbound_hub' })}
@@ -418,6 +424,7 @@ export default function App() {
           hardcore={screen.hardcore}
           initialHp={screen.carryHp}
           customDeck={screen.customDeck}
+          ownedUpgradeIds={screen.ownedUpgradeIds}
           playerName={profile.displayName ?? 'Sigilist'}
           playerAvatar={profile.avatarEmoji || '🛡️'}
           onOutcome={(outcome, stage, runner) => {
@@ -434,7 +441,10 @@ export default function App() {
                 maxHp: runner.state.player.stats.maxHp,
               },
             );
-            if (nextProfile !== profile) persistProfile(nextProfile);
+            if (nextProfile !== profile) {
+              persistProfile(nextProfile);
+              setProfileState(nextProfile);
+            }
             setScreen({
               kind: 'combat_result',
               outcome,
@@ -444,11 +454,15 @@ export default function App() {
               equipment: screen.equipment,
               hardcore: screen.hardcore,
               customDeck: screen.customDeck,
+              ownedUpgradeIds: screen.ownedUpgradeIds,
               clearOutcome,
             });
           }}
           onExit={() => setScreen({ kind: 'combat_home' })}
         />
+      )}
+      {screen.kind === 'bestiary' && (
+        <BestiaryScreen onBack={() => setScreen({ kind: 'sigilbound_hub' })} />
       )}
       {screen.kind === 'combat_result' && (
         <CombatResultScreen
@@ -463,6 +477,7 @@ export default function App() {
             equipment: screen.equipment,
             hardcore: screen.hardcore,
             customDeck: screen.customDeck,
+            ownedUpgradeIds: screen.ownedUpgradeIds,
             // Hardcore replays start at full HP — replays reset the arc.
           })}
           onNext={() => setScreen({
@@ -472,6 +487,7 @@ export default function App() {
             equipment: screen.equipment,
             hardcore: screen.hardcore,
             customDeck: screen.customDeck,
+            ownedUpgradeIds: screen.ownedUpgradeIds,
             // Hardcore: carry HP forward to the next stage.
             carryHp: screen.hardcore ? screen.runner.state.player.currentHp : undefined,
           })}

@@ -21,6 +21,7 @@ import { getEnemy } from './bestiary';
 import { getStage, type CombatStageDef } from './stageDef';
 import type { EnemyDef } from './enemy';
 import type { Perk } from './types';
+import { upgradeStatModifiers } from './upgradeBuffs';
 
 export interface StageRunInput {
   stageNumber: number;
@@ -37,6 +38,10 @@ export interface StageRunInput {
   // Hardcore arc — initial HP carry-over.
   initialHp?: number;
   hardcore?: boolean;
+  // Stronghold upgrades the player has bought. Stat-shaped effects fold into
+  // computePlayerStats; runtime effects are compiled into UpgradeBuffs and
+  // applied by BattleRunner at the relevant hooks.
+  ownedUpgradeIds?: ReadonlyArray<string>;
 }
 
 export interface StageRunOutput {
@@ -59,20 +64,20 @@ export function buildStageRun(input: StageRunInput): StageRunOutput {
   }
 
   const compiled = input.equipment ? compileEquipment(input.equipment) : null;
-  // Talent modifiers fold into the stat block. Each Perk has a modifier
-  // whose `type` may overlap with PerkModifier; we pass through the small
-  // subset that matches StatModifier shape. Phase 5 will route the
-  // combat-specific talent types (first_action_damage_bonus, etc.) through
-  // BattleRunner instead of the stat block.
   const talentStatModifiers = (input.talents ?? [])
     .map(t => talentToStatModifier(t))
     .filter((m): m is NonNullable<ReturnType<typeof talentToStatModifier>> => m !== null);
+
+  // Stronghold upgrades fold into stats AND get passed to the runner for
+  // their runtime hooks (regen, starting block, on-kill heal, etc.).
+  const upgradeMods = upgradeStatModifiers(input.ownedUpgradeIds ?? []);
 
   const playerStats = computePlayerStats({
     level: input.playerLevel,
     modifiers: [
       ...(compiled?.modifiers ?? []),
       ...talentStatModifiers,
+      ...upgradeMods,
     ],
   });
 
@@ -89,6 +94,7 @@ export function buildStageRun(input: StageRunInput): StageRunOutput {
     deck: input.customDeck && input.customDeck.length > 0 ? input.customDeck : undefined,
     initialHp: input.initialHp,
     hardcore: input.hardcore,
+    ownedUpgradeIds: input.ownedUpgradeIds,
   };
 
   return { runner: new BattleRunner(config), stage };

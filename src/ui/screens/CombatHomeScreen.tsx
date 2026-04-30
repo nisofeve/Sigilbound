@@ -1,34 +1,22 @@
-// Sigilbound combat home — pre-battle screen.
-//
-// Mobile-first portrait layout:
-//   ┌────────────────────────────────────┐
-//   │ ← Home │ ⚔ STAGES │ page nav      │  ← top bar
-//   ├────────────────────────────────────┤
-//   │ stage 1   2   3 …                  │  ← scrollable stage grid
-//   │   …                                │
-//   ├────────────────────────────────────┤
-//   │ Selected stage hero panel          │  ← biome-tinted parchment
-//   │ enemies · difficulty · objectives  │
-//   ├────────────────────────────────────┤
-//   │ [ TALENTS  N/2 ▸ ]                 │  ← collapsible (tap to expand)
-//   │ [ EQUIPMENT     ▸ ]                │
-//   │ [ ⚠ HARDCORE ◯ ]                   │
-//   ├────────────────────────────────────┤
-//   │     ⚔ BEGIN BATTLE ⚔               │  ← sticky bottom CTA
-//   └────────────────────────────────────┘
-
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import {
   allStages,
   allTalents,
   allEquipment,
   emptyEquippedSet,
   equip,
+  maxPerkSlots,
+  getEnemy,
   type CombatStageDef,
   type EquippedSet,
   type Perk,
   type EquipmentSlot,
+  EQUIPMENT_SLOTS,
+  type EquipmentDef,
 } from '@engine/index';
+import { EnemyCard } from '@ui/components/EnemyCard';
+import { TalentCard } from '@ui/components/TalentCard';
+import { EquipmentCard } from '@ui/components/EquipmentCard';
 
 interface Props {
   onBegin: (input: {
@@ -39,9 +27,8 @@ interface Props {
   }) => void;
   onBack: () => void;
   currentStage?: number;
+  ownedUpgradeIds?: ReadonlyArray<string>;
 }
-
-const STAGES_PER_PAGE = 20;
 
 const BIOME_ACCENTS: Record<string, { bg: string; border: string; glow: string; label: string }> = {
   forest:    { bg: 'rgba(34,89,46,0.3)',   border: '#4ade80', glow: 'rgba(74,222,128,0.4)',  label: 'Whispering Forest' },
@@ -51,34 +38,41 @@ const BIOME_ACCENTS: Record<string, { bg: string; border: string; glow: string; 
   ashen:     { bg: 'rgba(80,15,40,0.5)',   border: '#ec4899', glow: 'rgba(236,72,153,0.5)',  label: 'Ashen Citadel' },
 };
 
-const RARITY_LABEL: Record<string, string> = {
-  common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic',
-};
+function slotLabel(slot: EquipmentSlot): string {
+  switch (slot) {
+    case 'weapon':  return '⚔ Weapon';
+    case 'offhand': return '🛡 Off-Hand';
+    case 'helm':    return '⛑ Helm';
+    case 'armor':   return '🥋 Armor';
+    case 'ring':    return '💍 Ring';
+    case 'amulet':  return '📿 Amulet';
+  }
+}
 
-type Section = 'talents' | 'equipment' | null;
-
-export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100 }: Props) {
-  const [selectedStage, setSelectedStage] = useState<number>(1);
-  const [equippedTalents, setEquippedTalents] = useState<string[]>([]);
+export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, ownedUpgradeIds = [] }: Props) {
+  const [selectedStage, setSelectedStage] = useState<number>(currentStage);
+  const [equippedTalents, setEquippedTalents] = useState<(string | null)[]>([]);
   const [equippedGear, setEquippedGear] = useState<EquippedSet>(emptyEquippedSet());
-  const [page, setPage] = useState<number>(0);
   const [hardcore, setHardcore] = useState<boolean>(false);
-  const [openSection, setOpenSection] = useState<Section>(null);
+  const [pickerSlot, setPickerSlot] = useState<EquipmentSlot | null>(null);
+  const [talentPickerSlot, setTalentPickerSlot] = useState<number | null>(null);
+
+  const talentSlotCount = Math.min(4, maxPerkSlots(Array.from(ownedUpgradeIds)));
 
   const stages = useMemo(() => allStages(), []);
-  const pageCount = Math.ceil(stages.length / STAGES_PER_PAGE);
-  const visibleStages = useMemo(
-    () => stages.slice(page * STAGES_PER_PAGE, (page + 1) * STAGES_PER_PAGE),
-    [stages, page],
-  );
-
   const talents = useMemo(() => allTalents(), []);
   const allEq = useMemo(() => allEquipment(), []);
+
+  const stage: CombatStageDef = stages.find(s => s.number === selectedStage) ?? stages[0];
+  const stageAccent = BIOME_ACCENTS[stage.biome] ?? BIOME_ACCENTS.forest;
+  const equippedSlots = (Object.keys(equippedGear) as EquipmentSlot[]).filter(s => !!equippedGear[s]);
 
   function toggleTalent(id: string) {
     setEquippedTalents(prev => {
       if (prev.includes(id)) return prev.filter(x => x !== id);
-      if (prev.length >= 2) return [prev[1], id];
+      if (prev.length >= talentSlotCount) {
+        return [...prev.slice(prev.length - talentSlotCount + 1), id];
+      }
       return [...prev, id];
     });
   }
@@ -106,10 +100,6 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100 }
     });
   }
 
-  const stage: CombatStageDef = stages.find(s => s.number === selectedStage) ?? stages[0];
-  const stageAccent = BIOME_ACCENTS[stage.biome] ?? BIOME_ACCENTS.forest;
-  const equippedSlots = (Object.keys(equippedGear) as EquipmentSlot[]).filter(s => !!equippedGear[s]);
-
   return (
     <div className="sb-bg sb-bg-stone relative h-full w-full flex flex-col safe-top safe-bottom">
 
@@ -125,215 +115,84 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100 }
       </div>
 
       {/* Scrollable middle content */}
-      <div className="relative z-10 flex-1 overflow-y-auto px-3 pb-3 sb-fade-up">
+      <div className="relative z-10 flex-1 overflow-y-auto px-3 pb-1">
 
-        {/* Stage map (compact) */}
-        <div className="flex items-center justify-between mb-1.5 mt-1">
-          <div className="sb-mono text-[10px]" style={{ color: 'var(--sb-gold-light)' }}>
-            STAGES {page * STAGES_PER_PAGE + 1}–{Math.min((page + 1) * STAGES_PER_PAGE, stages.length)}
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage(Math.max(0, page - 1))}
-              disabled={page === 0}
-              className="sb-chip"
-              style={{ cursor: page === 0 ? 'not-allowed' : 'pointer', padding: '3px 9px', fontSize: '10px', opacity: page === 0 ? 0.3 : 1 }}
-            >‹</button>
-            <span className="sb-mono text-[9px] opacity-60 px-1">{page + 1}/{pageCount}</span>
-            <button
-              onClick={() => setPage(Math.min(pageCount - 1, page + 1))}
-              disabled={page >= pageCount - 1}
-              className="sb-chip"
-              style={{ cursor: page >= pageCount - 1 ? 'not-allowed' : 'pointer', padding: '3px 9px', fontSize: '10px', opacity: page >= pageCount - 1 ? 0.3 : 1 }}
-            >›</button>
-          </div>
-        </div>
-        <div
-          className="grid grid-cols-5 gap-1.5 p-2 mb-3"
-          style={{
-            background: 'rgba(0,0,0,0.3)',
-            border: '1.5px solid var(--sb-bronze-dark)',
-            borderRadius: '4px',
-            boxShadow: 'inset 0 1px 0 rgba(255,200,140,0.1)',
-          }}
-        >
-          {visibleStages.map(s => {
-            const locked = s.number > currentStage;
-            const selected = s.number === selectedStage;
-            const accent = BIOME_ACCENTS[s.biome] ?? BIOME_ACCENTS.forest;
-            const cellStyle: React.CSSProperties = locked
-              ? { background: 'rgba(0,0,0,0.6)', color: '#3d3027', border: '1.5px solid #2a1f15', cursor: 'not-allowed' }
-              : selected
-              ? {
-                  background: 'linear-gradient(180deg, var(--sb-gold) 0%, var(--sb-bronze) 100%)',
-                  color: 'var(--sb-shadow)',
-                  border: '2px solid var(--sb-gold-light)',
-                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.4), 0 0 10px ${accent.glow}`,
-                }
-              : s.isBoss
-              ? {
-                  background: 'linear-gradient(180deg, #7f1d1d 0%, #5b0e0e 100%)',
-                  color: 'var(--sb-gold-light)',
-                  border: `2px solid ${accent.border}`,
-                  cursor: 'pointer',
-                }
-              : {
-                  background: accent.bg,
-                  color: 'var(--sb-gold-light)',
-                  border: `1.5px solid ${accent.border}`,
-                  cursor: 'pointer',
-                };
-            return (
-              <button
-                key={s.number}
-                onClick={() => !locked && setSelectedStage(s.number)}
-                disabled={locked}
-                className="sb-display aspect-square text-[12px] font-bold flex items-center justify-center"
-                style={{ ...cellStyle, borderRadius: '3px', textShadow: '0 1px 1px rgba(0,0,0,0.5)' }}
-                title={locked ? `Stage ${s.number} (locked)` : `${s.title} · ${accent.label}`}
-              >
-                {locked ? '🔒' : s.isBoss ? <span className="flex flex-col leading-none gap-0.5"><span style={{ fontSize: '9px' }}>👑</span><span>{s.number}</span></span> : s.number}
-              </button>
-            );
-          })}
-        </div>
+        {/* Hero panel — selected stage */}
+        <StageHeroPanel
+          stage={stage}
+          accent={stageAccent}
+          isCurrent={selectedStage === currentStage}
+        />
 
-        {/* Selected stage hero panel */}
-        <div
-          className="p-3 mb-3"
-          style={{
-            background: `linear-gradient(180deg, ${stageAccent.bg} 0%, rgba(0,0,0,0.4) 100%)`,
-            border: `2px solid ${stageAccent.border}`,
-            borderRadius: '4px',
-            boxShadow: `inset 0 1px 0 rgba(255,235,180,0.15), 0 0 14px ${stageAccent.glow}, var(--sb-shadow-md)`,
-          }}
-        >
-          <div className="flex items-baseline justify-between gap-2 mb-1">
-            <div className="sb-display text-base flex-1 truncate" style={{ color: 'var(--sb-gold-light)', letterSpacing: '0.05em' }}>
-              {stage.isBoss ? '👑 ' : ''}{stage.title}
-            </div>
-            <div className="sb-mono text-[9px] opacity-70 uppercase tracking-widest flex-shrink-0">
-              {stageAccent.label}
-            </div>
-          </div>
-          <div className="text-[11px] italic opacity-90 mb-2" style={{ color: 'var(--sb-parchment)' }}>
-            "{stage.flavor}"
-          </div>
-          <div className="sb-mono text-[10px] opacity-80 flex flex-wrap gap-x-3 gap-y-0.5">
-            <span><span className="opacity-60">⚔</span> {stage.enemyIds.length} enemies</span>
-            <span><span className="opacity-60">·</span> {stage.difficultyBand.toUpperCase()}</span>
-            <span><span className="opacity-60">·</span> 💰 {stage.rewardChest.baseGold}</span>
-          </div>
-          {stage.bonusObjectives.length > 0 && (
-            <div className="mt-2 pt-2" style={{ borderTop: '1px dashed rgba(255,235,180,0.18)' }}>
-              <div className="sb-display text-[9px] tracking-[0.25em] opacity-65 mb-1">✦ OBJECTIVES</div>
-              <ul className="space-y-0.5 text-[10px]" style={{ color: 'var(--sb-parchment)' }}>
-                {stage.bonusObjectives.map(o => (
-                  <li key={o.id} className="flex items-baseline gap-1.5">
-                    <span style={{ color: 'var(--sb-gold)' }}>◆</span>
-                    <span className="flex-1 leading-tight">{o.description}</span>
-                    <span className="sb-mono" style={{ color: 'var(--sb-gold)', fontSize: '9px' }}>+{o.rewardGold}g</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+        {/* Horizontal stage strip */}
+        <StageStrip
+          stages={stages}
+          selectedStage={selectedStage}
+          currentStage={currentStage}
+          onSelectStage={setSelectedStage}
+          biomeAccents={BIOME_ACCENTS}
+        />
 
-        {/* Loadout sections (collapsible) */}
-        <CollapsibleSection
-          title="TALENTS"
-          summary={`${equippedTalents.length}/2`}
-          isOpen={openSection === 'talents'}
-          onToggle={() => setOpenSection(openSection === 'talents' ? null : 'talents')}
-        >
-          <div className="grid grid-cols-2 gap-1.5 p-2">
-            {talents.slice(0, 8).map(t => {
-              const isEquipped = equippedTalents.includes(t.id);
+        {/* Talents section — slot grid */}
+        <div className="mb-1 mt-1">
+          <div className="mb-1 flex items-center justify-between">
+            <div className="sb-display text-[9px]" style={{ color: 'var(--sb-gold-light)', letterSpacing: '0.2em' }}>
+              ✦ TALENTS
+            </div>
+            <div className="sb-mono text-[8px] opacity-70">{equippedTalents.filter((id): id is string => id !== null).length}/{talentSlotCount}</div>
+          </div>
+          <div className="grid gap-1 grid-cols-2 md:grid-cols-4">
+            {Array.from({ length: talentSlotCount }).map((_, slotIdx) => {
+              const talentId = equippedTalents[slotIdx];
+              const talent = talentId && talentId !== null ? talents.find(t => t.id === talentId) : null;
               return (
                 <button
-                  key={t.id}
-                  onClick={() => toggleTalent(t.id)}
-                  className={`sb-rarity-${t.rarity} text-left p-2 transition-all`}
-                  style={{
-                    background: isEquipped
-                      ? 'linear-gradient(180deg, var(--sb-gold) 0%, var(--sb-bronze) 100%)'
-                      : 'linear-gradient(180deg, var(--sb-parchment) 0%, var(--sb-parchment-dark) 100%)',
-                    border: '2px solid var(--sb-parchment-edge)',
-                    borderRadius: '3px',
-                    color: isEquipped ? 'var(--sb-shadow)' : '#2c1810',
-                    cursor: 'pointer',
-                    boxShadow: isEquipped
-                      ? 'inset 0 0 0 1.5px rgba(255,255,255,0.4), 0 0 10px rgba(251,191,36,0.5)'
-                      : 'inset 0 0 0 1px rgba(255,235,180,0.35), 0 1px 4px rgba(0,0,0,0.45)',
-                  }}
+                  key={slotIdx}
+                  onClick={() => setTalentPickerSlot(slotIdx)}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <div className="sb-display font-bold text-[11px] flex items-center gap-1">
-                    <span className="text-sm">{t.icon}</span>
-                    <span className="truncate">{t.name}</span>
-                  </div>
-                  <div className="text-[9px] opacity-80 mt-0.5 line-clamp-2 leading-snug">{t.description}</div>
+                  {talent ? (
+                    <TalentSlotCard talent={talent} slotNumber={slotIdx + 1} selected={true} />
+                  ) : (
+                    <EmptyTalentSlotCard slotNumber={slotIdx + 1} />
+                  )}
                 </button>
               );
             })}
           </div>
-        </CollapsibleSection>
+        </div>
 
-        <CollapsibleSection
-          title="EQUIPMENT"
-          summary={`${equippedSlots.length}/6`}
-          isOpen={openSection === 'equipment'}
-          onToggle={() => setOpenSection(openSection === 'equipment' ? null : 'equipment')}
-        >
-          <div className="grid grid-cols-2 gap-1.5 p-2">
-            {(['weapon', 'offhand', 'helm', 'armor', 'ring', 'amulet'] as EquipmentSlot[]).map(slot => {
+        {/* Equipment section */}
+        <div className="mb-1">
+          <div className="mb-1 flex items-center justify-between">
+            <div className="sb-display text-[9px]" style={{ color: 'var(--sb-gold-light)', letterSpacing: '0.2em' }}>
+              ✦ EQUIPMENT
+            </div>
+            <div className="sb-mono text-[8px] opacity-70">{equippedSlots.length}/6</div>
+          </div>
+          <div className="grid gap-1 grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
+            {(EQUIPMENT_SLOTS as EquipmentSlot[]).map(slot => {
               const equipped = equippedGear[slot];
-              const options = allEq.filter(e => e.slot === slot);
               return (
-                <div
+                <button
                   key={slot}
-                  className={equipped ? `sb-rarity-${equipped.rarity}` : ''}
-                  style={{
-                    background: 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
-                    border: '2px solid var(--sb-bronze-dark)',
-                    borderRadius: '3px',
-                    padding: '6px 8px',
-                  }}
+                  onClick={() => setPickerSlot(slot)}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <div className="sb-display text-[8px] tracking-[0.22em] opacity-65" style={{ color: 'var(--sb-gold)' }}>
-                    {slotLabel(slot).toUpperCase()}
-                  </div>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span className="text-base flex-shrink-0">{equipped?.icon ?? '◇'}</span>
-                    <select
-                      value={equipped?.id ?? ''}
-                      onChange={e => setSlot(slot, e.target.value || null)}
-                      className="sb-mono flex-1 min-w-0 text-[10px] px-1.5 py-0.5"
-                      style={{
-                        background: 'rgba(0,0,0,0.5)',
-                        color: 'var(--sb-gold-light)',
-                        border: '1px solid var(--sb-bronze-dark)',
-                        borderRadius: '2px',
-                        outline: 'none',
-                      }}
-                    >
-                      <option value="">— empty —</option>
-                      {options.map(o => (
-                        <option key={o.id} value={o.id}>
-                          {o.name} · {RARITY_LABEL[o.rarity]}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                  {equipped ? (
+                    <EquipmentCard equipment={equipped} />
+                  ) : (
+                    <EmptyEquipmentSlotCard slot={slot} />
+                  )}
+                </button>
               );
             })}
           </div>
-        </CollapsibleSection>
+        </div>
 
         {/* Hardcore toggle */}
         <label
-          className="flex items-center gap-2 mb-3 p-2.5 cursor-pointer select-none"
+          className="flex items-center gap-1.5 mb-1 p-1.5 cursor-pointer select-none"
           style={{
             background: hardcore
               ? 'linear-gradient(180deg, rgba(127,29,29,0.55) 0%, rgba(91,14,14,0.55) 100%)'
@@ -350,12 +209,11 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100 }
             className="w-4 h-4 accent-red-500 flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <div className="sb-display text-[12px]" style={{ color: '#fecaca', letterSpacing: '0.15em' }}>
+            <div className="sb-display text-[10px]" style={{ color: '#fecaca', letterSpacing: '0.1em' }}>
               ⚠ HARDCORE
             </div>
-            <div className="text-[9px] opacity-80" style={{ color: 'var(--sb-parchment)' }}>
-              HP carries the arc. Defeat voids the run.
-              <span className="font-bold ml-1" style={{ color: 'var(--sb-gold)' }}>1.5× rewards.</span>
+            <div className="text-[7px] opacity-75" style={{ color: 'var(--sb-parchment)', lineHeight: '1.1' }}>
+              Defeat ends run. 1.5× rewards.
             </div>
           </div>
         </label>
@@ -363,70 +221,468 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100 }
 
       {/* Sticky bottom CTA */}
       <div
-        className="relative z-20 px-3 pt-2 pb-3"
+        className="relative z-20 px-3 py-1"
         style={{
-          background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(15,10,7,0.85) 30%, rgba(15,10,7,0.95) 100%)',
-          borderTop: '2px solid var(--sb-bronze-dark)',
-          boxShadow: '0 -2px 12px rgba(0,0,0,0.4)',
+          background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(15,10,7,0.85) 20%, rgba(15,10,7,0.95) 100%)',
+          borderTop: '1px solid var(--sb-bronze-dark)',
+          boxShadow: '0 -1px 8px rgba(0,0,0,0.3)',
         }}
       >
-        <button onClick={begin} className="sb-btn w-full" style={{ fontSize: '15px', padding: '14px 20px', letterSpacing: '0.18em' }}>
-          ⚔ BEGIN BATTLE ⚔
+        <button onClick={begin} className="sb-btn w-full" style={{ fontSize: '12px', padding: '8px 12px', letterSpacing: '0.15em' }}>
+          ⚔ BEGIN ⚔
         </button>
+      </div>
+
+      {/* Equipment picker modal */}
+      {pickerSlot && (
+        <EquipmentPickerModal
+          slot={pickerSlot}
+          currentlyEquipped={equippedGear[pickerSlot] ?? null}
+          availableEquipment={allEq.filter(e => e.slot === pickerSlot)}
+          onSelect={(equipDef) => {
+            setSlot(pickerSlot, equipDef.id);
+            setPickerSlot(null);
+          }}
+          onUnequip={() => {
+            setSlot(pickerSlot, null);
+            setPickerSlot(null);
+          }}
+          onClose={() => setPickerSlot(null)}
+        />
+      )}
+
+      {/* Talent picker modal */}
+      {talentPickerSlot !== null && (
+        <TalentPickerModal
+          slotNumber={talentPickerSlot}
+          currentlyEquipped={equippedTalents[talentPickerSlot] ?? null}
+          availableTalents={talents}
+          equippedTalentIds={equippedTalents.filter((id): id is string => id !== null && id !== undefined)}
+          maxSlots={talentSlotCount}
+          onSelect={(talentId) => {
+            setEquippedTalents(prev => {
+              const next = [...prev];
+              while (next.length <= talentPickerSlot) next.push(null);
+              next[talentPickerSlot] = talentId;
+              while (next.length > 0 && !next[next.length - 1]) next.pop();
+              return next;
+            });
+            setTalentPickerSlot(null);
+          }}
+          onUnequip={() => {
+            setEquippedTalents(prev => {
+              const next = [...prev];
+              next[talentPickerSlot] = null;
+              while (next.length > 0 && !next[next.length - 1]) next.pop();
+              return next;
+            });
+            setTalentPickerSlot(null);
+          }}
+          onClose={() => setTalentPickerSlot(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+function StageHeroPanel({
+  stage,
+  accent,
+  isCurrent,
+}: {
+  stage: CombatStageDef;
+  accent: { bg: string; border: string; glow: string; label: string };
+  isCurrent: boolean;
+}) {
+  const enemies = stage.enemyIds
+    .map(id => getEnemy(id))
+    .filter((e): e is NonNullable<typeof e> => e !== undefined);
+
+  return (
+    <div
+      className="p-2 mb-1 relative"
+      style={{
+        background: `linear-gradient(180deg, ${accent.bg} 0%, rgba(0,0,0,0.4) 100%)`,
+        border: `2px solid ${accent.border}`,
+        borderRadius: '4px',
+        boxShadow: `inset 0 1px 0 rgba(255,235,180,0.15), 0 0 14px ${accent.glow}, var(--sb-shadow-md)`,
+      }}
+    >
+      {isCurrent && (
+        <div
+          className="absolute -top-1.5 -right-1.5 text-[9px] uppercase tracking-widest font-extrabold px-1.5 py-0.5 rounded-full"
+          style={{
+            background: '#ffd54f',
+            color: '#4a2e00',
+            border: '2px solid #4a2e00',
+            boxShadow: '0 2px 0 rgba(0,0,0,0.35)',
+            zIndex: 10,
+          }}
+        >
+          Current
+        </div>
+      )}
+
+      {/* Stage number and title */}
+      <div className="flex items-baseline justify-between gap-1 mb-0.5">
+        <div className="sb-display text-2xl flex-1" style={{ color: 'var(--sb-gold-light)' }}>
+          {stage.number}
+        </div>
+        <div className="sb-display text-sm flex-1 truncate text-right" style={{ color: 'var(--sb-gold-light)', letterSpacing: '0.05em' }}>
+          {stage.isBoss ? '👑 ' : ''}{stage.title}
+        </div>
+      </div>
+
+      {/* Flavor text */}
+      <div className="text-[9px] italic opacity-80 mb-1" style={{ color: 'var(--sb-parchment)' }}>
+        "{stage.flavor}"
+      </div>
+
+      {/* Stats row */}
+      <div className="sb-mono text-[8px] opacity-75 flex flex-wrap gap-x-2 gap-y-0.5 mb-1">
+        <span><span className="opacity-60">📊</span> {stage.difficultyBand.toUpperCase()}</span>
+        <span><span className="opacity-60">💰</span> {stage.rewardChest.baseGold}g</span>
+        {stage.isBoss && <span><span className="opacity-60">👑</span> BOSS</span>}
+      </div>
+
+      {/* Enemy cards row */}
+      {enemies.length > 0 && (
+        <div className="mb-1 py-1" style={{ borderTop: '1px dashed rgba(255,235,180,0.15)', borderBottom: '1px dashed rgba(255,235,180,0.15)' }}>
+          <div className="flex gap-1 overflow-x-auto -mx-1 px-1">
+            {enemies.map((enemy, idx) => (
+              <div key={idx} style={{ flex: '0 0 auto' }}>
+                <EnemyCard enemy={enemy} size="xs" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Bonus objectives */}
+      {stage.bonusObjectives.length > 0 && (
+        <div>
+          <div className="sb-display text-[8px] tracking-[0.2em] opacity-60 mb-0.5">✦ OBJECTIVES</div>
+          <ul className="space-y-0.5 text-[8px]" style={{ color: 'var(--sb-parchment)' }}>
+            {stage.bonusObjectives.map(o => (
+              <li key={o.id} className="flex items-baseline gap-1">
+                <span style={{ color: 'var(--sb-gold)' }}>◆</span>
+                <span className="flex-1 leading-tight">{o.description}</span>
+                <span className="sb-mono" style={{ color: 'var(--sb-gold)', fontSize: '7px' }}>+{o.rewardGold}g</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+function StageStrip({
+  stages,
+  selectedStage,
+  currentStage,
+  onSelectStage,
+  biomeAccents,
+}: {
+  stages: CombatStageDef[];
+  selectedStage: number;
+  currentStage: number;
+  onSelectStage: (stage: number) => void;
+  biomeAccents: Record<string, any>;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (selectedRef.current) {
+      selectedRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [selectedStage]);
+
+  return (
+    <div className="mb-1 py-1">
+      <div
+        ref={containerRef}
+        className="overflow-x-auto -mx-3 px-3"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        <div className="flex gap-1.5" style={{ minWidth: 'min-content' }}>
+          {stages.map(s => {
+            const locked = s.number > currentStage;
+            const selected = s.number === selectedStage;
+            const accent = biomeAccents[s.biome] ?? biomeAccents.forest;
+
+            return (
+              <button
+                ref={selected ? selectedRef : null}
+                key={s.number}
+                onClick={() => !locked && onSelectStage(s.number)}
+                disabled={locked}
+                className="sb-display font-bold flex-shrink-0 flex items-center justify-center"
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: !locked
+                    ? selected
+                      ? `linear-gradient(180deg, var(--sb-gold) 0%, var(--sb-bronze) 100%)`
+                      : s.isBoss
+                      ? 'linear-gradient(180deg, #7f1d1d 0%, #5b0e0e 100%)'
+                      : accent.bg
+                    : 'rgba(0,0,0,0.6)',
+                  border: `2px solid ${!locked
+                    ? selected
+                      ? 'var(--sb-gold-light)'
+                      : s.isBoss
+                      ? accent.border
+                      : accent.border
+                    : '#2a1f15'
+                  }`,
+                  color: !locked
+                    ? selected
+                      ? 'var(--sb-shadow)'
+                      : 'var(--sb-gold-light)'
+                    : '#3d3027',
+                  cursor: locked ? 'not-allowed' : 'pointer',
+                  opacity: locked ? 0.45 : 1,
+                  fontSize: '12px',
+                  boxShadow: selected ? `0 0 10px ${accent.glow}` : undefined,
+                }}
+                title={locked ? `Stage ${s.number} (locked)` : `${s.title}`}
+              >
+                {locked ? '🔒' : s.isBoss ? '👑' : s.number}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
-function CollapsibleSection({
-  title, summary, isOpen, onToggle, children,
-}: {
-  title: string;
-  summary: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+function EmptyEquipmentSlotCard({ slot }: { slot: EquipmentSlot }) {
   return (
     <div
-      className="mb-2"
       style={{
-        background: 'rgba(0,0,0,0.3)',
-        border: '1.5px solid var(--sb-bronze-dark)',
-        borderRadius: '4px',
-        overflow: 'hidden',
+        width: '100%',
+        aspectRatio: '3/4',
+        borderRadius: 4,
+        border: '1px dashed rgba(255,235,180,0.15)',
+        background: 'rgba(0,0,0,0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '3px',
       }}
     >
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-3 py-2"
-        style={{
-          background: 'linear-gradient(180deg, #2c1810 0%, var(--sb-leather-dark) 100%)',
-          color: 'var(--sb-gold-light)',
-          cursor: 'pointer',
-          borderBottom: isOpen ? '1px solid var(--sb-bronze-dark)' : 'none',
-        }}
-      >
-        <span className="sb-display text-[11px]" style={{ letterSpacing: '0.25em' }}>
-          ✦ {title}
-        </span>
-        <span className="flex items-center gap-2">
-          <span className="sb-mono text-[10px] opacity-70">{summary}</span>
-          <span style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▸</span>
-        </span>
-      </button>
-      {isOpen && <div className="sb-fade-up">{children}</div>}
+      <div className="text-sm opacity-25">◇</div>
     </div>
   );
 }
 
-function slotLabel(slot: EquipmentSlot): string {
-  switch (slot) {
-    case 'weapon':  return '⚔ Weapon';
-    case 'offhand': return '🛡 Off-Hand';
-    case 'helm':    return '⛑ Helm';
-    case 'armor':   return '🥋 Armor';
-    case 'ring':    return '💍 Ring';
-    case 'amulet':  return '📿 Amulet';
-  }
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+function TalentSlotCard({ talent, slotNumber, selected }: { talent: Perk; slotNumber: number; selected: boolean }) {
+  return (
+    <div
+      style={{
+        width: '100%',
+        aspectRatio: '1',
+        borderRadius: 4,
+        border: `1px solid ${selected ? 'var(--sb-gold-light)' : 'rgba(255,235,180,0.25)'}`,
+        background: selected
+          ? 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(184,134,11,0.15))'
+          : 'rgba(0,0,0,0.2)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2px',
+        boxShadow: selected ? '0 0 6px rgba(255,215,0,0.2), inset 0 0 4px rgba(255,215,0,0.1)' : undefined,
+        transition: 'all 150ms ease',
+      }}
+    >
+      <div className="text-base">{talent.icon}</div>
+    </div>
+  );
+}
+
+function EmptyTalentSlotCard({ slotNumber }: { slotNumber: number }) {
+  return (
+    <div
+      style={{
+        width: '100%',
+        aspectRatio: '1',
+        borderRadius: 4,
+        border: '1px dashed rgba(255,235,180,0.15)',
+        background: 'rgba(0,0,0,0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2px',
+      }}
+    >
+      <div className="text-xs opacity-25">◇</div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+function EquipmentPickerModal({
+  slot,
+  currentlyEquipped,
+  availableEquipment,
+  onSelect,
+  onUnequip,
+  onClose,
+}: {
+  slot: EquipmentSlot;
+  currentlyEquipped: EquipmentDef | null;
+  availableEquipment: EquipmentDef[];
+  onSelect: (eq: EquipmentDef) => void;
+  onUnequip: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="bg-stone-900 rounded-lg p-4 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
+          border: '2px solid var(--sb-bronze-dark)',
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="sb-display text-lg" style={{ color: 'var(--sb-gold-light)' }}>
+            {slotLabel(slot)}
+          </h2>
+          <button
+            onClick={onClose}
+            className="sb-chip"
+            style={{ padding: '4px 12px', fontSize: '12px', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {currentlyEquipped && (
+          <button
+            onClick={onUnequip}
+            className="sb-btn w-full mb-4"
+            style={{ fontSize: '12px', padding: '10px 16px' }}
+          >
+            🗑 UNEQUIP
+          </button>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          {availableEquipment.map(eq => (
+            <button
+              key={eq.id}
+              onClick={() => onSelect(eq)}
+              style={{ cursor: 'pointer' }}
+            >
+              <EquipmentCard equipment={eq} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+function TalentPickerModal({
+  slotNumber,
+  currentlyEquipped,
+  availableTalents,
+  equippedTalentIds,
+  maxSlots,
+  onSelect,
+  onUnequip,
+  onClose,
+}: {
+  slotNumber: number;
+  currentlyEquipped: string | null;
+  availableTalents: Perk[];
+  equippedTalentIds: string[];
+  maxSlots: number;
+  onSelect: (talentId: string) => void;
+  onUnequip: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-3"
+      onClick={onClose}
+    >
+      <div
+        className="bg-stone-900 rounded-lg p-4 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
+          border: '2px solid var(--sb-bronze-dark)',
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="sb-display text-lg" style={{ color: 'var(--sb-gold-light)' }}>
+            Slot {slotNumber + 1} — Talent
+          </h2>
+          <button
+            onClick={onClose}
+            className="sb-chip"
+            style={{ padding: '4px 12px', fontSize: '12px', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {currentlyEquipped && (
+          <button
+            onClick={onUnequip}
+            className="sb-btn w-full mb-4"
+            style={{ fontSize: '12px', padding: '10px 16px' }}
+          >
+            🗑 UNEQUIP
+          </button>
+        )}
+
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}>
+          {availableTalents.map(talent => {
+            const isEquipped = equippedTalentIds.includes(talent.id);
+            const isOtherSlot = isEquipped && talent.id !== currentlyEquipped;
+            return (
+              <button
+                key={talent.id}
+                onClick={() => onSelect(talent.id)}
+                disabled={isOtherSlot}
+                style={{
+                  cursor: isOtherSlot ? 'not-allowed' : 'pointer',
+                  opacity: isOtherSlot ? 0.5 : 1,
+                }}
+                title={isOtherSlot ? 'Already equipped in another slot' : ''}
+              >
+                <TalentCard
+                  talent={talent}
+                  size="sm"
+                  selected={isEquipped}
+                />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }

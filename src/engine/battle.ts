@@ -63,6 +63,7 @@ import { getAction as getActionDef, getTactic as getTacticDef, type TacticEffect
 import type { DamageType } from './damage';
 import { clearSleepOnHit, applyStatus } from './status';
 import type { CardId, Perk } from './types';
+import { compileUpgradeBuffs, emptyUpgradeBuffs, type UpgradeBuffs } from './upgradeBuffs';
 
 // === Action card (a strike-card on a sigil slot) ===
 //
@@ -198,6 +199,12 @@ export interface BattleState {
     // Vigorous: heal N at start of each stage.
     stageStartHeal: number;
   };
+  // Stronghold-upgrade runtime buffs. Compiled once at construction from
+  // BattleConfig.ownedUpgradeIds — see upgradeBuffs.ts. The runner reads
+  // these alongside `talents` at the relevant hot paths.
+  upgradeBuffs: UpgradeBuffs;
+  // Per-stage flag for Phoenix Ember (on_lethal_survive). Resets per battle.
+  upgradeLethalSurviveUsed: boolean;
 }
 
 export interface BattleConfig {
@@ -231,6 +238,10 @@ export interface BattleConfig {
   // Whether this run is part of a Hardcore arc. Cosmetic for the runner —
   // the result-screen flow uses it to decide salvage rules.
   hardcore?: boolean;
+  // Stronghold upgrades the player has bought. Combat-time effects (regen,
+  // starting block, on-kill heal, etc.) are compiled into UpgradeBuffs at
+  // construction and applied at the appropriate runner hooks.
+  ownedUpgradeIds?: ReadonlyArray<string>;
 }
 
 // === Public API ===
@@ -332,6 +343,17 @@ export class BattleRunner {
     // pattern matches the existing engine — see types.ts comment).
     const talentList = config.talents ?? [];
     const compiledTalents = compileTalents(talentList);
+    const upgradeBuffs = config.ownedUpgradeIds && config.ownedUpgradeIds.length > 0
+      ? compileUpgradeBuffs(config.ownedUpgradeIds)
+      : emptyUpgradeBuffs();
+
+    // Stronghold "Quick Draw": draw N extra cards on the opening turn.
+    // Bigger initial draw before the player ever sees the hand.
+    if (upgradeBuffs.turnOneExtraDraw > 0) {
+      for (let i = 0; i < upgradeBuffs.turnOneExtraDraw && deck.length > 0; i++) {
+        hand.push(deck.shift()!);
+      }
+    }
 
     this.state = {
       player,
@@ -354,11 +376,20 @@ export class BattleRunner {
       discard: [],
       staminaThisTurn: playerStats.stamina,
       talents: compiledTalents,
+      upgradeBuffs,
+      upgradeLethalSurviveUsed: false,
     };
 
-    // Vigorous: heal at the start of the stage.
-    if (compiledTalents.stageStartHeal > 0) {
-      this.state.player = healPlayer(this.state.player, compiledTalents.stageStartHeal);
+    // Vigorous (talent) + stage_start_heal upgrades: heal at the start of
+    // the stage. Both stack additively.
+    const totalStageStartHeal = compiledTalents.stageStartHeal + upgradeBuffs.stageStartHeal;
+    if (totalStageStartHeal > 0) {
+      this.state.player = healPlayer(this.state.player, totalStageStartHeal);
+    }
+
+    // Stronghold "Shield Training": grant block at battle start.
+    if (upgradeBuffs.startingBlock > 0) {
+      this.state.player = addBlock(this.state.player, upgradeBuffs.startingBlock);
     }
 
     // Seed initial intents for all enemies (so the player sees telegraphs
@@ -565,10 +596,12 @@ export class BattleRunner {
     if (!cardId) return 'invalid';
     const def = getTacticDef(cardId);
     if (!def) return 'invalid';
-    if (this.state.staminaThisTurn < def.cost) return 'cant_afford';
+    // Stronghold "Tactic Mastery" — discount tactic costs (min 0).
+    const effectiveCost = Math.max(0, def.cost - this.state.upgradeBuffs.tacticStaminaDiscount);
+    if (this.state.staminaThisTurn < effectiveCost) return 'cant_afford';
 
     // Pay stamina + discard.
-    this.state.staminaThisTurn -= def.cost;
+    this.state.staminaThisTurn -= effectiveCost;
     this.discardFromHand(handIndex);
 
     this.applyTacticEffect(def.effect, targetEnemyId);
@@ -721,6 +754,11 @@ export class BattleRunner {
     this.state.player = tick.combatant;
     if (this.checkOutcome()) return this.state.outcome;
 
+    // Stronghold Meditation: passive HP regen each turn.
+    if (this.state.upgradeBuffs.regenPerTurn > 0) {
+      this.state.player = healPlayer(this.state.player, this.state.upgradeBuffs.regenPerTurn);
+    }
+
     // Talent: Swift Recovery — heal at end of clean turn (no HP lost).
     // We use the per-turn `damageTakenThisStage` delta as the proxy:
     // it's only updated by takePlayerDamage and DoT ticks, so if it
@@ -730,9 +768,10 @@ export class BattleRunner {
       this.state.player = healPlayer(this.state.player, cleanTurnHeal);
     }
 
-    // Block: default = reset; Iron Discipline talent carries up to N.
-    if (this.state.talents.blockCarryCap > 0) {
-      const carried = Math.min(this.state.player.block, this.state.talents.blockCarryCap);
+    // Block: default = reset; talents OR Stronghold Resilience carry up to N.
+    const carryCap = Math.max(this.state.talents.blockCarryCap, this.state.upgradeBuffs.blockCarryCap);
+    if (carryCap > 0) {
+      const carried = Math.min(this.state.player.block, carryCap);
       this.state.player = { ...this.state.player, block: carried };
     } else {
       this.state.player = clearBlock(this.state.player);
@@ -916,13 +955,17 @@ export class BattleRunner {
     //     scaler on the (mult - 1) portion so 1.0× combos stay neutral.
     //   - Triple Threat: triadic damage +50%.
     const t = this.state.talents;
-    const talentComboScale = (mult: number) => 1 + (mult - 1) * t.allComboDamageMult;
+    const buffs = this.state.upgradeBuffs;
+    // Both talents and Stronghold "Sigilbound Master" can scale combo bonuses.
+    const allComboScale = Math.max(t.allComboDamageMult, buffs.allComboDamageMult);
+    const talentComboScale = (mult: number) => 1 + (mult - 1) * allComboScale;
     const triadicTalentMult = 1 + (triadicBonus > 0 ? t.triadicBonusPct : 0);
+    // Stronghold "Combo Mastery": flat additive bonus to every combo strike.
+    const upgradeComboBonusMult = 1 + buffs.comboDamageBonus;
 
-    // Astral Convergence: roll once per action — on hit, resolve it twice.
-    // We expand the resolve list here so combo math (counts, distinct types)
-    // already accounts for the replicas. Skips itself for replicas.
-    const replicateChance = this.state.talents.cardReplicateChance;
+    // Astral Convergence (talent) + Echo Sigil / Astral Pact (upgrades):
+    // chance per action to resolve twice. Both stack additively, capped at 1.
+    const replicateChance = Math.min(1, t.cardReplicateChance + buffs.cardReplicateChance);
     if (replicateChance > 0) {
       const expanded: ActionInstance[] = [];
       const expandedSlots: number[] = [];
@@ -951,11 +994,15 @@ export class BattleRunner {
       const onMult = talentComboScale(onslaughtMultiplier(same));
       const reMult = carriedRelentless ? talentComboScale(relentlessMultiplier(this.state.relentlessStreak)) : 1;
       const eqTypeMult = this.equipmentTypeBonus(action.damageType);
-      // Talent damage_type_bonus, multiplicative.
-      const talentTypeMult = 1 + (t.typeBonuses[action.damageType] ?? 0);
-      // Battlecry: first action card resolved this turn deals +25%.
-      const battlecryMult = !t.firstActionUsedThisTurn && t.firstActionDamageBonus > 0
-        ? (1 + t.firstActionDamageBonus)
+      // Talent + upgrade damage_type_bonus stack additively, multiplicative on raw.
+      const talentTypeMult = 1
+        + (t.typeBonuses[action.damageType] ?? 0)
+        + (buffs.damageTypeBonus[action.damageType] ?? 0);
+      // Battlecry (talent) + Stronghold's Battlecry upgrade — first action
+      // card each turn gains +pct. Sources stack additively for the bonus.
+      const firstActionBonus = t.firstActionDamageBonus + buffs.firstActionDamageBonus;
+      const battlecryMult = !t.firstActionUsedThisTurn && firstActionBonus > 0
+        ? (1 + firstActionBonus)
         : 1;
       if (battlecryMult > 1) {
         this.state.talents = { ...t, firstActionUsedThisTurn: true };
@@ -965,7 +1012,7 @@ export class BattleRunner {
       //   - multiplier (triadicMult, +25% per strike) folded into the buff
       // chain alongside Onslaught/Relentless/equipment/talent multipliers.
       const buffedRaw = Math.round(
-        action.damage * onMult * reMult * triadicMult * outgoingMult * equipmentComboMult * eqTypeMult * talentTypeMult * battlecryMult * triadicTalentMult,
+        action.damage * onMult * reMult * triadicMult * outgoingMult * equipmentComboMult * eqTypeMult * talentTypeMult * battlecryMult * triadicTalentMult * upgradeComboBonusMult,
       ) + triadicBonus;
 
       // Look up the card def once per action for AOE + self-effect data.
@@ -989,16 +1036,22 @@ export class BattleRunner {
         const targetHpBefore = target.currentHp;
         const critRoll = autoCrit ? 0 : this.rng.next();
 
+        // Stronghold "Critical Mastery" raises the base 1.5× crit multiplier.
+        const critBonus = 1.5 + buffs.critDamageBonus;
+        // Action piercing + Stronghold "Armor Piercer" stack additively, capped at 1.
+        const totalPiercing = Math.min(1, (action.blockPiercing ?? 0) + buffs.globalBlockPiercing);
+
         const result = computeDamage({
           raw: buffedRaw,
           type: action.damageType,
           attackerAtk: this.state.player.stats.atk,
           attackerCritChance: critChance,
+          attackerCritBonus: critBonus,
           defenderDef: target.def,
           defenderBlock: target.block,
           defenderResistances: target.resistances,
           critRoll,
-          blockPiercing: action.blockPiercing,
+          blockPiercing: totalPiercing,
         });
 
         // Clear sleep on hit.
@@ -1050,6 +1103,10 @@ export class BattleRunner {
           // Self-heal on kill.
           if (cardDef?.selfHealOnKill && cardDef.selfHealOnKill > 0) {
             this.state.player = healPlayer(this.state.player, cardDef.selfHealOnKill);
+          }
+          // Stronghold "Life Drain" — passive heal per kill.
+          if (this.state.upgradeBuffs.onKillHeal > 0) {
+            this.state.player = healPlayer(this.state.player, this.state.upgradeBuffs.onKillHeal);
           }
         }
 
@@ -1182,14 +1239,17 @@ export class BattleRunner {
       if (incomingPatch.reduceIncomingDamageBy) raw = Math.max(0, raw - incomingPatch.reduceIncomingDamageBy);
       if (incomingPatch.reduceIncomingDamagePct) raw = Math.round(raw * (1 - incomingPatch.reduceIncomingDamagePct));
 
-      // Talent: Aegis — first time this stage HP would drop below threshold,
-      // gain block instead. We approximate by pre-emptively applying block
-      // when current HP minus the un-blocked damage would breach the threshold.
+      // Aegis (talent + Stronghold "Aegis" upgrade): first time this stage HP
+      // would drop below threshold, gain block instead. Both sources fold
+      // into a single trigger that fires once per stage.
       const tal = this.state.talents;
-      if (!tal.aegisFired && tal.aegisThreshold > 0) {
+      const aegisBuffs = this.state.upgradeBuffs;
+      const totalAegisThreshold = Math.max(tal.aegisThreshold, aegisBuffs.aegisThreshold);
+      const totalAegisBlock = Math.max(tal.aegisBlock, aegisBuffs.aegisBlock);
+      if (!tal.aegisFired && totalAegisThreshold > 0) {
         const projectedHp = this.state.player.currentHp - Math.max(0, raw - this.state.player.block - this.state.player.stats.def);
-        if (projectedHp / Math.max(1, this.state.player.stats.maxHp) < tal.aegisThreshold) {
-          this.state.player = addBlock(this.state.player, tal.aegisBlock);
+        if (projectedHp / Math.max(1, this.state.player.stats.maxHp) < totalAegisThreshold) {
+          this.state.player = addBlock(this.state.player, totalAegisBlock);
           this.state.talents = { ...tal, aegisFired: true };
         }
       }
@@ -1204,7 +1264,20 @@ export class BattleRunner {
         attackerAtk: 0,
         blockPiercing: intent.piercing,
       });
-      this.state.player = combatant;
+      // Stronghold "Phoenix Ember" — once per stage, survive a lethal hit
+      // restored to 1 HP. Apply BEFORE writing back to state.player so the
+      // resolveLog reflects the survived HP.
+      let finalCombatant = combatant;
+      if (
+        combatant.currentHp === 0
+        && !this.state.upgradeLethalSurviveUsed
+        && this.state.upgradeBuffs.onLethalSurvive > 0
+      ) {
+        finalCombatant = { ...combatant, currentHp: 1 };
+        this.state.upgradeLethalSurviveUsed = true;
+      }
+      this.state.player = finalCombatant;
+
       this.resolveLog.push({
         kind: 'enemy_attack',
         enemyId: enemy.id,
@@ -1212,16 +1285,16 @@ export class BattleRunner {
         damageDealt: result.hpDelta,
         blockConsumed: result.blockConsumed,
         playerHpBefore,
-        playerHpAfter: combatant.currentHp,
+        playerHpAfter: finalCombatant.currentHp,
       });
 
       // onLethal: damage that would kill — fire BEFORE applying. We approximate
       // by checking after: if HP just hit 0 and we have phoenix_heart available,
       // re-fire that reaction by reverting and re-applying.
-      if (combatant.currentHp === 0) {
+      if (finalCombatant.currentHp === 0) {
         const lethalPatch = this.fireReactionTrigger('onLethal');
         if (lethalPatch.surviveAtHp && lethalPatch.surviveAtHp > 0) {
-          this.state.player = { ...combatant, currentHp: lethalPatch.surviveAtHp };
+          this.state.player = { ...finalCombatant, currentHp: lethalPatch.surviveAtHp };
         }
         // Equipment-driven low-HP revives (Phoenix 2pc). Only fires once per
         // stage. Check AFTER reactions so reaction-driven survival wins ties.
@@ -1249,8 +1322,9 @@ export class BattleRunner {
   private fireComboReaction(combo: ComboKind): void {
     this.state.combosTriggeredThisStage[combo] += 1;
     this.fireReactionTrigger('onCombo', { combo });
-    // Talent: Combo Cascade — refund stamina + draw a card per combo.
-    const refund = this.state.talents.comboStaminaRefund;
+    // Combo Cascade — talent + Stronghold's "Combo Cascade" upgrade BOTH
+    // refund stamina + draw a card per combo. Sources stack additively.
+    const refund = this.state.talents.comboStaminaRefund + this.state.upgradeBuffs.comboStaminaRefund;
     if (refund > 0) {
       this.state.staminaThisTurn += refund;
       this.drawCards(1);

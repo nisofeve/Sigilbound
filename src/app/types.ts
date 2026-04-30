@@ -35,5 +35,6 @@ export type Screen =
   // Sigilbound combat flow (Phase 5 — parallel to the farming flow above).
   // Cleanup of the farming branch comes in Phase 6.
   | { kind: 'combat_home' }
-  | { kind: 'combat'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; carryHp?: number; customDeck?: ReadonlyArray<string> }
-  | { kind: 'combat_result'; outcome: 'cleared' | 'defeated'; stage: CombatStageDef; runner: BattleRunner; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; customDeck?: ReadonlyArray<string>; clearOutcome?: CombatClearOutcome };
+  | { kind: 'combat'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; carryHp?: number; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string> }
+  | { kind: 'combat_result'; outcome: 'cleared' | 'defeated'; stage: CombatStageDef; runner: BattleRunner; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string>; clearOutcome?: CombatClearOutcome }
+  | { kind: 'bestiary' };

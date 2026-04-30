@@ -6,23 +6,19 @@ import {
   type ActionCardDef,
   type TacticCardDef,
 } from '@engine/index';
-import { damageTypeColorHex } from '@game/theme';
 import {
   buyCombatShopEntry,
   getCombatShopRoll,
   rolloverCombatShop,
   type Profile,
 } from '@storage/index';
+import { CombatCard } from '@ui/components/CombatCard';
 
 interface Props {
   profile: Profile;
   onProfileChange: (next: Profile) => void;
   onBack: () => void;
 }
-
-const RARITY_LABEL: Record<string, string> = {
-  common: 'Common', uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic',
-};
 
 export default function CombatShopScreen({ profile, onProfileChange, onBack }: Props) {
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -79,7 +75,7 @@ export default function CombatShopScreen({ profile, onProfileChange, onBack }: P
 
       {/* Stock — scrollable */}
       <div className="relative z-10 flex-1 overflow-y-auto px-3 pb-3 sb-fade-up">
-        <div className="grid grid-cols-1 gap-2">
+        <div className="flex flex-col gap-3">
           {entries.map((entry, idx) => {
             const bought = profile.combatShopBoughtIds.includes(entry.cardId);
             const isAction = 'damageType' in entry.def;
@@ -89,98 +85,74 @@ export default function CombatShopScreen({ profile, onProfileChange, onBack }: P
             return (
               <div
                 key={`${entry.cardId}-${idx}`}
-                className={`sb-rarity-${def.rarity} px-2.5 py-2 relative`}
+                className="flex items-stretch gap-3 px-3 py-3 relative"
                 style={{
-                  background: bought
-                    ? 'linear-gradient(180deg, rgba(74,50,28,0.4) 0%, rgba(40,28,14,0.55) 100%)'
-                    : 'linear-gradient(180deg, var(--sb-parchment) 0%, var(--sb-parchment-dark) 100%)',
-                  border: '2px solid var(--sb-parchment-edge)',
-                  borderRadius: '4px',
-                  color: bought ? 'var(--sb-gold-light)' : '#2c1810',
-                  opacity: bought ? 0.5 : 1,
-                  boxShadow: bought ? 'var(--sb-shadow-sm)' : 'inset 0 0 0 1px rgba(255,235,180,0.35), var(--sb-shadow-sm)',
+                  background: 'linear-gradient(160deg, rgba(20,14,8,0.85) 0%, rgba(10,8,5,0.92) 100%)',
+                  border: '1px solid rgba(255,235,180,0.18)',
+                  borderRadius: '8px',
+                  color: 'var(--sb-gold-light)',
+                  opacity: bought ? 0.55 : 1,
+                  boxShadow: 'inset 0 1px 0 rgba(255,235,180,0.08)',
                 }}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl flex-shrink-0">{def.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="sb-display font-bold text-[13px] flex items-center gap-1.5 flex-wrap">
-                      <span className="truncate">{def.name}</span>
-                      <span
-                        className="sb-mono text-[8px] px-1.5 rounded font-bold"
-                        style={{
-                          background: 'rgba(0,0,0,0.4)',
-                          color: 'var(--sb-gold-light)',
-                          letterSpacing: '0.1em',
-                        }}
-                      >
-                        {RARITY_LABEL[def.rarity].toUpperCase()}
-                      </span>
-                      {isAction && (
-                        <span
-                          className="sb-mono text-[8px] px-1.5 rounded font-bold"
-                          style={{
-                            background: 'rgba(0,0,0,0.4)',
-                            color: damageTypeColorHex((def as ActionCardDef).damageType),
-                            letterSpacing: '0.1em',
-                          }}
-                        >
-                          {(def as ActionCardDef).damageType.toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] opacity-80 leading-snug mt-0.5">
-                      {isAction
-                        ? `⚔ ${(def as ActionCardDef).damage} damage · ⏱ ${(def as ActionCardDef).charge}t charge · ⚡ ${(def as ActionCardDef).cost} stamina`
-                        : `⚡ ${(def as TacticCardDef).cost} stamina · ${(def as TacticCardDef).description}`}
-                    </div>
-                    <div className="sb-mono text-[9px] mt-1 opacity-70">
-                      OWNED {profile.combatCardInventory[entry.cardId] ?? 0}
-                    </div>
-                  </div>
+                <div style={{ flexShrink: 0 }}>
+                  <CombatCard card={def as ActionCardDef | TacticCardDef} size="sm" />
                 </div>
-
-                {bought ? (
-                  <div
-                    className="sb-display text-center mt-2 py-1.5"
-                    style={{
-                      background: 'rgba(74,222,128,0.15)',
-                      border: '1px solid rgba(74,222,128,0.4)',
-                      borderRadius: '2px',
-                      color: '#86efac',
-                      fontSize: '10px',
-                      letterSpacing: '0.18em',
-                    }}
-                  >
-                    ✓ PURCHASED
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="sb-display font-bold text-sm" style={{ color: '#f1f5f9', letterSpacing: '0.04em' }}>
+                    {def.name}
                   </div>
-                ) : (
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={() => buy(idx, 'gold')}
-                      disabled={!canGold}
-                      className="sb-btn sb-btn-gold flex-1"
-                      style={{ fontSize: '11px', padding: '8px 10px', letterSpacing: '0.1em' }}
-                    >
-                      💰 {entry.goldPrice.toLocaleString()}
-                    </button>
-                    <button
-                      onClick={() => buy(idx, 'crystals')}
-                      disabled={!canCrystals}
-                      className="sb-btn"
+                  <div className="text-[11px] opacity-85 leading-snug mt-1" style={{ color: '#cbd5e1' }}>
+                    {isAction
+                      ? `${(def as ActionCardDef).damage} damage · ${(def as ActionCardDef).charge}t charge · ${(def as ActionCardDef).cost} stamina`
+                      : (def as TacticCardDef).description}
+                  </div>
+                  <div className="sb-mono text-[10px] mt-1 opacity-70" style={{ letterSpacing: '0.1em' }}>
+                    OWNED {profile.combatCardInventory[entry.cardId] ?? 0}
+                  </div>
+
+                  {bought ? (
+                    <div
+                      className="sb-display text-center mt-auto py-1.5"
                       style={{
-                        fontSize: '11px',
-                        padding: '8px 10px',
-                        letterSpacing: '0.1em',
-                        flex: 1,
-                        background: 'linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 100%)',
-                        border: '2px solid #93c5fd',
+                        background: 'rgba(74,222,128,0.15)',
+                        border: '1px solid rgba(74,222,128,0.4)',
+                        borderRadius: '4px',
+                        color: '#86efac',
+                        fontSize: '10px',
+                        letterSpacing: '0.18em',
                       }}
                     >
-                      💎 {entry.crystalPrice}
-                    </button>
-                  </div>
-                )}
+                      ✓ PURCHASED
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 mt-auto pt-2">
+                      <button
+                        onClick={() => buy(idx, 'gold')}
+                        disabled={!canGold}
+                        className="sb-btn sb-btn-gold flex-1"
+                        style={{ fontSize: '11px', padding: '7px 8px', letterSpacing: '0.08em' }}
+                      >
+                        💰 {entry.goldPrice.toLocaleString()}
+                      </button>
+                      <button
+                        onClick={() => buy(idx, 'crystals')}
+                        disabled={!canCrystals}
+                        className="sb-btn"
+                        style={{
+                          fontSize: '11px',
+                          padding: '7px 8px',
+                          letterSpacing: '0.08em',
+                          flex: 1,
+                          background: 'linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 100%)',
+                          border: '2px solid #93c5fd',
+                        }}
+                      >
+                        💎 {entry.crystalPrice}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
