@@ -60,11 +60,16 @@ export function EnemyCard({ enemy, size = 'md', customWidth, onClick, currentHp,
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
 
+  const dashedName = enemy.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
   return (
     <GameCard
       name={enemy.name}
       imageId={enemy.id}
-      imageIdAlternates={[normalisedName]}
+      imageIdAlternates={[normalisedName, dashedName]}
       imageBase="enemies"
       placeholderEmoji={enemy.sprite}
       size={size}

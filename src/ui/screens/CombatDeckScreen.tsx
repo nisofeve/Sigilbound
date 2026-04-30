@@ -7,20 +7,28 @@ import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent }
 import {
   allActions,
   allTactics,
+  allEquipment,
+  allTalents,
+  MAX_CARD_LEVEL,
   type ActionCardDef,
   type TacticCardDef,
+  type EquipmentDef,
 } from '@engine/index';
 import {
   addToCombatDeck,
   combatDeckLimits,
   removeFromCombatDeck,
+  combatCardUpgradePreview,
+  upgradeCombatCard,
   type Profile,
 } from '@storage/index';
 import { CombatCard } from '@ui/components/CombatCard';
+import { EquipmentCard } from '@ui/components/EquipmentCard';
+import { TalentCard } from '@ui/components/TalentCard';
 import { RARITY_COLOR, DAMAGE_TYPE_COLOR } from '@ui/components/GameCard';
 
 type CombatCard = ActionCardDef | TacticCardDef;
-type Tab = 'edit' | 'upgrade';
+type Tab = 'edit' | 'battle' | 'equipment' | 'talent';
 type Filter = 'all' | 'action' | 'tactic';
 
 const RARITY_LABEL: Record<string, string> = {
@@ -52,6 +60,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
   const [filter, setFilter]   = useState<Filter>('all');
   const [msg, setMsg]         = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [preview, setPreview] = useState<PreviewTarget | null>(null);
+  const [upgradeTarget, setUpgradeTarget] = useState<string | null>(null);
 
   const limits = useMemo(() => combatDeckLimits(), []);
   const deckCount = profile.combatDeck.length;
@@ -83,6 +92,17 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
     for (const id of profile.combatDeck) m.set(id, (m.get(id) ?? 0) + 1);
     return m;
   }, [profile.combatDeck]);
+
+  const allEq = useMemo(() => allEquipment(), []);
+  const allTal = useMemo(() => allTalents(), []);
+
+  const ownedEquipment = useMemo(() => {
+    return allEq.filter(e => (profile.combatCardInventory[e.id] ?? 0) > 0);
+  }, [allEq, profile.combatCardInventory]);
+
+  const ownedTalents = useMemo(() => {
+    return allTal.filter(t => (profile.perksInventory[t.id] ?? 0) > 0 || profile.perksOwned.includes(t.id));
+  }, [allTal, profile.perksInventory, profile.perksOwned]);
 
   // Inventory view — all owned cards with availability, filtered by type tab.
   const inventoryItems = useMemo(() => {
@@ -149,18 +169,30 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
           </div>
 
           {/* Tab toggle */}
-          <div className="flex gap-2 mb-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
             <button
               onClick={() => setTab('edit')}
-              className={`pb-btn pb-btn-${tab === 'edit' ? 'blue' : 'cream'} pb-btn-sm flex-1`}
+              className={`pb-btn pb-btn-${tab === 'edit' ? 'blue' : 'cream'} pb-btn-sm`}
             >
               ✏️ Edit Deck
             </button>
             <button
-              onClick={() => setTab('upgrade')}
-              className={`pb-btn pb-btn-${tab === 'upgrade' ? 'gold' : 'cream'} pb-btn-sm flex-1`}
+              onClick={() => setTab('battle')}
+              className={`pb-btn pb-btn-${tab === 'battle' ? 'gold' : 'cream'} pb-btn-sm`}
             >
-              ⬆ Upgrade Cards
+              ⚔ Battle Cards
+            </button>
+            <button
+              onClick={() => setTab('equipment')}
+              className={`pb-btn pb-btn-${tab === 'equipment' ? 'gold' : 'cream'} pb-btn-sm`}
+            >
+              🛡 Equipment
+            </button>
+            <button
+              onClick={() => setTab('talent')}
+              className={`pb-btn pb-btn-${tab === 'talent' ? 'gold' : 'cream'} pb-btn-sm`}
+            >
+              💎 Talents
             </button>
           </div>
 
@@ -263,23 +295,128 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
             </>
           )}
 
-          {/* ── UPGRADE TAB ── */}
-          {tab === 'upgrade' && (
+          {/* ── BATTLE CARDS TAB ── */}
+          {tab === 'battle' && (
             <div className="pb-panel px-4 py-3" style={{ color: '#3e2723' }}>
               <h2 className="fredoka text-lg flex items-center gap-2 mb-2">
-                <span className="text-xl">⬆</span>
-                Upgrade Cards
+                <span className="text-xl">⚔</span>
+                Battle Cards
               </h2>
               <p className="text-xs opacity-80 mb-3">
-                Sacrifice duplicate cards and pay coins to raise their power tier.
+                Manage and upgrade your battle cards. Sacrifice duplicate cards to raise their power tier.
               </p>
               {inventoryItems.length === 0 ? (
                 <div className="text-xs italic opacity-70 text-center py-4">No cards in inventory yet.</div>
               ) : (
-                <div className="space-y-2">
-                  {inventoryItems.map(({ card, owned }) => (
-                    <UpgradeRow key={card.id} card={card} owned={owned} />
-                  ))}
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {inventoryItems.map(({ card, owned }) => {
+                    const lv = profile.combatCardTiers[card.id] ?? 1;
+                    return (
+                      <div key={card.id} className="relative flex flex-col items-center">
+                        <CombatCard card={card} size="sm" />
+                        <div className="absolute top-1 left-1 bg-black bg-opacity-70 text-white text-[10px] px-1.5 rounded-full border border-gray-600">
+                          x{owned}
+                        </div>
+                        <div
+                          className="absolute top-1 right-1 text-[10px] px-1.5 rounded-full"
+                          style={{
+                            background: 'rgba(0,0,0,0.8)',
+                            border: '1px solid var(--sb-gold)',
+                            color: 'var(--sb-gold-light)',
+                            fontWeight: 800,
+                          }}
+                        >
+                          Lv {lv}
+                        </div>
+                        <button
+                          className="mt-2 sb-btn sb-btn-gold text-[10px] w-full"
+                          style={{ padding: '4px 0' }}
+                          onClick={() => setUpgradeTarget(card.id)}
+                        >
+                          {lv >= MAX_CARD_LEVEL ? 'MAX' : 'UPGRADE'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── EQUIPMENT TAB ── */}
+          {tab === 'equipment' && (
+            <div className="pb-panel px-4 py-3" style={{ color: '#3e2723' }}>
+              <h2 className="fredoka text-lg flex items-center gap-2 mb-2">
+                <span className="text-xl">🛡</span>
+                Equipment Vault
+              </h2>
+              <p className="text-xs opacity-80 mb-3">
+                Review your collected gear. Equipment provides passive stat bonuses in combat.
+              </p>
+              {ownedEquipment.length === 0 ? (
+                <div className="text-xs italic opacity-70 text-center py-4">No equipment found. Buy some from the shop!</div>
+              ) : (
+                <div className="flex flex-wrap gap-2 sm:gap-2.5 justify-start">
+                  {ownedEquipment.map(eq => {
+                    const lv = profile.combatCardTiers[eq.id] ?? 1;
+                    return (
+                      <div key={eq.id} className="relative flex flex-col items-center">
+                        <EquipmentCard equipment={eq} />
+                        <div className="absolute top-1 left-1 bg-black bg-opacity-70 text-white text-[10px] px-1.5 rounded-full border border-gray-600">
+                          x{profile.combatCardInventory[eq.id] ?? 0}
+                        </div>
+                        <div
+                          className="absolute top-1 right-1 text-[10px] px-1.5 rounded-full"
+                          style={{
+                            background: 'rgba(0,0,0,0.8)',
+                            border: '1px solid var(--sb-gold)',
+                            color: 'var(--sb-gold-light)',
+                            fontWeight: 800,
+                          }}
+                        >
+                          Lv {lv}
+                        </div>
+                        <button
+                          className="mt-2 sb-btn sb-btn-gold text-[10px]"
+                          style={{ padding: '4px 10px' }}
+                          onClick={() => setUpgradeTarget(eq.id)}
+                        >
+                          {lv >= MAX_CARD_LEVEL ? 'MAX' : 'UPGRADE'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── TALENTS TAB ── */}
+          {tab === 'talent' && (
+            <div className="pb-panel px-4 py-3" style={{ color: '#3e2723' }}>
+              <h2 className="fredoka text-lg flex items-center gap-2 mb-2">
+                <span className="text-xl">💎</span>
+                Talents
+              </h2>
+              <p className="text-xs opacity-80 mb-3">
+                Your collected talents. Most talents are consumable and burn one charge per run.
+              </p>
+              {ownedTalents.length === 0 ? (
+                <div className="text-xs italic opacity-70 text-center py-4">No talents found.</div>
+              ) : (
+                <div className="flex flex-wrap gap-2 sm:gap-2.5 justify-start">
+                  {ownedTalents.map(tal => {
+                    const owned = profile.perksInventory[tal.id] ?? 0;
+                    const isStarter = profile.perksOwned.includes(tal.id) && owned === 0;
+                    return (
+                      <div key={tal.id} className="relative">
+                        <TalentCard talent={tal} />
+                        <div className="absolute top-1 left-1 bg-black bg-opacity-70 text-white text-[10px] px-1.5 rounded-full border border-gray-600">
+                          {isStarter ? '∞' : `x${owned}`}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -289,6 +426,21 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
       </div>
 
       {/* Card preview popover — fixed, above all panels */}
+      {/* Upgrade Modal */}
+      {upgradeTarget && (
+        <UpgradeModal
+          cardId={upgradeTarget}
+          profile={profile}
+          onClose={() => setUpgradeTarget(null)}
+          onUpgrade={(next) => {
+            onProfileChange(next);
+            setMsg({ kind: 'ok', text: 'Card upgraded successfully!' });
+          }}
+          onMsg={(text, kind) => setMsg({ kind, text })}
+        />
+      )}
+
+      {/* Popover Preview */}
       {preview && (
         <CardPreviewPopover
           card={preview.card}
@@ -524,51 +676,6 @@ function InventoryCard({ card, available, inDeck, deckFull, onEquip, onPreview, 
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Upgrade row — shows card + owned count. Upgrade engine hooks in here later.
-// ─────────────────────────────────────────────────────────────────────────────
-
-function UpgradeRow({ card, owned }: { card: CombatCard; owned: number }) {
-  const accent = RARITY_COLOR[card.rarity] ?? RARITY_COLOR.common;
-  const act    = isAction(card);
-
-  return (
-    <div
-      className="flex items-center gap-3 p-3 rounded-lg"
-      style={{
-        background: 'rgba(15,10,7,0.45)',
-        border: `1px solid ${accent}40`,
-      }}
-    >
-      <div style={{ flexShrink: 0 }}>
-        <CombatCard card={card} size="sm" />
-      </div>
-      <div className="flex-1 min-w-0" style={{ color: '#e2e8f0' }}>
-        <div className="text-sm font-extrabold flex items-center gap-1.5 truncate" style={{ color: '#f1f5f9' }}>
-          {card.name}
-          <span
-            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full"
-            style={{ background: accent, color: '#0f172a', letterSpacing: '0.06em' }}
-          >
-            {(RARITY_LABEL[card.rarity] ?? card.rarity).toUpperCase()}
-          </span>
-        </div>
-        <div className="text-[11px] opacity-80 mt-1">
-          {act
-            ? `⚔ ${(card as ActionCardDef).damage} · ⏳ ${(card as ActionCardDef).charge} · ◆ ${(card as ActionCardDef).cost}`
-            : `◆ ${(card as TacticCardDef).cost} · ${(card as TacticCardDef).description}`}
-        </div>
-        <div className="text-[10px] opacity-55 mt-1">Owned: {owned}</div>
-      </div>
-      <span
-        className="text-[11px] font-extrabold px-3 py-1 rounded-full flex-shrink-0"
-        style={{ background: 'rgba(255,255,255,0.06)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)' }}
-      >
-        Soon
-      </span>
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Filter chip — small pill button for the inventory type tabs.
@@ -783,6 +890,115 @@ function PreviewStat({ glyph, value, color }: { glyph: string; value: string | n
     }}>
       <span style={{ opacity: 0.85 }}>{glyph}</span>
       <span>{value}</span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upgrade Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+function UpgradeModal({
+  cardId,
+  profile,
+  onClose,
+  onUpgrade,
+  onMsg,
+}: {
+  cardId: string;
+  profile: Profile;
+  onClose: () => void;
+  onUpgrade: (next: Profile) => void;
+  onMsg: (msg: string, kind: 'err' | 'ok') => void;
+}) {
+  // Resolve the card across all upgradable surfaces (action / tactic / equipment).
+  const action = allActions().find(c => c.id === cardId);
+  const tactic = allTactics().find(c => c.id === cardId);
+  const equipment = allEquipment().find(e => e.id === cardId);
+  const displayCard: ActionCardDef | TacticCardDef | EquipmentDef | undefined = action ?? tactic ?? equipment;
+  if (!displayCard) return null;
+
+  const preview = combatCardUpgradePreview(profile, cardId);
+  if (!preview) return null;
+
+  const { level, ownedCopies, copies, gold, isMax, nextLevel } = preview;
+  const canAffordCopies = ownedCopies >= copies;
+  const canAffordGold = profile.bankCoins >= gold;
+  const canUpgrade = !isMax && canAffordCopies && canAffordGold;
+
+  function handleUpgrade() {
+    if (!canUpgrade) return;
+    const res = upgradeCombatCard(profile, cardId);
+    if (res.ok) {
+      onUpgrade(res.profile);
+    } else {
+      onMsg(res.reason, 'err');
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl relative" style={{ background: '#111827', border: '2px solid var(--sb-gold)' }}>
+
+        <div className="px-4 py-3 border-b flex justify-between items-center" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)' }}>
+          <div className="sb-display text-lg" style={{ color: 'var(--sb-gold-light)' }}>
+            Upgrade {equipment ? 'Equipment' : 'Card'}
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white pb-1 font-bold text-xl">×</button>
+        </div>
+
+        <div className="p-5 flex flex-col items-center gap-4">
+          <div className="flex gap-4 items-center">
+            {action || tactic ? (
+              <CombatCard card={displayCard as ActionCardDef | TacticCardDef} size="sm" />
+            ) : (
+              <EquipmentCard equipment={displayCard as EquipmentDef} size="sm" />
+            )}
+            <div className="flex flex-col gap-1">
+              <div className="font-extrabold text-white text-lg">{displayCard.name}</div>
+              <div className="sb-display" style={{ color: 'var(--sb-parchment)' }}>
+                Lv. {level} / {MAX_CARD_LEVEL}{isMax ? ' (MAX)' : ` → ${nextLevel}`}
+              </div>
+              {!isMax && (
+                <div className="text-xs opacity-80" style={{ color: '#94a3b8' }}>
+                  Each level boosts the base stats of every copy of this {equipment ? 'item' : 'card'}.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {!isMax ? (
+            <div className="w-full rounded-lg p-3 flex flex-col gap-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="flex justify-between items-center">
+                <span className="text-sm" style={{ color: 'var(--sb-parchment)' }}>Required Copies</span>
+                <span className={`text-sm font-bold ${canAffordCopies ? 'text-green-400' : 'text-red-400'}`}>
+                  {ownedCopies} / {copies}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm" style={{ color: 'var(--sb-parchment)' }}>Upgrade Cost</span>
+                <span className={`text-sm font-bold flex items-center gap-1 ${canAffordGold ? 'text-yellow-400' : 'text-red-400'}`}>
+                  <span>🪙</span> {gold.toLocaleString()} (You have {profile.bankCoins.toLocaleString()})
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-sm italic" style={{ color: 'var(--sb-gold)' }}>
+              This {equipment ? 'item' : 'card'} has reached its maximum potential.
+            </div>
+          )}
+
+          {!isMax && (
+            <button
+              className={`w-full py-3 rounded-lg font-extrabold tracking-widest ${canUpgrade ? 'bg-gradient-to-r from-yellow-600 to-amber-500 text-black shadow-lg shadow-yellow-600/20' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+              onClick={handleUpgrade}
+              disabled={!canUpgrade}
+            >
+              UPGRADE NOW
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

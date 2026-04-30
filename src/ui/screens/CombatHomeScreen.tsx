@@ -17,6 +17,7 @@ import {
 import { EnemyCard } from '@ui/components/EnemyCard';
 import { TalentCard } from '@ui/components/TalentCard';
 import { EquipmentCard } from '@ui/components/EquipmentCard';
+import type { Profile } from '@storage/index';
 
 interface Props {
   onBegin: (input: {
@@ -28,6 +29,7 @@ interface Props {
   onBack: () => void;
   currentStage?: number;
   ownedUpgradeIds?: ReadonlyArray<string>;
+  profile: Profile;
 }
 
 const BIOME_ACCENTS: Record<string, { bg: string; border: string; glow: string; label: string }> = {
@@ -49,7 +51,7 @@ function slotLabel(slot: EquipmentSlot): string {
   }
 }
 
-export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, ownedUpgradeIds = [] }: Props) {
+export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, ownedUpgradeIds = [], profile }: Props) {
   const [selectedStage, setSelectedStage] = useState<number>(currentStage);
   const [equippedTalents, setEquippedTalents] = useState<(string | null)[]>([]);
   const [equippedGear, setEquippedGear] = useState<EquippedSet>(emptyEquippedSet());
@@ -66,16 +68,6 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
   const stage: CombatStageDef = stages.find(s => s.number === selectedStage) ?? stages[0];
   const stageAccent = BIOME_ACCENTS[stage.biome] ?? BIOME_ACCENTS.forest;
   const equippedSlots = (Object.keys(equippedGear) as EquipmentSlot[]).filter(s => !!equippedGear[s]);
-
-  function toggleTalent(id: string) {
-    setEquippedTalents(prev => {
-      if (prev.includes(id)) return prev.filter(x => x !== id);
-      if (prev.length >= talentSlotCount) {
-        return [...prev.slice(prev.length - talentSlotCount + 1), id];
-      }
-      return [...prev, id];
-    });
-  }
 
   function setSlot(slot: EquipmentSlot, equipmentId: string | null) {
     setEquippedGear(prev => {
@@ -238,7 +230,7 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
         <EquipmentPickerModal
           slot={pickerSlot}
           currentlyEquipped={equippedGear[pickerSlot] ?? null}
-          availableEquipment={allEq.filter(e => e.slot === pickerSlot)}
+          availableEquipment={allEq.filter(e => e.slot === pickerSlot && (profile.combatCardInventory[e.id] ?? 0) > 0)}
           onSelect={(equipDef) => {
             setSlot(pickerSlot, equipDef.id);
             setPickerSlot(null);
@@ -256,7 +248,7 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
         <TalentPickerModal
           slotNumber={talentPickerSlot}
           currentlyEquipped={equippedTalents[talentPickerSlot] ?? null}
-          availableTalents={talents}
+          availableTalents={talents.filter(t => (profile.perksInventory[t.id] ?? 0) > 0 || profile.perksOwned.includes(t.id))}
           equippedTalentIds={equippedTalents.filter((id): id is string => id !== null && id !== undefined)}
           maxSlots={talentSlotCount}
           onSelect={(talentId) => {
@@ -466,7 +458,7 @@ function StageStrip({
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-function EmptyEquipmentSlotCard({ slot }: { slot: EquipmentSlot }) {
+function EmptyEquipmentSlotCard({ slot: _ }: { slot: EquipmentSlot }) {
   return (
     <div
       style={{
@@ -488,7 +480,7 @@ function EmptyEquipmentSlotCard({ slot }: { slot: EquipmentSlot }) {
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-function TalentSlotCard({ talent, slotNumber, selected }: { talent: Perk; slotNumber: number; selected: boolean }) {
+function TalentSlotCard({ talent, slotNumber: _, selected }: { talent: Perk; slotNumber: number; selected: boolean }) {
   return (
     <div
       style={{
@@ -512,7 +504,7 @@ function TalentSlotCard({ talent, slotNumber, selected }: { talent: Perk; slotNu
   );
 }
 
-function EmptyTalentSlotCard({ slotNumber }: { slotNumber: number }) {
+function EmptyTalentSlotCard({ slotNumber: _ }: { slotNumber: number }) {
   return (
     <div
       style={{
@@ -608,7 +600,7 @@ function TalentPickerModal({
   currentlyEquipped,
   availableTalents,
   equippedTalentIds,
-  maxSlots,
+  maxSlots: _,
   onSelect,
   onUnequip,
   onClose,

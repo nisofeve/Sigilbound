@@ -14,7 +14,8 @@
 //   │ [HOME] [REPLAY] [▶ NEXT]           │  ← sticky CTA dock
 //   └────────────────────────────────────┘
 
-import type { BattleRunner, CombatStageDef } from '@engine/index';
+import type { BattleRunner, CombatStageDef, ItemDrop } from '@engine/index';
+import { allActions, allTactics, allEquipment, allTalents } from '@engine/index';
 import type { CombatClearOutcome } from '@storage/index';
 
 interface Props {
@@ -103,6 +104,11 @@ export default function CombatResultScreen({ outcome, stage, runner, clearOutcom
             rewards={clearOutcome.rewardsGranted}
             firstClear={isFirstClearChest}
           />
+        )}
+
+        {/* Item drops — only on first-clear */}
+        {clearOutcome && clearOutcome.itemDrops && clearOutcome.itemDrops.length > 0 && (
+          <ItemDropsPanel drops={clearOutcome.itemDrops} />
         )}
 
         {/* Damage breakdown */}
@@ -274,6 +280,89 @@ function RewardChest({ rewards, firstClear }: { rewards: ReadonlyArray<{ type: s
           Replay payout — first-clear chest already claimed at this star tier.
         </div>
       )}
+    </div>
+  );
+}
+
+function ItemDropsPanel({ drops }: { drops: ReadonlyArray<ItemDrop> }) {
+  const actionsMap = new Map(allActions().map(c => [c.id, c]));
+  const tacticsMap = new Map(allTactics().map(c => [c.id, c]));
+  const equipMap   = new Map(allEquipment().map(e => [e.id, e]));
+  const talentMap  = new Map(allTalents().map(t => [t.id, t]));
+
+  const rarityColor: Record<string, string> = {
+    common: '#94a3b8', uncommon: '#4ade80', rare: '#60a5fa',
+    epic: '#c084fc', legendary: '#fbbf24', mythic: '#ec4899',
+  };
+
+  return (
+    <div
+      className="sb-parchment p-3 mb-3 sb-fade-up"
+      style={{
+        boxShadow: '0 0 20px rgba(251,191,36,0.35), inset 0 0 0 1.5px rgba(255,230,160,0.5)',
+      }}
+    >
+      <div className="sb-display text-[10px] tracking-[0.3em] opacity-80 mb-3" style={{ color: 'var(--sb-gold-dark)' }}>
+        🎁 ITEMS FOUND
+      </div>
+      <div className="flex flex-col gap-2">
+        {drops.map((drop, i) => {
+          let name = '?', emoji = '📦', rarity = 'common', subtitle = '';
+          if (drop.kind === 'combat_card') {
+            const card = actionsMap.get(drop.cardId) ?? tacticsMap.get(drop.cardId);
+            name    = card?.name ?? drop.cardId;
+            emoji   = card && 'damageType' in card ? '⚔' : '📜';
+            rarity  = card?.rarity ?? 'common';
+            subtitle = `×${drop.count} ${drop.count > 1 ? 'copies' : 'copy'}`;
+          } else if (drop.kind === 'equipment') {
+            const eq = equipMap.get(drop.equipmentId);
+            name    = eq?.name ?? drop.equipmentId;
+            emoji   = '🛡';
+            rarity  = eq?.rarity ?? 'common';
+            subtitle = 'Equipment';
+          } else if (drop.kind === 'talent') {
+            const t = talentMap.get(drop.talentId);
+            name    = t?.name ?? drop.talentId;
+            emoji   = '💎';
+            rarity  = t?.rarity ?? 'common';
+            subtitle = `×${drop.count} talent charge${drop.count > 1 ? 's' : ''}`;
+          }
+          const accent = rarityColor[rarity] ?? '#94a3b8';
+          return (
+            <div
+              key={i}
+              className="flex items-center gap-3 rounded px-3 py-2"
+              style={{
+                background: `linear-gradient(135deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.2) 100%)`,
+                border: `1.5px solid ${accent}40`,
+                boxShadow: `0 0 8px ${accent}18`,
+              }}
+            >
+              <div style={{ fontSize: 28, lineHeight: 1, filter: `drop-shadow(0 0 6px ${accent}88)` }}>
+                {emoji}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="font-extrabold truncate" style={{ color: accent, fontSize: '0.82rem' }}>
+                  {name}
+                </div>
+                <div className="sb-display text-[9px] tracking-[0.15em] opacity-70" style={{ color: '#3d2810' }}>
+                  {subtitle.toUpperCase()}
+                </div>
+              </div>
+              <div
+                className="sb-display text-[8px] tracking-[0.15em] px-2 py-0.5 rounded"
+                style={{
+                  background: accent + '22',
+                  border: `1px solid ${accent}60`,
+                  color: accent,
+                }}
+              >
+                {rarity.toUpperCase()}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

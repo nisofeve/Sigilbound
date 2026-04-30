@@ -37,8 +37,9 @@ import {
   type CombatStageDef,
   type CombatStageReward,
   sumUpgradeEffect,
+  rollStageDrops,
+  type ItemDrop,
 } from '@engine/index';
-import { adjustInventory } from './inventory';
 import { addPerkCharges, isStarterPerk } from './perks';
 import {
   STARTER_DECK_IDS,
@@ -101,8 +102,11 @@ const empty: Profile = {
   // saves migrate forward without an explicit version bump.
   combatCardInventory: {},
   combatDeck: [],
+  combatCardTiers: {},
   combatShopISO: null,
   combatShopBoughtIds: [],
+  combatShopBoughtCounts: {},
+  combatShopRerolls: 0,
 };
 
 // Default starter combat collection. Loaded on first run + topped up by
@@ -160,10 +164,13 @@ function withDefaults(partial: Partial<Profile>): Profile {
     stageStars: { ...empty.stageStars, ...partial.stageStars },
     stageRewardsClaimed: { ...empty.stageRewardsClaimed, ...partial.stageRewardsClaimed },
     // Phase 7 — combat collection migration.
-    combatCardInventory: { ...empty.combatCardInventory, ...partial.combatCardInventory },
+    combatCardInventory: partial.combatCardInventory ?? empty.combatCardInventory,
+    combatCardTiers: partial.combatCardTiers ?? empty.combatCardTiers,
     combatDeck: partial.combatDeck ?? empty.combatDeck,
     combatShopISO: partial.combatShopISO ?? empty.combatShopISO,
     combatShopBoughtIds: partial.combatShopBoughtIds ?? empty.combatShopBoughtIds,
+    combatShopBoughtCounts: partial.combatShopBoughtCounts ?? empty.combatShopBoughtCounts,
+    combatShopRerolls: partial.combatShopRerolls ?? empty.combatShopRerolls,
   };
   p = seedCombatStarter(p);
   // Ensure starter perks always present for new accounts.
@@ -458,6 +465,7 @@ export interface CombatClearOutcome {
   stars: 0 | 1 | 2 | 3;
   firstClearAtTier: 0 | 1 | 2 | 3;        // 0 = no new first-clear chest opened
   rewardsGranted: CombatStageReward[];
+  itemDrops: ItemDrop[];                   // equipment / talent / card drops (first-clear only)
   newCurrentStage: number;                 // stage after this clear (unchanged on defeat)
 }
 
@@ -482,7 +490,7 @@ export function applyCombatClearToProfile(
   if (stars === 0) {
     return {
       profile,
-      outcome: { stars: 0, firstClearAtTier: 0, rewardsGranted: [], newCurrentStage: profile.currentStage },
+      outcome: { stars: 0, firstClearAtTier: 0, rewardsGranted: [], itemDrops: [], newCurrentStage: profile.currentStage },
     };
   }
 
@@ -523,8 +531,7 @@ export function applyCombatClearToProfile(
   const saleMult = 1 + sumUpgradeEffect(profile.upgradesOwned, 'global_sale_mult');
   const totalCoinMult = coinMult * saleMult;
 
-  // Apply reward currencies. Mirrors the farming-side applyStageRewards
-  // behaviour for coins/xp/gems/shards.
+  // Apply reward currencies.
   for (const r of rewardsGranted) {
     switch (r.type) {
       case 'coins': {
@@ -545,10 +552,34 @@ export function applyCombatClearToProfile(
     }
   }
 
+  // Roll and apply item drops (first-clear only).
+  const itemDrops = rollStageDrops(stage, stars, firstClearAtTier > 0);
+  for (const drop of itemDrops) {
+    if (drop.kind === 'combat_card') {
+      next.combatCardInventory = {
+        ...next.combatCardInventory,
+        [drop.cardId]: (next.combatCardInventory[drop.cardId] ?? 0) + drop.count,
+      };
+    } else if (drop.kind === 'equipment') {
+      next.combatCardInventory = {
+        ...next.combatCardInventory,
+        [drop.equipmentId]: (next.combatCardInventory[drop.equipmentId] ?? 0) + 1,
+      };
+    } else if (drop.kind === 'talent') {
+      next.perksInventory = {
+        ...next.perksInventory,
+        [drop.talentId]: (next.perksInventory[drop.talentId] ?? 0) + drop.count,
+      };
+      if (!next.perksOwned.includes(drop.talentId)) {
+        next.perksOwned = [...next.perksOwned, drop.talentId];
+      }
+    }
+  }
+
   saveProfile(next);
   return {
     profile: next,
-    outcome: { stars, firstClearAtTier, rewardsGranted, newCurrentStage: next.currentStage },
+    outcome: { stars, firstClearAtTier, rewardsGranted, itemDrops, newCurrentStage: next.currentStage },
   };
 }
 
@@ -572,8 +603,15 @@ export function claimLevelReward(profile: Profile, level: number): { profile: Pr
     else if (r.type === 'gems')   next = { ...next, gems: next.gems + r.value };
     else if (r.type === 'shards') next = { ...next, perkShards: next.perkShards + r.value };
     else if (r.type === 'card') {
-      const inv = adjustInventory(next.cardInventory, r.cardId, 'F', r.count);
-      if (inv) next = { ...next, cardInventory: inv };
+      // Sigilbound: card rewards land in the combat card inventory. Legacy
+      // grade-F seed inventory is no longer fed by leveling.
+      next = {
+        ...next,
+        combatCardInventory: {
+          ...next.combatCardInventory,
+          [r.cardId]: (next.combatCardInventory[r.cardId] ?? 0) + r.count,
+        },
+      };
     } else if (r.type === 'perk') {
       next = addPerkCharges(next, r.perkId, r.count);
     }

@@ -5,53 +5,53 @@ import { getAction, getTactic } from './actionCards';
 describe('combat shop pricing', () => {
   it('common Action sells for ~150g/10c', () => {
     const def = getAction('act_001')!; // Strike, common
-    const p = priceFor(def);
+    const p = priceFor(def, 'action');
     expect(p.gold).toBe(150);
     expect(p.crystals).toBe(10);
   });
 
   it('rare Action sells for 800g/60c', () => {
     const def = getAction('act_005')!; // Blade Dance, rare
-    const p = priceFor(def);
+    const p = priceFor(def, 'action');
     expect(p.gold).toBe(800);
     expect(p.crystals).toBe(60);
   });
 
   it('legendary Action sells for 5000g/400c', () => {
     const def = getAction('act_023')!; // Sigil of Ruin, legendary
-    const p = priceFor(def);
+    const p = priceFor(def, 'action');
     expect(p.gold).toBe(5000);
     expect(p.crystals).toBe(400);
   });
 
   it('Tactics sell for 70% of Action price', () => {
     const block = getTactic('tac_001')!; // common Block
-    expect(priceFor(block).gold).toBe(Math.round(150 * 0.7));
-    expect(priceFor(block).crystals).toBe(Math.round(10 * 0.7));
+    expect(priceFor(block, 'tactic').gold).toBe(Math.round(150 * 0.7));
+    expect(priceFor(block, 'tactic').crystals).toBe(Math.round(10 * 0.7));
   });
 });
 
 describe('rollCombatShop determinism', () => {
-  it('same dayKey + reroll count yields the same 6 cards', () => {
+  it('same dayKey + reroll count yields the same cards', () => {
     const a = rollCombatShop('2026-04-28', 0);
     const b = rollCombatShop('2026-04-28', 0);
-    expect(a.map(e => e.cardId)).toEqual(b.map(e => e.cardId));
+    expect(a.cards.map(e => e.cardId)).toEqual(b.cards.map(e => e.cardId));
   });
 
   it('different dayKeys produce different rolls', () => {
-    const day1 = rollCombatShop('2026-04-28', 0).map(e => e.cardId).join(',');
-    const day2 = rollCombatShop('2026-04-29', 0).map(e => e.cardId).join(',');
+    const day1 = rollCombatShop('2026-04-28', 0).cards.map(e => e.cardId).join(',');
+    const day2 = rollCombatShop('2026-04-29', 0).cards.map(e => e.cardId).join(',');
     expect(day1).not.toBe(day2);
   });
 
   it('reroll bumps produce different rolls', () => {
-    const r0 = rollCombatShop('2026-04-28', 0).map(e => e.cardId).join(',');
-    const r1 = rollCombatShop('2026-04-28', 1).map(e => e.cardId).join(',');
+    const r0 = rollCombatShop('2026-04-28', 0).cards.map(e => e.cardId).join(',');
+    const r1 = rollCombatShop('2026-04-28', 1).cards.map(e => e.cardId).join(',');
     expect(r0).not.toBe(r1);
   });
 
   it('every entry has a valid def + nonzero price', () => {
-    const entries = rollCombatShop('2026-04-28', 0);
+    const entries = rollCombatShop('2026-04-28', 0).cards;
     expect(entries.length).toBe(6);
     for (const e of entries) {
       expect(e.def).toBeDefined();
@@ -64,7 +64,7 @@ describe('rollCombatShop determinism', () => {
   it('rolls a mix of Action and Tactic across 50 days', () => {
     let actionCount = 0, tacticCount = 0;
     for (let i = 0; i < 50; i++) {
-      const entries = rollCombatShop(`2026-day-${i}`, 0);
+      const entries = rollCombatShop(`2026-day-${i}`, 0).cards;
       for (const e of entries) {
         if (e.kind === 'action') actionCount++;
         else tacticCount++;

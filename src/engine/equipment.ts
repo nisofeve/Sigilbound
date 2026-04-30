@@ -18,6 +18,7 @@
 import type { CardId, Rarity } from './types';
 import type { DamageType, Resistances } from './damage';
 import type { StatModifier } from './player';
+import { levelStatMultiplier } from './cardLevels';
 
 // === Slots ===
 
@@ -114,7 +115,7 @@ export interface CompiledEquipment {
   setBonuses: Array<{ setId: string; tier: 2 | 4; modifier: StatModifier; description: string }>;
 }
 
-export function compileEquipment(set: EquippedSet): CompiledEquipment {
+export function compileEquipment(set: EquippedSet, levels?: Record<string, number>): CompiledEquipment {
   const out: CompiledEquipment = {
     modifiers: [],
     deckAdditions: [],
@@ -128,11 +129,15 @@ export function compileEquipment(set: EquippedSet): CompiledEquipment {
     const def = set[slot];
     if (!def) continue;
 
-    // Apply upgrade-tier bonus to numeric stats. Each tier multiplies stat
-    // values by 1.15 (Phase 4 may tune this; the GDD says "higher numeric
-    // stats but same special").
-    const tier = def.upgradeTier ?? 0;
-    const tierMult = 1 + tier * 0.15;
+    // Numeric stat scaling. If a level map is provided, use the universal
+    // 1..10 ladder (level 1 = 0.6× authored, level 10 = 1.275×). Otherwise
+    // fall back to the legacy `def.upgradeTier` (0..5) at +15% per tier
+    // — preserves the parallel craft/upgrade/salvage test surface that
+    // doesn't use the universal level system.
+    const lookupLevel = levels?.[def.id];
+    const tierMult = lookupLevel !== undefined
+      ? levelStatMultiplier(lookupLevel)
+      : 1 + (def.upgradeTier ?? 0) * 0.15;
     const mod: StatModifier = {};
     if (def.stats.maxHp) mod.maxHp = Math.round(def.stats.maxHp * tierMult);
     if (def.stats.atk) mod.atk = Math.round(def.stats.atk * tierMult);

@@ -7,7 +7,8 @@ import { useState } from 'react';
 import {
   MAX_LEVEL,
   allAchievements,
-  getCard,
+  getAction,
+  getTactic,
   getPerk,
   levelProgress,
   rewardsForLevel,
@@ -601,8 +602,10 @@ function RewardChip({ reward, muted }: { reward: LevelReward; muted?: boolean })
     case 'shards':
       return <span style={baseStyle}>✨ {reward.value}</span>;
     case 'card': {
-      const card = (() => { try { return getCard(reward.cardId); } catch { return null; } })();
-      const emoji = card?.emoji ?? '🃏';
+      // Look up combat-card emoji (action or tactic). Falls back to a
+      // generic card glyph if the id is unknown / data was renamed.
+      const def = getAction(reward.cardId) ?? getTactic(reward.cardId);
+      const emoji = def?.emoji ?? '🃏';
       return <span style={baseStyle}>{emoji} ×{reward.count}</span>;
     }
     case 'perk': {
