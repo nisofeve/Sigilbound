@@ -36,5 +36,6 @@ export * from './bestiary';
 export * from './talents';
 export * from './stageDef';
 export * from './battleFactory';
+export * from './upgradeBuffs';
 // Phase 7 — combat shop.
 export * from './combatShop';

@@ -16,7 +16,8 @@
 //   │      [ Stages ]   [ Free Skirmish] │
 //   │                                    │
 //   ├────────────────────────────────────┤
-//   │  ⚔  🃏  🏰  🛒  🪪                │  ← bottom dock (5 icons)
+//   │  ⚔  🃏  📖  🏰  🛒                │  ← bottom dock (5 icons)
+//   The avatar chip in the top-left routes to the Profile screen.
 //   └────────────────────────────────────┘
 //
 // All taps in the bottom 60% of the viewport — the natural thumb zone
@@ -32,10 +33,11 @@ interface Props {
   onSettings: () => void;
   onDeck: () => void;
   onShop: () => void;
+  onBestiary: () => void;
 }
 
 export default function SigilboundHubScreen({
-  profile, onCombat, onStronghold, onProfile, onSettings, onDeck, onShop,
+  profile, onCombat, onStronghold, onProfile, onSettings, onDeck, onShop, onBestiary,
 }: Props) {
   const stage = profile.currentStage ?? 1;
   const stageStars = profile.stageStars[stage] ?? 0;
@@ -181,10 +183,9 @@ export default function SigilboundHubScreen({
       >
         <DockButton onClick={onCombat}     icon="⚔"  label="Combat"    highlight />
         <DockButton onClick={onDeck}       icon="🃏" label="Deck" />
-        <DockButton onClick={onStronghold} icon="🏰" label="Stronghold"
-          badge={profile.bankCoins > 0 ? profile.bankCoins : undefined} />
+        <DockButton onClick={onBestiary}   icon="📖" label="Bestiary" />
+        <DockButton onClick={onStronghold} icon="🏰" label="Stronghold" />
         <DockButton onClick={onShop}       icon="🛒" label="Shop" />
-        <DockButton onClick={onProfile}    icon="🪪" label="Profile" />
       </nav>
 
       {/* version mark */}
