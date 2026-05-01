@@ -3,6 +3,8 @@ import {
   allStages,
   allTalents,
   allEquipment,
+  allActions,
+  allTactics,
   emptyEquippedSet,
   equip,
   maxPerkSlots,
@@ -51,6 +53,77 @@ function slotLabel(slot: EquipmentSlot): string {
   }
 }
 
+function slotEmoji(slot: EquipmentSlot): string {
+  switch (slot) {
+    case 'weapon':  return '⚔';
+    case 'offhand': return '🛡';
+    case 'helm':    return '⛑';
+    case 'armor':   return '🥋';
+    case 'ring':    return '💍';
+    case 'amulet':  return '📿';
+  }
+}
+
+function SectionHeader({ title, count }: { title: string; count: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="sb-display" style={{ fontSize: 9, color: 'var(--sb-gold-light)', letterSpacing: '0.25em' }}>
+        {title}
+      </div>
+      <div className="sb-mono" style={{ fontSize: 9, color: 'var(--sb-gold)', opacity: 0.85 }}>
+        {count}
+      </div>
+    </div>
+  );
+}
+
+function SlotChip({
+  icon, label, filled, placeholder, accent, onClick,
+}: {
+  icon: string;
+  label?: string;
+  filled: boolean;
+  placeholder?: boolean;
+  accent: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center justify-center"
+      style={{
+        flex: 1, minWidth: 0, maxWidth: 64,
+        aspectRatio: '1',
+        padding: 2,
+        background: filled
+          ? 'linear-gradient(180deg, #2c1810 0%, var(--sb-leather-dark) 100%)'
+          : 'rgba(0,0,0,0.25)',
+        border: filled
+          ? `2px solid ${accent}`
+          : '1.5px dashed rgba(255,235,180,0.18)',
+        borderRadius: 6,
+        boxShadow: filled
+          ? `inset 0 1px 0 rgba(255,235,180,0.18), 0 0 8px ${accent}33, var(--sb-shadow-sm)`
+          : 'inset 0 1px 0 rgba(0,0,0,0.4)',
+        cursor: 'pointer',
+        transition: 'all 150ms ease',
+      }}
+      title={label}
+    >
+      <span
+        style={{
+          fontSize: 22,
+          lineHeight: 1,
+          opacity: placeholder ? 0.35 : 1,
+          filter: filled ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' : undefined,
+        }}
+      >
+        {icon}
+      </span>
+    </button>
+  );
+}
+
 export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, ownedUpgradeIds = [], profile }: Props) {
   const [selectedStage, setSelectedStage] = useState<number>(currentStage);
   const [equippedTalents, setEquippedTalents] = useState<(string | null)[]>([]);
@@ -92,31 +165,33 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
     });
   }
 
-  return (
-    <div className="sb-bg sb-bg-stone relative h-full w-full flex flex-col safe-top safe-bottom">
+  const equippedTalentCount = equippedTalents.filter((id): id is string => id !== null).length;
 
-      {/* Top bar */}
-      <div className="relative z-20 flex items-center justify-between gap-2 px-3 pt-3 pb-2">
-        <button onClick={onBack} className="sb-chip" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '11px' }}>
+  return (
+    <div className="sb-bg sb-bg-stone relative h-full w-full flex flex-col safe-top safe-bottom overflow-hidden">
+
+      {/* ── TOP BAR ── */}
+      <div className="relative z-20 flex items-center justify-between gap-2 px-3 pt-3 pb-1.5 flex-shrink-0">
+        <button onClick={onBack} className="sb-chip" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '11px', minHeight: 32 }}>
           ← HOME
         </button>
         <div className="sb-display sb-banner-iron px-4 py-1" style={{ fontSize: '12px', letterSpacing: '0.3em' }}>
           ⚔ COMBAT
         </div>
-        <div style={{ width: 60 }} />
+        <div style={{ width: 64 }} />
       </div>
 
-      {/* Scrollable middle content */}
-      <div className="relative z-10 flex-1 overflow-y-auto px-3 pb-1">
-
-        {/* Hero panel — selected stage */}
+      {/* ── HERO PANEL — compact ── */}
+      <div className="relative z-10 px-3 flex-shrink-0">
         <StageHeroPanel
           stage={stage}
           accent={stageAccent}
           isCurrent={selectedStage === currentStage}
         />
+      </div>
 
-        {/* Horizontal stage strip */}
+      {/* ── STAGE STRIP — single row pager ── */}
+      <div className="relative z-10 flex-shrink-0">
         <StageStrip
           stages={stages}
           selectedStage={selectedStage}
@@ -124,104 +199,101 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
           onSelectStage={setSelectedStage}
           biomeAccents={BIOME_ACCENTS}
         />
-
-        {/* Talents section — slot grid */}
-        <div className="mb-1 mt-1">
-          <div className="mb-1 flex items-center justify-between">
-            <div className="sb-display text-[9px]" style={{ color: 'var(--sb-gold-light)', letterSpacing: '0.2em' }}>
-              ✦ TALENTS
-            </div>
-            <div className="sb-mono text-[8px] opacity-70">{equippedTalents.filter((id): id is string => id !== null).length}/{talentSlotCount}</div>
-          </div>
-          <div className="grid gap-1 grid-cols-2 md:grid-cols-4">
-            {Array.from({ length: talentSlotCount }).map((_, slotIdx) => {
-              const talentId = equippedTalents[slotIdx];
-              const talent = talentId && talentId !== null ? talents.find(t => t.id === talentId) : null;
-              return (
-                <button
-                  key={slotIdx}
-                  onClick={() => setTalentPickerSlot(slotIdx)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {talent ? (
-                    <TalentSlotCard talent={talent} slotNumber={slotIdx + 1} selected={true} />
-                  ) : (
-                    <EmptyTalentSlotCard slotNumber={slotIdx + 1} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Equipment section */}
-        <div className="mb-1">
-          <div className="mb-1 flex items-center justify-between">
-            <div className="sb-display text-[9px]" style={{ color: 'var(--sb-gold-light)', letterSpacing: '0.2em' }}>
-              ✦ EQUIPMENT
-            </div>
-            <div className="sb-mono text-[8px] opacity-70">{equippedSlots.length}/6</div>
-          </div>
-          <div className="grid gap-1 grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
-            {(EQUIPMENT_SLOTS as EquipmentSlot[]).map(slot => {
-              const equipped = equippedGear[slot];
-              return (
-                <button
-                  key={slot}
-                  onClick={() => setPickerSlot(slot)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {equipped ? (
-                    <EquipmentCard equipment={equipped} />
-                  ) : (
-                    <EmptyEquipmentSlotCard slot={slot} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Hardcore toggle */}
-        <label
-          className="flex items-center gap-1.5 mb-1 p-1.5 cursor-pointer select-none"
-          style={{
-            background: hardcore
-              ? 'linear-gradient(180deg, rgba(127,29,29,0.55) 0%, rgba(91,14,14,0.55) 100%)'
-              : 'linear-gradient(180deg, rgba(40,15,15,0.45) 0%, rgba(25,8,8,0.45) 100%)',
-            border: hardcore ? '2px solid var(--sb-crimson-light)' : '1.5px solid rgba(220,38,38,0.4)',
-            borderRadius: '4px',
-            boxShadow: hardcore ? '0 0 14px rgba(220,38,38,0.45)' : 'var(--sb-shadow-sm)',
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={hardcore}
-            onChange={e => setHardcore(e.target.checked)}
-            className="w-4 h-4 accent-red-500 flex-shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <div className="sb-display text-[10px]" style={{ color: '#fecaca', letterSpacing: '0.1em' }}>
-              ⚠ HARDCORE
-            </div>
-            <div className="text-[7px] opacity-75" style={{ color: 'var(--sb-parchment)', lineHeight: '1.1' }}>
-              Defeat ends run. 1.5× rewards.
-            </div>
-          </div>
-        </label>
       </div>
 
-      {/* Sticky bottom CTA */}
+      {/* ── LOADOUT (talents + equipment) — compact horizontal slot rails ── */}
+      <div className="relative z-10 flex-1 min-h-0 px-3 flex flex-col gap-1.5 justify-center">
+
+        {/* Talents row — single line of N small slots */}
+        <SectionHeader title="✦ TALENTS" count={`${equippedTalentCount}/${talentSlotCount}`} />
+        <div className="flex gap-1.5 justify-center">
+          {Array.from({ length: talentSlotCount }).map((_, slotIdx) => {
+            const talentId = equippedTalents[slotIdx];
+            const talent = talentId ? talents.find(t => t.id === talentId) : null;
+            return (
+              <SlotChip
+                key={slotIdx}
+                onClick={() => setTalentPickerSlot(slotIdx)}
+                icon={talent?.icon ?? '◇'}
+                label={talent?.name}
+                filled={!!talent}
+                accent="var(--sb-gold)"
+              />
+            );
+          })}
+        </div>
+
+        {/* Equipment row — 6 small slots, label = slot icon */}
+        <SectionHeader title="✦ EQUIPMENT" count={`${equippedSlots.length}/6`} />
+        <div className="flex gap-1.5 justify-center">
+          {(EQUIPMENT_SLOTS as EquipmentSlot[]).map(slot => {
+            const equipped = equippedGear[slot];
+            return (
+              <SlotChip
+                key={slot}
+                onClick={() => setPickerSlot(slot)}
+                icon={equipped?.icon ?? slotEmoji(slot)}
+                label={equipped?.name ?? slotLabel(slot).replace(/^[^\s]+\s/, '')}
+                filled={!!equipped}
+                placeholder={!equipped}
+                accent="#cbd5e1"
+              />
+            );
+          })}
+        </div>
+
+        {/* Hardcore — compact chip-style toggle */}
+        <button
+          onClick={() => setHardcore(h => !h)}
+          className="flex items-center gap-2 mt-1 px-2.5 py-1.5 self-center"
+          style={{
+            background: hardcore
+              ? 'linear-gradient(180deg, rgba(185,28,28,0.7) 0%, rgba(91,14,14,0.7) 100%)'
+              : 'linear-gradient(180deg, rgba(40,15,15,0.45) 0%, rgba(25,8,8,0.45) 100%)',
+            border: hardcore ? '2px solid var(--sb-crimson-light)' : '1.5px solid rgba(220,38,38,0.35)',
+            borderRadius: 999,
+            cursor: 'pointer',
+            boxShadow: hardcore ? '0 0 14px rgba(220,38,38,0.45)' : 'var(--sb-shadow-sm)',
+            minHeight: 30,
+          }}
+        >
+          <span style={{
+            width: 14, height: 14, borderRadius: 3,
+            background: hardcore ? 'var(--sb-crimson-light)' : 'transparent',
+            border: '1.5px solid #fecaca',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 10, color: '#fff', lineHeight: 1, flexShrink: 0,
+          }}>
+            {hardcore ? '✓' : ''}
+          </span>
+          <span className="sb-display" style={{ fontSize: 10, color: '#fecaca', letterSpacing: '0.18em' }}>
+            ⚠ HARDCORE · 1.5× REWARDS
+          </span>
+        </button>
+      </div>
+
+      {/* ── BEGIN BUTTON — heraldic crimson CTA matching hub style ── */}
       <div
-        className="relative z-20 px-3 py-1"
+        className="relative z-20 flex-shrink-0 px-3 pt-2 pb-3"
         style={{
-          background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(15,10,7,0.85) 20%, rgba(15,10,7,0.95) 100%)',
+          background: 'linear-gradient(180deg, transparent 0%, rgba(15,10,7,0.85) 25%, rgba(15,10,7,0.95) 100%)',
           borderTop: '1px solid var(--sb-bronze-dark)',
-          boxShadow: '0 -1px 8px rgba(0,0,0,0.3)',
+          boxShadow: '0 -2px 12px rgba(0,0,0,0.5)',
         }}
       >
-        <button onClick={begin} className="sb-btn w-full" style={{ fontSize: '12px', padding: '8px 12px', letterSpacing: '0.15em' }}>
-          ⚔ BEGIN ⚔
+        {/* Deck HUD — inline compact strip */}
+        <CombatDeckStrip deck={profile.combatDeck} />
+        <button
+          onClick={begin}
+          className="sb-btn sb-pulse-crimson w-full"
+          style={{ fontSize: '15px', padding: '14px 18px', letterSpacing: '0.2em' }}
+        >
+          <span className="flex flex-col items-center leading-tight">
+            <span>⚔  BEGIN STAGE {selectedStage}  ⚔</span>
+            <span className="sb-mono mt-0.5 opacity-80" style={{ fontSize: '9px', letterSpacing: '0.3em' }}>
+              {equippedTalentCount} TALENT{equippedTalentCount === 1 ? '' : 'S'} · {equippedSlots.length}/6 GEAR{hardcore ? ' · HARDCORE' : ''}
+            </span>
+          </span>
         </button>
       </div>
 
@@ -277,6 +349,86 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
   );
 }
 
+/* ─── Compact deck strip for the begin-button area ──────────────────────── */
+
+const RARITY_PIPS_CM: Array<{ key: string; color: string }> = [
+  { key: 'common',    color: '#94a3b8' },
+  { key: 'uncommon',  color: '#4ade80' },
+  { key: 'rare',      color: '#60a5fa' },
+  { key: 'epic',      color: '#c084fc' },
+  { key: 'legendary', color: '#fbbf24' },
+  { key: 'mythic',    color: '#f87171' },
+];
+
+function CombatDeckStrip({ deck }: { deck: string[] }) {
+  const allCardDefs = useMemo(() => {
+    const actions = allActions();
+    const tactics = allTactics();
+    return new Map([...actions, ...tactics].map(c => [c.id, c]));
+  }, []);
+
+  const cards = deck.map(id => allCardDefs.get(id)).filter(Boolean) as Array<{ id: string; type: string; rarity: string; emoji?: string }>;
+  const totalCards = cards.length;
+  const actions = cards.filter(c => c.type === 'action').length;
+  const tactics = cards.filter(c => c.type === 'tactic').length;
+  const rarityCounts = cards.reduce<Record<string, number>>((acc, c) => {
+    acc[c.rarity] = (acc[c.rarity] ?? 0) + 1;
+    return acc;
+  }, {});
+  const previewEmojis = [...new Map(cards.filter(c => c.emoji).map(c => [c.id, c.emoji])).values()].slice(0, 6) as string[];
+
+  return (
+    <div
+      className="mb-2"
+      style={{
+        background: 'rgba(0,0,0,0.3)',
+        border: '1px solid rgba(255,235,180,0.1)',
+        borderRadius: 8,
+        padding: '6px 10px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+      }}
+    >
+      <span className="sb-display" style={{ fontSize: 8, color: 'var(--sb-gold)', letterSpacing: '0.18em', flexShrink: 0 }}>
+        🃏 DECK
+      </span>
+      <div style={{ width: 1, height: 14, background: 'rgba(255,235,180,0.12)', flexShrink: 0 }} />
+      {totalCards === 0 ? (
+        <span className="sb-display" style={{ fontSize: 8, color: 'rgba(255,235,180,0.25)', letterSpacing: '0.1em' }}>
+          NO DECK — DEFAULT LOADOUT USED
+        </span>
+      ) : (
+        <>
+          {/* Emoji previews */}
+          <div style={{ display: 'flex', gap: 3, alignItems: 'center', flex: 1, minWidth: 0 }}>
+            {previewEmojis.map((em, i) => (
+              <span key={i} style={{ fontSize: 13, lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }}>{em}</span>
+            ))}
+            {totalCards > previewEmojis.length && (
+              <span className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.35)' }}>+{totalCards - previewEmojis.length}</span>
+            )}
+          </div>
+          {/* Rarity pips */}
+          <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
+            {RARITY_PIPS_CM.filter(r => rarityCounts[r.key]).map(r => (
+              <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <div style={{ width: 5, height: 5, borderRadius: '50%', background: r.color, boxShadow: `0 0 3px ${r.color}80` }} />
+                <span className="sb-mono" style={{ fontSize: 7, color: r.color, opacity: 0.8 }}>{rarityCounts[r.key]}</span>
+              </div>
+            ))}
+          </div>
+          {/* Type split */}
+          <div style={{ width: 1, height: 14, background: 'rgba(255,235,180,0.12)', flexShrink: 0 }} />
+          <span className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.5)', flexShrink: 0 }}>
+            {totalCards} · ⚔{actions} ✦{tactics}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 function StageHeroPanel({
@@ -294,20 +446,19 @@ function StageHeroPanel({
 
   return (
     <div
-      className="p-2 mb-1 relative"
+      className="px-2 py-1.5 mb-1 relative"
       style={{
-        background: `linear-gradient(180deg, ${accent.bg} 0%, rgba(0,0,0,0.4) 100%)`,
+        background: `linear-gradient(180deg, ${accent.bg} 0%, rgba(0,0,0,0.45) 100%)`,
         border: `2px solid ${accent.border}`,
-        borderRadius: '4px',
-        boxShadow: `inset 0 1px 0 rgba(255,235,180,0.15), 0 0 14px ${accent.glow}, var(--sb-shadow-md)`,
+        borderRadius: 4,
+        boxShadow: `inset 0 1px 0 rgba(255,235,180,0.18), 0 0 12px ${accent.glow}, var(--sb-shadow-md)`,
       }}
     >
       {isCurrent && (
         <div
           className="absolute -top-1.5 -right-1.5 text-[9px] uppercase tracking-widest font-extrabold px-1.5 py-0.5 rounded-full"
           style={{
-            background: '#ffd54f',
-            color: '#4a2e00',
+            background: '#ffd54f', color: '#4a2e00',
             border: '2px solid #4a2e00',
             boxShadow: '0 2px 0 rgba(0,0,0,0.35)',
             zIndex: 10,
@@ -317,54 +468,30 @@ function StageHeroPanel({
         </div>
       )}
 
-      {/* Stage number and title */}
-      <div className="flex items-baseline justify-between gap-1 mb-0.5">
-        <div className="sb-display text-2xl flex-1" style={{ color: 'var(--sb-gold-light)' }}>
-          {stage.number}
-        </div>
-        <div className="sb-display text-sm flex-1 truncate text-right" style={{ color: 'var(--sb-gold-light)', letterSpacing: '0.05em' }}>
-          {stage.isBoss ? '👑 ' : ''}{stage.title}
-        </div>
-      </div>
-
-      {/* Flavor text */}
-      <div className="text-[9px] italic opacity-80 mb-1" style={{ color: 'var(--sb-parchment)' }}>
-        "{stage.flavor}"
-      </div>
-
-      {/* Stats row */}
-      <div className="sb-mono text-[8px] opacity-75 flex flex-wrap gap-x-2 gap-y-0.5 mb-1">
-        <span><span className="opacity-60">📊</span> {stage.difficultyBand.toUpperCase()}</span>
-        <span><span className="opacity-60">💰</span> {stage.rewardChest.baseGold}g</span>
-        {stage.isBoss && <span><span className="opacity-60">👑</span> BOSS</span>}
-      </div>
-
-      {/* Enemy cards row */}
-      {enemies.length > 0 && (
-        <div className="mb-1 py-1" style={{ borderTop: '1px dashed rgba(255,235,180,0.15)', borderBottom: '1px dashed rgba(255,235,180,0.15)' }}>
-          <div className="flex gap-1 overflow-x-auto -mx-1 px-1">
-            {enemies.map((enemy, idx) => (
-              <div key={idx} style={{ flex: '0 0 auto' }}>
-                <EnemyCard enemy={enemy} size="xs" />
-              </div>
-            ))}
+      {/* Title row + stats inline */}
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-baseline gap-2 min-w-0 flex-1">
+          <div className="sb-display flex-shrink-0" style={{ fontSize: 22, color: 'var(--sb-gold-light)', lineHeight: 1 }}>
+            {stage.number}
+          </div>
+          <div className="sb-display truncate" style={{ fontSize: 13, color: 'var(--sb-gold-light)', letterSpacing: '0.05em' }}>
+            {stage.isBoss ? '👑 ' : ''}{stage.title}
           </div>
         </div>
-      )}
+        <div className="sb-mono flex items-center gap-1.5 flex-shrink-0" style={{ fontSize: 9, color: 'var(--sb-gold)', opacity: 0.85 }}>
+          <span>📊 {stage.difficultyBand.slice(0, 3).toUpperCase()}</span>
+          <span>💰 {stage.rewardChest.baseGold}g</span>
+        </div>
+      </div>
 
-      {/* Bonus objectives */}
-      {stage.bonusObjectives.length > 0 && (
-        <div>
-          <div className="sb-display text-[8px] tracking-[0.2em] opacity-60 mb-0.5">✦ OBJECTIVES</div>
-          <ul className="space-y-0.5 text-[8px]" style={{ color: 'var(--sb-parchment)' }}>
-            {stage.bonusObjectives.map(o => (
-              <li key={o.id} className="flex items-baseline gap-1">
-                <span style={{ color: 'var(--sb-gold)' }}>◆</span>
-                <span className="flex-1 leading-tight">{o.description}</span>
-                <span className="sb-mono" style={{ color: 'var(--sb-gold)', fontSize: '7px' }}>+{o.rewardGold}g</span>
-              </li>
-            ))}
-          </ul>
+      {/* Enemy strip — small horizontal cards */}
+      {enemies.length > 0 && (
+        <div className="flex gap-1 overflow-x-auto -mx-1 px-1 pb-0.5">
+          {enemies.map((enemy, idx) => (
+            <div key={idx} style={{ flex: '0 0 auto' }}>
+              <EnemyCard enemy={enemy} size="xs" />
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -396,13 +523,13 @@ function StageStrip({
   }, [selectedStage]);
 
   return (
-    <div className="mb-1 py-1">
+    <div className="px-3 py-1">
       <div
         ref={containerRef}
         className="overflow-x-auto -mx-3 px-3"
         style={{ scrollBehavior: 'smooth' }}
       >
-        <div className="flex gap-1.5" style={{ minWidth: 'min-content' }}>
+        <div className="flex gap-1.5 items-center" style={{ minWidth: 'min-content' }}>
           {stages.map(s => {
             const locked = s.number > currentStage;
             const selected = s.number === selectedStage;
@@ -416,8 +543,8 @@ function StageStrip({
                 disabled={locked}
                 className="sb-display font-bold flex-shrink-0 flex items-center justify-center"
                 style={{
-                  width: 36,
-                  height: 36,
+                  width: selected ? 38 : 32,
+                  height: selected ? 38 : 32,
                   borderRadius: '50%',
                   background: !locked
                     ? selected
@@ -429,8 +556,6 @@ function StageStrip({
                   border: `2px solid ${!locked
                     ? selected
                       ? 'var(--sb-gold-light)'
-                      : s.isBoss
-                      ? accent.border
                       : accent.border
                     : '#2a1f15'
                   }`,
@@ -441,8 +566,9 @@ function StageStrip({
                     : '#3d3027',
                   cursor: locked ? 'not-allowed' : 'pointer',
                   opacity: locked ? 0.45 : 1,
-                  fontSize: '12px',
-                  boxShadow: selected ? `0 0 10px ${accent.glow}` : undefined,
+                  fontSize: selected ? 13 : 11,
+                  transition: 'all 180ms ease',
+                  boxShadow: selected ? `0 0 12px ${accent.glow}, inset 0 1px 0 rgba(255,255,255,0.3)` : undefined,
                 }}
                 title={locked ? `Stage ${s.number} (locked)` : `${s.title}`}
               >
@@ -457,72 +583,6 @@ function StageStrip({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────── */
-
-function EmptyEquipmentSlotCard({ slot: _ }: { slot: EquipmentSlot }) {
-  return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: '3/4',
-        borderRadius: 4,
-        border: '1px dashed rgba(255,235,180,0.15)',
-        background: 'rgba(0,0,0,0.15)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '3px',
-      }}
-    >
-      <div className="text-sm opacity-25">◇</div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────── */
-
-function TalentSlotCard({ talent, slotNumber: _, selected }: { talent: Perk; slotNumber: number; selected: boolean }) {
-  return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: '1',
-        borderRadius: 4,
-        border: `1px solid ${selected ? 'var(--sb-gold-light)' : 'rgba(255,235,180,0.25)'}`,
-        background: selected
-          ? 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(184,134,11,0.15))'
-          : 'rgba(0,0,0,0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2px',
-        boxShadow: selected ? '0 0 6px rgba(255,215,0,0.2), inset 0 0 4px rgba(255,215,0,0.1)' : undefined,
-        transition: 'all 150ms ease',
-      }}
-    >
-      <div className="text-base">{talent.icon}</div>
-    </div>
-  );
-}
-
-function EmptyTalentSlotCard({ slotNumber: _ }: { slotNumber: number }) {
-  return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: '1',
-        borderRadius: 4,
-        border: '1px dashed rgba(255,235,180,0.15)',
-        background: 'rgba(0,0,0,0.15)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2px',
-      }}
-    >
-      <div className="text-xs opacity-25">◇</div>
-    </div>
-  );
-}
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 

@@ -90,7 +90,7 @@ function pickWeighted<T extends { weight: number }>(rng: Rng, options: T[]): T {
 function difficultyMixForStage(stage: number): Array<1 | 2 | 3> {
   // Clamp to 1+. Stages above 100 plateau but keep a slight ramp.
   const s = Math.max(1, stage);
-  const isBoss = s % 5 === 0;
+  const isBoss = s % 10 === 0;
 
   let baseCount: number;
   let easy: number;
@@ -129,7 +129,7 @@ const STAGE_SEED_SALT = 0xB0BAFE77;
 
 export function getStageDef(stage: number): StageDef {
   const s = Math.max(1, Math.floor(stage));
-  const isBoss = s % 5 === 0;
+  const isBoss = s % 10 === 0;
   const seed = (s * 0x9e3779b1 ^ STAGE_SEED_SALT) >>> 0;
   const rng = createRng(seed);
 

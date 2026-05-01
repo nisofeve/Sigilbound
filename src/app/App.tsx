@@ -248,6 +248,7 @@ export default function App() {
           profile={profile}
           onPick={(stage) => setStageInfoOpen(stage)}
           onBack={() => setScreen({ kind: 'home' })}
+          onDeck={() => setScreen({ kind: 'deck' })}
         />
       )}
       {stageInfoOpen !== null && (
@@ -428,7 +429,7 @@ export default function App() {
           ownedUpgradeIds={screen.ownedUpgradeIds}
           cardTierMultipliers={profile.combatCardTiers}
           playerName={profile.displayName ?? 'Sigilist'}
-          playerAvatar={profile.avatarEmoji || '🛡️'}
+          playerAvatar={profile.avatarEmoji || '⚔️'}
           onOutcome={(outcome, stage, runner) => {
             // Apply combat clear rewards to the profile before transitioning.
             // Defeat passes through with no profile changes. The granted
@@ -441,6 +442,7 @@ export default function App() {
                 cleared: outcome === 'cleared',
                 currentHp: runner.state.player.currentHp,
                 maxHp: runner.state.player.stats.maxHp,
+                hardcore: screen.hardcore,
               },
             );
             if (nextProfile !== profile) {

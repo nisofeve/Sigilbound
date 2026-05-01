@@ -1,29 +1,6 @@
-// Sigilbound hub — the heraldic landing page. Default app entry.
-//
-// Layout: mobile-first portrait FTP (matches Plotbound's home structure).
-//
-//   ┌────────────────────────────────────┐
-//   │ avatar │ 💰 💎 ✨ │     ⚙          │  ← top bar (currency + settings)
-//   ├────────────────────────────────────┤
-//   │                                    │
-//   │           ⚔                        │
-//   │       SIGILBOUND                   │  ← hero
-//   │   BIND · STRIKE · CONQUER          │
-//   │                                    │
-//   │   [   level / battle pass strip ]  │
-//   │                                    │
-//   │      ▶ STAGE  N    ★★★ BEST        │  ← primary CTA
-//   │      [ Stages ]   [ Free Skirmish] │
-//   │                                    │
-//   ├────────────────────────────────────┤
-//   │  ⚔  🃏  📖  🏰  🛒                │  ← bottom dock (5 icons)
-//   The avatar chip in the top-left routes to the Profile screen.
-//   └────────────────────────────────────┘
-//
-// All taps in the bottom 60% of the viewport — the natural thumb zone
-// for portrait phones. Settings + profile chip are top-anchored.
-
+import { useMemo } from 'react';
 import type { Profile } from '@storage/index';
+import { allActions, allTactics } from '@engine/index';
 
 interface Props {
   profile: Profile;
@@ -152,6 +129,11 @@ export default function SigilboundHubScreen({
           </div>
         </div>
 
+        {/* Active deck HUD */}
+        <div className="w-full max-w-sm pointer-events-auto">
+          <DeckHud deck={profile.combatDeck} onDeckPress={onDeck} />
+        </div>
+
         {/* Primary CTA + secondary row */}
         <div className="w-full max-w-sm flex flex-col gap-1.5 pointer-events-auto mt-2 mb-1">
           <button
@@ -181,9 +163,8 @@ export default function SigilboundHubScreen({
           boxShadow: '0 -2px 12px rgba(0,0,0,0.4)',
         }}
       >
-        <DockButton onClick={onCombat}     icon="⚔"  label="Combat"    highlight />
         <DockButton onClick={onDeck}       icon="🃏" label="Deck" />
-        <DockButton onClick={onShop}       icon="🛒" label="Shop" />
+        <DockButton onClick={onShop}       icon="⚜" label="Shop" />
         <DockButton onClick={onStronghold} icon="🏰" label="Stronghold" />
         <DockButton onClick={onBestiary}   icon="📖" label="Bestiary" />
       </nav>
@@ -198,6 +179,138 @@ export default function SigilboundHubScreen({
     </div>
   );
 }
+
+// ─── Deck HUD ────────────────────────────────────────────────────────────────
+// Compact at-a-glance strip: card count, type breakdown, rarity pip row.
+// Tapping anywhere opens the deck builder.
+
+const RARITY_PIPS: Array<{ key: string; color: string }> = [
+  { key: 'common',    color: '#94a3b8' },
+  { key: 'uncommon',  color: '#4ade80' },
+  { key: 'rare',      color: '#60a5fa' },
+  { key: 'epic',      color: '#c084fc' },
+  { key: 'legendary', color: '#fbbf24' },
+  { key: 'mythic',    color: '#f87171' },
+];
+
+function DeckHud({ deck, onDeckPress }: { deck: string[]; onDeckPress: () => void }) {
+  const allCardDefs = useMemo(() => {
+    const actions = allActions();
+    const tactics = allTactics();
+    return new Map([...actions, ...tactics].map(c => [c.id, c]));
+  }, []);
+
+  const cards = deck.map(id => allCardDefs.get(id)).filter(Boolean) as Array<{ id: string; type: string; rarity: string; name: string; emoji?: string }>;
+  const totalCards = cards.length;
+  const actionCount = cards.filter(c => c.type === 'action').length;
+  const tacticCount = cards.filter(c => c.type === 'tactic').length;
+
+  const rarityCounts = cards.reduce<Record<string, number>>((acc, c) => {
+    acc[c.rarity] = (acc[c.rarity] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  // Preview: up to 6 unique card emojis
+  const previewEmojis = [...new Map(cards.filter(c => c.emoji).map(c => [c.id, c.emoji])).values()].slice(0, 6) as string[];
+
+  const isEmpty = totalCards === 0;
+
+  return (
+    <button
+      onClick={onDeckPress}
+      style={{
+        width: '100%',
+        background: 'linear-gradient(180deg, rgba(44,24,16,0.85) 0%, rgba(20,12,8,0.9) 100%)',
+        border: '1.5px solid var(--sb-bronze-dark)',
+        borderRadius: 10,
+        padding: '8px 12px',
+        cursor: 'pointer',
+        textAlign: 'left',
+        boxShadow: 'inset 0 1px 0 rgba(255,200,140,0.1), var(--sb-shadow-sm)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+      }}
+    >
+      {/* Row 1: label + count + edit hint */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 13 }}>🃏</span>
+          <span className="sb-display" style={{ fontSize: 9, letterSpacing: '0.2em', color: 'var(--sb-gold-light)' }}>
+            ACTIVE DECK
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {!isEmpty && (
+            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              <span className="sb-mono" style={{ fontSize: 10, color: '#94a3b8' }}>
+                ⚔ {actionCount}
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9 }}>│</span>
+              <span className="sb-mono" style={{ fontSize: 10, color: '#c084fc' }}>
+                ✦ {tacticCount}
+              </span>
+            </div>
+          )}
+          <span className="sb-mono" style={{ fontSize: 9, color: 'var(--sb-gold)', opacity: 0.7, letterSpacing: '0.1em' }}>
+            {isEmpty ? 'TAP TO BUILD →' : `${totalCards} CARDS  ✎`}
+          </span>
+        </div>
+      </div>
+
+      {isEmpty ? (
+        <div style={{ textAlign: 'center', padding: '4px 0' }}>
+          <span className="sb-display" style={{ fontSize: 9, color: 'rgba(255,235,180,0.3)', letterSpacing: '0.15em' }}>
+            — NO DECK CONFIGURED —
+          </span>
+        </div>
+      ) : (
+        <>
+          {/* Row 2: card emoji preview */}
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            {previewEmojis.map((em, i) => (
+              <span
+                key={i}
+                style={{
+                  fontSize: 15,
+                  lineHeight: 1,
+                  filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))',
+                  opacity: 0.9,
+                }}
+              >
+                {em}
+              </span>
+            ))}
+            {totalCards > previewEmojis.length && (
+              <span className="sb-mono" style={{ fontSize: 9, color: 'rgba(255,235,180,0.4)', marginLeft: 2 }}>
+                +{totalCards - previewEmojis.length}
+              </span>
+            )}
+          </div>
+
+          {/* Row 3: rarity pip bar */}
+          <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+            {RARITY_PIPS.filter(r => rarityCounts[r.key]).map(r => (
+              <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <div style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: r.color,
+                  boxShadow: `0 0 4px ${r.color}80`,
+                  flexShrink: 0,
+                }} />
+                <span className="sb-mono" style={{ fontSize: 8, color: r.color, opacity: 0.85 }}>
+                  {rarityCounts[r.key]}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function CurrencyChip({ icon, value, accent }: { icon: string; value: number; accent: string }) {
   return (

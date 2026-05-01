@@ -46,6 +46,7 @@ export interface EnemyDef {
   damageType: DamageType;
   biome?: string;
   resistances?: Resistances;
+  lore?: string;
   // Optional override of the archetype's default behaviour table — lets us
   // give a single boss a hand-tuned move set without spawning a new archetype.
   // Phase 4 will populate this for stage-100 The Sigilbreaker.

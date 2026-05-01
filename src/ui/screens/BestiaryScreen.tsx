@@ -233,41 +233,66 @@ function EnemyDetailPopover({ enemy, onClose }: { enemy: EnemyDef; onClose: () =
       style={{
         position: 'absolute',
         inset: 0,
-        background: 'rgba(0,0,0,0.75)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
+        background: 'rgba(0,0,0,0.82)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 50,
-        padding: 24,
+        padding: '16px 12px',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
           display: 'flex',
-          gap: 20,
-          alignItems: 'flex-start',
-          background: 'linear-gradient(160deg, #111c13 0%, #0c1310 100%)',
-          border: `1.5px solid ${accentColor}`,
-          borderRadius: 16,
-          padding: 20,
-          maxWidth: 480,
+          flexDirection: 'column',
+          background: 'linear-gradient(180deg, #0e1a10 0%, #0a1210 60%, #0c0c14 100%)',
+          border: `1.5px solid ${accentColor}44`,
+          borderRadius: 18,
+          maxWidth: 380,
           width: '100%',
-          boxShadow: `0 0 30px ${accentColor}30, 0 20px 60px rgba(0,0,0,0.8)`,
+          maxHeight: 'calc(100vh - 40px)',
+          overflow: 'hidden',
+          boxShadow: `0 0 40px ${accentColor}25, 0 24px 80px rgba(0,0,0,0.9)`,
         }}
       >
-        {/* Card (large) */}
-        <EnemyCard enemy={enemy} size="lg" />
+        {/* ── Top: large card artwork ── */}
+        <div style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '28px 24px 20px',
+          background: `linear-gradient(160deg, ${accentColor}10 0%, transparent 60%)`,
+          borderBottom: `1px solid ${accentColor}22`,
+          flexShrink: 0,
+        }}>
+          {/* Decorative corner accents */}
+          <div style={{ position: 'absolute', top: 10, left: 12, width: 18, height: 18, borderTop: `1.5px solid ${accentColor}60`, borderLeft: `1.5px solid ${accentColor}60`, borderRadius: '3px 0 0 0' }} />
+          <div style={{ position: 'absolute', top: 10, right: 12, width: 18, height: 18, borderTop: `1.5px solid ${accentColor}60`, borderRight: `1.5px solid ${accentColor}60`, borderRadius: '0 3px 0 0' }} />
+          <div style={{ position: 'absolute', bottom: 10, left: 12, width: 18, height: 18, borderBottom: `1.5px solid ${accentColor}60`, borderLeft: `1.5px solid ${accentColor}60`, borderRadius: '0 0 0 3px' }} />
+          <div style={{ position: 'absolute', bottom: 10, right: 12, width: 18, height: 18, borderBottom: `1.5px solid ${accentColor}60`, borderRight: `1.5px solid ${accentColor}60`, borderRadius: '0 0 3px 0' }} />
 
-        {/* Info panel */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-          {/* Name + type */}
-          <div>
+          <EnemyCard enemy={enemy} size="xl" />
+        </div>
+
+        {/* ── Bottom: scrollable info panel ── */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '16px 18px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          scrollbarWidth: 'none',
+        }}>
+          {/* Name + classification */}
+          <div style={{ textAlign: 'center' }}>
             <div style={{
               fontFamily: "'Fredoka One', cursive",
-              fontSize: '1.25rem',
+              fontSize: '1.45rem',
               color: '#f1f5f9',
               lineHeight: 1.1,
             }}>
@@ -275,94 +300,106 @@ function EnemyDetailPopover({ enemy, onClose }: { enemy: EnemyDef; onClose: () =
             </div>
             <div style={{
               fontFamily: "'Nunito', sans-serif",
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              letterSpacing: '0.12em',
               color: accentColor,
-              marginTop: 2,
+              marginTop: 4,
             }}>
-              {enemy.archetype.toUpperCase()} · {enemy.biome?.toUpperCase() ?? 'UNKNOWN'}
+              {enemy.archetype.toUpperCase()} · {enemy.biome?.toUpperCase() ?? 'UNKNOWN'} · {enemy.difficulty.toUpperCase()}
             </div>
           </div>
 
-          {/* Stat grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 8,
-          }}>
-            <StatBlock label="HP"    value={enemy.baseHp}    color="#f87171" />
-            <StatBlock label="ATK"   value={enemy.atk}       color="#fbbf24" />
-            <StatBlock label="DEF"   value={enemy.def}       color="#94a3b8" />
-            <StatBlock label="SPEED" value={enemy.speed}     color="#c4b5fd" />
+          {/* Stat row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+            <StatBlock label="HP"    value={enemy.baseHp} color="#f87171" />
+            <StatBlock label="ATK"   value={enemy.atk}    color="#fbbf24" />
+            <StatBlock label="DEF"   value={enemy.def}    color="#94a3b8" />
+            <StatBlock label="SPD"   value={enemy.speed}  color="#c4b5fd" />
           </div>
 
-          {/* Damage type */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '6px 10px',
-            background: 'rgba(255,255,255,0.04)',
-            borderRadius: 8,
-            border: '1px solid rgba(255,255,255,0.07)',
-          }}>
-            <span style={{
-              fontFamily: "'Nunito', sans-serif",
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              color: '#475569',
+          {/* Damage type + resistances row */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '4px 10px',
+              background: `${dmgColor}14`,
+              borderRadius: 6,
+              border: `1px solid ${dmgColor}30`,
             }}>
-              DMG TYPE
-            </span>
-            <span style={{
-              fontFamily: "'Fredoka One', cursive",
-              fontSize: '0.85rem',
-              color: dmgColor,
-              letterSpacing: '0.05em',
-            }}>
-              {enemy.damageType.toUpperCase()}
-            </span>
-          </div>
-
-          {/* Resistances */}
-          {enemy.resistances && Object.keys(enemy.resistances).length > 0 && (
-            <div>
-              <div style={{
+              <span style={{
                 fontFamily: "'Nunito', sans-serif",
-                fontSize: '0.62rem',
+                fontSize: '0.6rem',
                 fontWeight: 700,
                 letterSpacing: '0.1em',
-                color: '#334155',
-                marginBottom: 5,
+                color: '#475569',
+              }}>DMG</span>
+              <span style={{
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: '0.82rem',
+                color: dmgColor,
+                letterSpacing: '0.04em',
+              }}>{enemy.damageType.toUpperCase()}</span>
+            </div>
+            {enemy.resistances && Object.entries(enemy.resistances).map(([type, mult]) => (
+              <ResistancePip key={type} type={type} multiplier={mult} />
+            ))}
+          </div>
+
+          {/* Lore text */}
+          {enemy.lore && (
+            <div style={{
+              padding: '12px 14px',
+              background: 'rgba(255,255,255,0.03)',
+              border: `1px solid ${accentColor}18`,
+              borderRadius: 10,
+              position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: -8,
+                left: 12,
+                background: '#0e1a10',
+                padding: '0 6px',
+                fontFamily: "'Nunito', sans-serif",
+                fontSize: '0.58rem',
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                color: accentColor,
+                opacity: 0.8,
+              }}>LORE</div>
+              <p style={{
+                margin: 0,
+                fontFamily: "'Nunito', sans-serif",
+                fontSize: '0.75rem',
+                fontWeight: 400,
+                lineHeight: 1.65,
+                color: '#94a3b8',
+                fontStyle: 'italic',
               }}>
-                RESISTANCES
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {Object.entries(enemy.resistances).map(([type, mult]) => (
-                  <ResistancePip key={type} type={type} multiplier={mult} />
-                ))}
-              </div>
+                {enemy.lore}
+              </p>
             </div>
           )}
 
-          {/* Close */}
+          {/* Close button */}
           <button
             onClick={onClose}
             style={{
-              marginTop: 'auto',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 8,
+              background: 'rgba(255,255,255,0.05)',
+              border: `1px solid ${accentColor}30`,
+              borderRadius: 10,
               color: '#64748b',
-              padding: '7px 0',
+              padding: '9px 0',
               cursor: 'pointer',
               fontFamily: "'Nunito', sans-serif",
               fontSize: '0.75rem',
-              fontWeight: 700,
-              letterSpacing: '0.07em',
+              fontWeight: 800,
+              letterSpacing: '0.1em',
               width: '100%',
+              transition: 'all 120ms ease',
             }}
           >
             CLOSE

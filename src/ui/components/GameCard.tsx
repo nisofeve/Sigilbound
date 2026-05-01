@@ -53,7 +53,7 @@ function scaleRem(value: string, factor: number): string {
 
 // ─── Size tokens ──────────────────────────────────────────────────────────────
 
-export type CardSize = 'xs' | 'sm' | 'md' | 'lg';
+export type CardSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 interface SizeTokens {
   w: number;
@@ -72,6 +72,7 @@ const SIZE_MAP: Record<CardSize, SizeTokens> = {
   sm: { w: 120, h: 168, nameSize: '0.68rem', statSize: '0.6rem',  badgeSize: '0.52rem', emojiFallbackSize: '2rem',   radius: 8,  pad: 7  },
   md: { w: 160, h: 224, nameSize: '0.85rem', statSize: '0.72rem', badgeSize: '0.62rem', emojiFallbackSize: '2.8rem', radius: 10, pad: 9  },
   lg: { w: 200, h: 280, nameSize: '1rem',    statSize: '0.82rem', badgeSize: '0.7rem',  emojiFallbackSize: '3.5rem', radius: 12, pad: 11 },
+  xl: { w: 260, h: 364, nameSize: '1.2rem',  statSize: '1rem',    badgeSize: '0.85rem', emojiFallbackSize: '5rem',   radius: 14, pad: 14 },
 };
 
 // ─── Public types ─────────────────────────────────────────────────────────────

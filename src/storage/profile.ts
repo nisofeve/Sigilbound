@@ -92,7 +92,7 @@ const empty: Profile = {
   dailyPerkShopRerolls: 0,
   playerXp: 0,
   claimedLevels: [],
-  avatarEmoji: '🌱',
+  avatarEmoji: '⚔️',
   currentStage: 1,
   stageStars: {},
   stageRewardsClaimed: {},
@@ -290,7 +290,7 @@ export function setDisplayName(profile: Profile, name: string): Profile {
 
 export function setAvatarEmoji(profile: Profile, emoji: string): Profile {
   // First grapheme only, so a complex emoji like 👨‍🌾 still works.
-  const next: Profile = { ...profile, avatarEmoji: emoji.slice(0, 4) };
+  const next: Profile = { ...profile, avatarEmoji: [...emoji][0] ?? '⚔️' };
   saveProfile(next);
   return next;
 }
@@ -479,7 +479,7 @@ export interface CombatClearOutcome {
 export function applyCombatClearToProfile(
   profile: Profile,
   stage: CombatStageDef,
-  result: { cleared: boolean; currentHp: number; maxHp: number },
+  result: { cleared: boolean; currentHp: number; maxHp: number; hardcore?: boolean },
 ): { profile: Profile; outcome: CombatClearOutcome } {
   const stars = combatStarsFor({
     cleared: result.cleared,
@@ -523,13 +523,16 @@ export function applyCombatClearToProfile(
     rewardsGranted = combatStageReplayRewards(stage, stars);
   }
 
+  // Hardcore mode grants 1.5× all currency rewards.
+  const hardcoreMult = result.hardcore ? 1.5 : 1;
+
   // Stronghold "Treasure Sense" / "Hoarder" boost coin drops.
   const goldBonus = sumUpgradeEffect(profile.upgradesOwned, 'gold_drop_bonus');
   const coinMult = 1 + goldBonus;
   // Stronghold "Merchant Blessing" / "Trade Network" / "Diamond Market" —
   // sales bonus also folds into stage gold (treats the chest as a "sale").
   const saleMult = 1 + sumUpgradeEffect(profile.upgradesOwned, 'global_sale_mult');
-  const totalCoinMult = coinMult * saleMult;
+  const totalCoinMult = coinMult * saleMult * hardcoreMult;
 
   // Apply reward currencies.
   for (const r of rewardsGranted) {
@@ -541,13 +544,13 @@ export function applyCombatClearToProfile(
         break;
       }
       case 'gems':
-        next.gems = next.gems + r.value;
+        next.gems = next.gems + Math.round(r.value * hardcoreMult);
         break;
       case 'shards':
-        next.perkShards = next.perkShards + r.value;
+        next.perkShards = next.perkShards + Math.round(r.value * hardcoreMult);
         break;
       case 'xp':
-        next.playerXp = Math.max(0, next.playerXp + r.value);
+        next.playerXp = Math.max(0, next.playerXp + Math.round(r.value * hardcoreMult));
         break;
     }
   }
