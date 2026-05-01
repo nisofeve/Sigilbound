@@ -217,9 +217,18 @@ export default function CombatView({
     id: number; x: number; y: number; color: string; archetype: VfxArchetype; count: number;
   }>>([]);
   const particleIdRef = useRef(0);
+  // Fireball-specific explosion instances — multi-layer flames + smoke.
+  const [fireballExplosions, setFireballExplosions] = useState<Array<{
+    id: number; x: number; y: number; size: number;
+  }>>([]);
+  const fireballExplosionIdRef = useRef(0);
   // Screen shake — applied to the playfield container.
   const [screenShake, setScreenShake] = useState<'light' | 'heavy' | null>(null);
   const screenShakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Battle outcome announcement — shows dramatic win/lose screen before
+  // transitioning to the result screen.
+  const [outcomeAnnounce, setOutcomeAnnounce] = useState<null | 'cleared' | 'defeated'>(null);
   const floaterIdRef = useRef(0);
   const projectileIdRef = useRef(0);
 
@@ -248,6 +257,7 @@ export default function CombatView({
   }, []);
 
   function handlePlayTactic(realHandIndex: number): void {
+    if (isDealing || animating) return;
     if (runner.playTactic(realHandIndex) === 'played') {
       // Close the drawer after a play so the playfield re-asserts focus.
       if (isMobile) setTacticsOpen(false);
@@ -346,6 +356,13 @@ export default function CombatView({
     const id = ++particleIdRef.current;
     setParticles(list => [...list, { id, x, y, color, archetype, count }]);
     setTimeout(() => setParticles(list => list.filter(p => p.id !== id)), 1100);
+  }
+
+  // Fireball explosion — bespoke multi-layer flame burst at impact point.
+  function spawnFireballExplosion(x: number, y: number, size: number): void {
+    const id = ++fireballExplosionIdRef.current;
+    setFireballExplosions(list => [...list, { id, x, y, size }]);
+    setTimeout(() => setFireballExplosions(list => list.filter(e => e.id !== id)), 1200);
   }
 
   // Screen shake — applied to the root playfield container. Light = small
@@ -642,10 +659,14 @@ export default function CombatView({
       // Per-archetype impact effects.
       switch (archetype) {
         case 'fireball':
-          // Big explosion: ring + lots of ember particles + screen shake.
-          spawnImpactRing(cx, cy, color, r.width * 1.6, 800);
-          spawnParticles(cx, cy, color, 'fireball', 14);
-          shakeScreen(ev.wasCrit || ev.enemyKilled ? 'heavy' : 'light');
+          // Layered fiery explosion: flash + rings (white→orange→red) + flames + embers.
+          spawnFireballExplosion(cx, cy, r.width);
+          spawnImpactRing(cx, cy, '#ffffff', r.width * 0.6, 350);       // white flash ring
+          spawnImpactRing(cx, cy, '#ff8c00', r.width * 1.2, 650);       // orange shockwave
+          spawnImpactRing(cx, cy, '#ff3300', r.width * 1.8, 900);       // red outer ring
+          spawnImpactRing(cx, cy, '#cc1100', r.width * 2.2, 1100);      // deep ember outer
+          spawnParticles(cx, cy, color, 'fireball', 20);
+          shakeScreen(ev.wasCrit || ev.enemyKilled ? 'heavy' : 'heavy'); // always heavy for fireball
           break;
         case 'ice_shard':
           // Cold shatter: shard particles + thin ring.
@@ -795,10 +816,12 @@ export default function CombatView({
     // but anchored on the player bar.
     switch (enemyArchetype) {
       case 'fireball':
-        // Big explosion: ring + ember particles + heavy screen shake.
-        spawnImpactRing(cx, cy, color, Math.min(r.width * 0.9, 280), 800);
-        spawnImpactRing(cx, cy, '#ffa850', Math.min(r.width * 0.55, 180), 600);
-        spawnParticles(cx, cy, color, 'fireball', 16);
+        // Layered explosion hitting the player: flash + rings + flames.
+        spawnFireballExplosion(cx, cy, Math.min(r.width, 260));
+        spawnImpactRing(cx, cy, '#ffffff', Math.min(r.width * 0.45, 140), 320);
+        spawnImpactRing(cx, cy, '#ff8c00', Math.min(r.width * 0.85, 260), 600);
+        spawnImpactRing(cx, cy, '#ff3300', Math.min(r.width * 1.2, 360), 850);
+        spawnParticles(cx, cy, color, 'fireball', 18);
         break;
       case 'ice_shard':
         // Cold shatter: shard particles + thin ring.
@@ -860,7 +883,7 @@ export default function CombatView({
   }
 
   function handleEndTurn(force = false): void {
-    if (animating) return;
+    if (animating || isDealing) return;
     // If no cards are bound to any slot, confirm before ending the turn.
     if (!force) {
       const hasAnyBound = runner.state.slots.some(s => s.bound);
@@ -896,15 +919,45 @@ export default function CombatView({
     setGhostBindings(ghosts);
     setResolvedGhostSlots(new Set());
 
+    // Snapshot the hand BEFORE endTurn so we can diff it after.
+    const handBefore = [...runner.state.hand];
+
     const outcome = runner.endTurn();
     const log = runner.getLastResolveLog();
+
+    // Compute which hand indices changed (new cards drawn or positions shifted)
+    // and hide them BEFORE repaint() so they never flash visible during the
+    // attack animation sequence.
+    const handAfter = runner.state.hand;
+    const dealIndicesEarly: number[] = [];
+    for (let i = 0; i < handAfter.length; i++) {
+      if (handBefore[i] !== handAfter[i]) dealIndicesEarly.push(i);
+    }
+    if (dealIndicesEarly.length > 0) {
+      setDrawingCards(prev => {
+        const next = new Set(prev);
+        for (const idx of dealIndicesEarly) next.add(idx);
+        return next;
+      });
+      setIsDealing(true);
+    }
+
     repaint();
-    void playResolveLog(log, comboSlotMap).then(() => {
+    void playResolveLog(log, comboSlotMap).then(async () => {
       // Sequence done — release the ghosts so the slot row reverts to live
       // engine state (empty slots show ⬡ again).
       setGhostBindings(new Map());
       setResolvedGhostSlots(new Set());
-      if (outcome !== 'in_progress') onOutcome(outcome, stage, runner);
+      if (outcome !== 'in_progress') {
+        // Show dramatic announcement, then delay before result screen.
+        setOutcomeAnnounce(outcome);
+        setTimeout(() => {
+          setOutcomeAnnounce(null);
+          onOutcome(outcome, stage, runner);
+        }, 3200);
+        return;
+      }
+      await dealNewCards(dealIndicesEarly);
     });
   }
 
@@ -919,7 +972,7 @@ export default function CombatView({
     }
   }
 
-  function handleBindToSlot(realHandIndex: number, slotIndex: number): void {
+  function handleBindToSlot(realHandIndex: number, slotIndex: number): Promise<void> {
     // Look up DOM rects for the source card and target slot. If either is
     // missing (animation refs not yet attached, off-screen, etc.) commit
     // immediately without animation.
@@ -928,7 +981,7 @@ export default function CombatView({
     const def = getAction(runner.state.hand[realHandIndex] ?? '');
     if (!cardEl || !slotEl || !def) {
       commitBind(realHandIndex, slotIndex);
-      return;
+      return Promise.resolve();
     }
 
     // Validate the bind would succeed before kicking off the animation —
@@ -936,7 +989,7 @@ export default function CombatView({
     const slot = runner.state.slots[slotIndex];
     if (!slot || slot.bound) {
       commitBind(realHandIndex, slotIndex); // engine will reject and no-op
-      return;
+      return Promise.resolve();
     }
 
     // Prefer the page coordinates of the un-transformed card body. The card
@@ -963,61 +1016,65 @@ export default function CombatView({
     const duration = 360;
     const startTime = performance.now();
 
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - startTime) / duration);
-      const eased = easeOutCubic(t);
-      // Position via rAF: directly mutate the overlay's transform.
-      const dx = from.x + (to.x - from.x) * eased;
-      const dy = from.y + (to.y - from.y) * eased;
-      // Parabolic arc — peak rises the higher of the two endpoints by ~80px,
-      // scaled by horizontal travel so very short flights stay subtle.
-      const travel = Math.hypot(to.x - from.x, to.y - from.y);
-      const arcAmt = Math.min(120, travel * 0.45);
-      const arcOffset = Math.sin(eased * Math.PI) * arcAmt;
-      // Rotation curve — slight tilt toward direction of travel mid-flight.
-      const dirSign = Math.sign(to.x - from.x) || 1;
-      const rot = Math.sin(eased * Math.PI) * 12 * dirSign;
-      // Scale: a slight grow at apex, then shrink to slot size for the snap.
-      const apexScale = 1.08;
-      const slotScale = Math.max(0.6, slotRect.width / cardW);
-      // Two-stage scale — grow until ~50% then shrink down to slot size.
-      const scale = eased < 0.5
-        ? 1 + (apexScale - 1) * (eased / 0.5)
-        : apexScale + (slotScale - apexScale) * ((eased - 0.5) / 0.5);
+    return new Promise<void>((resolve) => {
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - startTime) / duration);
+        const eased = easeOutCubic(t);
+        // Position via rAF: directly mutate the overlay's transform.
+        const dx = from.x + (to.x - from.x) * eased;
+        const dy = from.y + (to.y - from.y) * eased;
+        // Parabolic arc — peak rises the higher of the two endpoints by ~80px,
+        // scaled by horizontal travel so very short flights stay subtle.
+        const travel = Math.hypot(to.x - from.x, to.y - from.y);
+        const arcAmt = Math.min(120, travel * 0.45);
+        const arcOffset = Math.sin(eased * Math.PI) * arcAmt;
+        // Rotation curve — slight tilt toward direction of travel mid-flight.
+        const dirSign = Math.sign(to.x - from.x) || 1;
+        const rot = Math.sin(eased * Math.PI) * 12 * dirSign;
+        // Scale: a slight grow at apex, then shrink to slot size for the snap.
+        const apexScale = 1.08;
+        const slotScale = Math.max(0.6, slotRect.width / cardW);
+        // Two-stage scale — grow until ~50% then shrink down to slot size.
+        const scale = eased < 0.5
+          ? 1 + (apexScale - 1) * (eased / 0.5)
+          : apexScale + (slotScale - apexScale) * ((eased - 0.5) / 0.5);
 
-      const el = overlayRef.current;
-      if (el) {
-        el.style.transform =
-          `translate3d(${dx}px, ${dy - arcOffset}px, 0) ` +
-          `rotate(${rot}deg) scale(${scale})`;
-        el.style.opacity = String(1 - Math.max(0, eased - 0.85) * 4);
-      }
+        const el = overlayRef.current;
+        if (el) {
+          el.style.transform =
+            `translate3d(${dx}px, ${dy - arcOffset}px, 0) ` +
+            `rotate(${rot}deg) scale(${scale})`;
+          el.style.opacity = String(1 - Math.max(0, eased - 0.85) * 4);
+        }
 
-      if (t < 1) {
-        flyingFrameRef.current = requestAnimationFrame(tick);
-      } else {
-        flyingFrameRef.current = null;
-        const pending = pendingBindRef.current;
-        pendingBindRef.current = null;
-        setFlying(null);
-        if (pending) commitBind(pending.handIndex, pending.slotIndex);
-      }
-    };
+        if (t < 1) {
+          flyingFrameRef.current = requestAnimationFrame(tick);
+        } else {
+          flyingFrameRef.current = null;
+          const pending = pendingBindRef.current;
+          pendingBindRef.current = null;
+          setFlying(null);
+          if (pending) commitBind(pending.handIndex, pending.slotIndex);
+          resolve();
+        }
+      };
 
-    // If a previous flight is still in progress, commit it immediately so
-    // its bind doesn't get lost when we replace the rAF loop.
-    if (flyingFrameRef.current !== null) {
-      cancelAnimationFrame(flyingFrameRef.current);
-      const stale = pendingBindRef.current;
-      if (stale) {
-        pendingBindRef.current = null;
-        commitBind(stale.handIndex, stale.slotIndex);
+      // If a previous flight is still in progress, commit it immediately so
+      // its bind doesn't get lost when we replace the rAF loop.
+      if (flyingFrameRef.current !== null) {
+        cancelAnimationFrame(flyingFrameRef.current);
+        const stale = pendingBindRef.current;
+        if (stale) {
+          pendingBindRef.current = null;
+          commitBind(stale.handIndex, stale.slotIndex);
+        }
       }
-    }
-    flyingFrameRef.current = requestAnimationFrame(tick);
+      flyingFrameRef.current = requestAnimationFrame(tick);
+    });
   }
 
   function handleSlotClick(slotIndex: number): void {
+    if (isDealing || animating) return;
     // Priority 1: a card is selected → bind it to this slot.
     if (selectedHandIdx !== null) {
       handleBindToSlot(selectedHandIdx, slotIndex);
@@ -1034,6 +1091,7 @@ export default function CombatView({
   }
 
   function handleCardClick(realHandIndex: number): void {
+    if (isDealing || animating) return;
     setSelectedHandIdx(prev => {
       if (prev !== realHandIndex) {
         // First click — just select the card.
@@ -1050,6 +1108,110 @@ export default function CombatView({
       // Either way, deselect — the bind animation will commit the engine state.
       return null;
     });
+  }
+
+  // Auto-battle solver — picks the best assignment of hand cards to empty slots,
+  // then plays each card placement as a full flying animation (one at a time,
+  // sequential) exactly like a real player would, then fires END TURN.
+  //
+  // Strategy (scored permutation search):
+  //   Score each candidate assignment using the real combo multiplier functions
+  //   (Onslaught, Relentless, Triadic). The search space is tiny (hand ≤ 8,
+  //   slots ≤ 4 → worst case 1680 permutations) so brute-force is instant.
+  async function handleAutoBattle(): Promise<void> {
+    if (animating || isDealing) return;
+
+    const state = runner.state;
+    const emptySlotIdxs = state.slots
+      .map((s, i) => ({ s, i }))
+      .filter(({ s }) => !s.bound)
+      .map(({ i }) => i);
+
+    // Action cards only — tactics aren't placed in slots.
+    const actionHandIdxs: number[] = [];
+    for (let i = 0; i < state.hand.length; i++) {
+      if (getAction(state.hand[i] ?? '')) actionHandIdxs.push(i);
+    }
+
+    const slotsToFill = Math.min(emptySlotIdxs.length, actionHandIdxs.length);
+    if (slotsToFill === 0) {
+      handleEndTurn(true);
+      return;
+    }
+
+    // Score a candidate assignment using the same combo formulas as the preview.
+    function scoreAssignment(pairs: Array<{ handIdx: number; slotIdx: number }>): number {
+      const typeCounts = new Map<string, number>();
+      for (const slot of state.slots) {
+        if (slot.bound && slot.bound.charge <= 1) {
+          typeCounts.set(slot.bound.damageType, (typeCounts.get(slot.bound.damageType) ?? 0) + 1);
+        }
+      }
+      const candidateDefs: Array<{ damage: number; damageType: string; charge: number; hits: number }> = [];
+      for (const { handIdx } of pairs) {
+        const cardId = state.hand[handIdx] ?? '';
+        const def = getAction(cardId);
+        if (!def) continue;
+        candidateDefs.push({ damage: def.damage, damageType: def.damageType, charge: def.charge, hits: def.hits ?? 1 });
+        if (def.charge <= 0) {
+          typeCounts.set(def.damageType, (typeCounts.get(def.damageType) ?? 0) + 1);
+        }
+      }
+      const distinctTypes = typeCounts.size;
+      const tMult = triadicStrikeMultiplier(distinctTypes);
+      const tBonus = triadicStrikeBonus(distinctTypes);
+      const triadicActive = distinctTypes >= 3;
+      const allOneType = distinctTypes === 1;
+      const streakType = state.relentlessType;
+      const firstType = typeCounts.keys().next().value as string | undefined;
+      const carriedRelentless = allOneType && (streakType === null || streakType === firstType);
+      const rMult = carriedRelentless ? relentlessMultiplier(state.relentlessStreak) : 1;
+      let total = 0;
+      for (const c of candidateDefs) {
+        if (c.charge > 0) { total += c.damage * 0.15; continue; }
+        const sameCount = typeCounts.get(c.damageType) ?? 1;
+        const onMult = onslaughtMultiplier(sameCount);
+        const base = c.damage * c.hits;
+        total += Math.round(base * onMult * rMult * tMult) + (triadicActive ? tBonus : 0);
+      }
+      return total;
+    }
+
+    // Find the best assignment via permutation search.
+    let bestScore = -1;
+    let bestPairs: Array<{ handIdx: number; slotIdx: number }> = [];
+    function permute(chosen: number[], remaining: number[]): void {
+      if (chosen.length === slotsToFill) {
+        const pairs = chosen.map((handIdx, pi) => ({ handIdx, slotIdx: emptySlotIdxs[pi]! }));
+        const score = scoreAssignment(pairs);
+        if (score > bestScore) { bestScore = score; bestPairs = pairs; }
+        return;
+      }
+      for (let i = 0; i < remaining.length; i++) {
+        permute([...chosen, remaining[i]!], remaining.filter((_, j) => j !== i));
+      }
+    }
+    permute([], actionHandIdxs);
+
+    // Play each placement as a real animated card flight, one at a time.
+    // Because each flight removes a card from the hand, hand indices shift
+    // downward for every card placed — we sort by original handIdx ascending
+    // and track the running offset.
+    const sortedPairs = [...bestPairs].sort((a, b) => a.handIdx - b.handIdx);
+    let offset = 0;
+    for (const { handIdx, slotIdx } of sortedPairs) {
+      // Wait one frame so React has committed the updated hand/slot DOM from
+      // the previous bind before we read the next card's getBoundingClientRect.
+      await new Promise<void>(r => requestAnimationFrame(() => r()));
+      await handleBindToSlot(handIdx - offset, slotIdx);
+      offset++;
+      // Brief pause between placements — feels like a human thinking.
+      await new Promise<void>(r => setTimeout(r, 120));
+    }
+
+    // Short pause after last card lands before END TURN fires.
+    await new Promise<void>(r => setTimeout(r, 220));
+    handleEndTurn(true);
   }
 
   function handleEnemySelect(enemyId: string): void {
@@ -1141,68 +1303,178 @@ export default function CombatView({
   // their projectiles launch together.
   const [windingUpSlots, setWindingUpSlots] = useState<Set<number>>(new Set());
 
-  // Card-draw animation. When the hand changes (engine drew new cards
-  // after endTurn, or Ember Dash drew one), each new card mounts with
-  // its index in `drawingCards` set true. A per-card setTimeout (staggered
-  // by index) then removes that index — the card's CSS `transition` on
-  // `transform` glides it from its offset start position to the fan slot.
-  // A `cardDraw` SFX plays at each card's launch moment so each card has
-  // an audible card-slip cue.
-  // Initialize drawingCards with every starting-hand index so the very
-  // first paint shows the cards in their displaced "off-screen" position.
-  // Without this initializer, the cards would briefly render at their
-  // fan position on first mount, then snap down to the displaced state
-  // when the useEffect fires — producing a one-frame flicker. With it,
-  // mount → first paint shows cards off-screen → effect schedules their
-  // landing via timeouts → CSS transition glides them home.
+  // ── Card-deal animation system ────────────────────────────────────────────
+  // Cards are dealt one-at-a-time at the start of each turn: each card flies
+  // from the deck-pile position (bottom-right of the viewport) to its fan
+  // slot using a rAF tween (same approach as handleBindToSlot bind anim).
+  //
+  // `drawingCards`  — Set of hand indices whose DOM card should stay hidden
+  //                   (invisible) because the deal overlay is still in flight
+  //                   for them, or they haven't been dealt yet this phase.
+  // `isDealing`     — true while ANY card is in-flight or queued; blocks all
+  //                   player input (clicks, end turn, auto battle).
+  // `dealOverlay`   — the single in-flight deal card rendered as a fixed-pos
+  //                   overlay that rAF drives to the destination.
+
   const [drawingCards, setDrawingCards] = useState<Set<number>>(() => {
+    // Start with all opening-hand indices hidden — dealOpeningHand fires on
+    // mount and animates them in sequentially.
     const initial = new Set<number>();
     for (let i = 0; i < runner.state.hand.length; i++) initial.add(i);
     return initial;
   });
-  const prevHandRef = useRef<string[]>([]);
+
+  const [isDealing, setIsDealing] = useState(true); // locked until opening deal done
+
+  const [dealOverlay, setDealOverlay] = useState<null | {
+    def: NonNullable<ReturnType<typeof getAction>>;
+    cardW: number; cardH: number;
+    from: { x: number; y: number };
+    to:   { x: number; y: number };
+    flipped: boolean; // true once card face should show (mid-flight flip)
+  }>(null);
+  const dealOverlayRef = useRef<HTMLDivElement | null>(null);
+  const dealFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const currentHand = runner.state.hand;
-    const prev = prevHandRef.current;
-    const newDraws: number[] = [];
-    for (let i = 0; i < currentHand.length; i++) {
-      if (prev[i] !== currentHand[i]) newDraws.push(i);
-    }
-    if (newDraws.length > 0) {
-      // First mount = the run's opening deal. Every card in the starting
-      // hand counts as "new" against an empty prev array, so they all
-      // animate in. Mid-game draws (after endTurn or Ember Dash) work the
-      // same way — only the changed indices animate.
-      const isOpeningDeal = prev.length === 0;
-      // Stagger paced enough to read each card individually. Opening deal
-      // gets a slightly slower stagger because it's typically 5+ cards
-      // and the player should see the "dealing in" beat.
-      const stagger = isOpeningDeal ? 140 : 110;
-      // Brief delay before the first card on opening so the player sees
-      // the empty hand area for a beat — gives the deal a sense of
-      // anticipation rather than starting mid-animation on mount.
-      const initialDelay = isOpeningDeal ? 200 : 0;
+    return () => { if (dealFrameRef.current) cancelAnimationFrame(dealFrameRef.current); };
+  }, []);
 
-      setDrawingCards(prev2 => {
-        const next = new Set(prev2);
-        for (const idx of newDraws) next.add(idx);
-        return next;
-      });
-      newDraws.forEach((idx, n) => {
-        const delay = initialDelay + n * stagger;
-        setTimeout(() => {
-          sfx.cardDraw();
-          setDrawingCards(prev2 => {
-            const next = new Set(prev2);
-            next.delete(idx);
-            return next;
-          });
-        }, delay);
-      });
+  // Animate one card from `from` (deck origin) to `to` (fan slot rect).
+  // Returns a promise that resolves when the card lands.
+  function animateDealCard(
+    def: NonNullable<ReturnType<typeof getAction>>,
+    cardW: number, cardH: number,
+    from: { x: number; y: number },
+    to:   { x: number; y: number },
+  ): Promise<void> {
+    return new Promise<void>(resolve => {
+      setDealOverlay({ def, cardW, cardH, from, to, flipped: false });
+
+      const duration = 420;
+      const flipAt   = 0.45; // fraction of flight where card face reveals
+      const startTime = performance.now();
+
+      const tick = (now: number) => {
+        const t      = Math.min(1, (now - startTime) / duration);
+        const eased  = easeOutCubic(t);
+
+        const dx = from.x + (to.x - from.x) * eased;
+        const dy = from.y + (to.y - from.y) * eased;
+
+        // Parabolic arc — card rises toward the player's hand.
+        const travel   = Math.hypot(to.x - from.x, to.y - from.y);
+        const arcAmt   = Math.min(160, travel * 0.5);
+        const arcOffset = Math.sin(eased * Math.PI) * arcAmt;
+
+        // Slight clockwise rotation that straightens as it arrives.
+        const dirSign  = Math.sign(to.x - from.x) || -1;
+        const rot      = (1 - eased) * 18 * dirSign;
+
+        // Scale: card grows slightly as it crosses mid-screen, then lands at 1.
+        const apexScale = 1.12;
+        const sc = eased < 0.5
+          ? 1 + (apexScale - 1) * (eased / 0.5)
+          : apexScale + (1 - apexScale) * ((eased - 0.5) / 0.5);
+
+        const el = dealOverlayRef.current;
+        if (el) {
+          el.style.transform =
+            `translate3d(${dx}px, ${dy - arcOffset}px, 0) ` +
+            `rotate(${rot}deg) scale(${sc})`;
+          el.style.opacity = String(t < 0.95 ? 1 : 1 - (t - 0.95) / 0.05);
+        }
+
+        // Flip the card face-up at the midpoint.
+        if (t >= flipAt) {
+          setDealOverlay(prev => prev && !prev.flipped ? { ...prev, flipped: true } : prev);
+        }
+
+        if (t < 1) {
+          dealFrameRef.current = requestAnimationFrame(tick);
+        } else {
+          dealFrameRef.current = null;
+          setDealOverlay(null);
+          resolve();
+        }
+      };
+
+      if (dealFrameRef.current) cancelAnimationFrame(dealFrameRef.current);
+      dealFrameRef.current = requestAnimationFrame(tick);
+    });
+  }
+
+  // Deal `indices` sequentially. Called from handleEndTurn (post-resolve) and
+  // on mount for the opening hand.
+  async function dealNewCards(indices: number[]): Promise<void> {
+    if (indices.length === 0) return;
+    setIsDealing(true);
+    // Mark all indices as hidden so they don't show in the fan prematurely.
+    setDrawingCards(prev => {
+      const next = new Set(prev);
+      for (const idx of indices) next.add(idx);
+      return next;
+    });
+
+    // Measure the viewport so we can place the deck origin at bottom-right.
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Deck pile sits at bottom-right corner — card back stack visual.
+    const deckOrigin = { x: vw - 60, y: vh - 60 };
+
+    // Determine card dimensions from the first available cardRef, or use a default.
+    const firstRef = cardRefs.current.get(indices[0] ?? -1)
+      ?? (cardRefs.current.values().next().value as HTMLDivElement | undefined);
+    const sampleW = firstRef?.offsetWidth  ?? 82;
+    const sampleH = firstRef?.offsetHeight ?? 115;
+
+    for (const idx of indices) {
+      // Wait a frame so React has committed the hand render for this index
+      // before we read its DOM rect.
+      await new Promise<void>(r => requestAnimationFrame(() => r()));
+
+      const cardEl = cardRefs.current.get(idx);
+      let to = { x: vw / 2 - sampleW / 2, y: vh - sampleH - 80 }; // fallback center-bottom
+      if (cardEl) {
+        const rect = cardEl.getBoundingClientRect();
+        to = { x: rect.left, y: rect.top };
+      }
+
+      const def = getAction(runner.state.hand[idx] ?? '');
+      if (!def) {
+        // Non-action card (tactic) — just unhide it instantly.
+        setDrawingCards(prev => { const n = new Set(prev); n.delete(idx); return n; });
+        continue;
+      }
+
+      sfx.cardDraw();
+      await animateDealCard(def, sampleW, sampleH, deckOrigin, to);
+
+      // Reveal the real card in the fan and remove from hidden set.
+      setDrawingCards(prev => { const n = new Set(prev); n.delete(idx); return n; });
+      repaint();
+
+      // Brief pause between each card — like a human dealing.
+      if (indices.indexOf(idx) < indices.length - 1) {
+        await new Promise<void>(r => setTimeout(r, 80));
+      }
     }
-    prevHandRef.current = [...currentHand];
-  }, [runner.state.hand]);
+
+    setIsDealing(false);
+  }
+
+  // Opening deal — fires once on mount.
+  const openingDealFiredRef = useRef(false);
+  useEffect(() => {
+    if (openingDealFiredRef.current) return;
+    openingDealFiredRef.current = true;
+    const indices: number[] = [];
+    for (let i = 0; i < runner.state.hand.length; i++) indices.push(i);
+    // Brief pause before first card so the board settles.
+    setTimeout(() => { void dealNewCards(indices); }, 350);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Ghost-binding map — preserves slot → cardId across the resolve animation.
   // The engine clears slot bindings the moment endTurn() runs (before the
@@ -1232,6 +1504,67 @@ export default function CombatView({
   const hpRatio = Math.max(0, shownPlayerHp / Math.max(1, p.stats.maxHp));
   const lowHp = hpRatio < 0.25;
   const playerFlashing = hitFlashes.has('__player__');
+
+  // Decorative golden sigil border strip — rendered at top and bottom of the
+  // battle screen. Inline JSX so it can't be clipped by pseudo-element rules.
+  function SigilBorder({ position }: { position: 'top' | 'bottom' }) {
+    const glyphs = '◆  ✦  ✦  ◆  ✦  ✦  ◆  ✦  ✦  ◆  ✦  ✦  ◆  ✦  ✦  ◆';
+    return (
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          left: 0, right: 0,
+          [position]: 0,
+          height: 20,
+          zIndex: 30,
+          pointerEvents: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          justifyContent: position === 'top' ? 'flex-start' : 'flex-end',
+        }}
+      >
+        {/* Glow halo — wide soft bloom behind the line */}
+        <div style={{
+          position: 'absolute',
+          left: 0, right: 0,
+          [position]: 0,
+          height: 18,
+          background: position === 'top'
+            ? 'linear-gradient(180deg, rgba(251,191,36,0.18) 0%, rgba(251,191,36,0.06) 60%, transparent 100%)'
+            : 'linear-gradient(0deg,   rgba(251,191,36,0.18) 0%, rgba(251,191,36,0.06) 60%, transparent 100%)',
+          pointerEvents: 'none',
+        }} />
+        {/* The golden shimmer line itself */}
+        <div
+          className="sb-sigil-line"
+          style={{
+            height: 2,
+            flexShrink: 0,
+            boxShadow: '0 0 6px rgba(251,191,36,0.8), 0 0 14px rgba(251,191,36,0.4)',
+          }}
+        />
+        {/* Glyph row — sits just inside (below top line / above bottom line) */}
+        <div style={{
+          textAlign: 'center',
+          fontSize: 7,
+          letterSpacing: '1em',
+          color: '#fbbf24',
+          opacity: 0.7,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textShadow: '0 0 5px rgba(251,191,36,0.9)',
+          lineHeight: '10px',
+          height: 10,
+          flexShrink: 0,
+          paddingLeft: '0.5em',
+        }}>
+          {glyphs}
+        </div>
+      </div>
+    );
+  }
 
   // === Shared subcomponents ===
 
@@ -1324,7 +1657,9 @@ export default function CombatView({
   };
 
 
-  function EnemyCard({ e, cardW }: { e: EnemyState; cardW: number; cardH: number }) {
+  function EnemyCard({ e, cardW, cardH, isBossEnemy }: {
+    e: EnemyState; cardW: number; cardH: number; isBossEnemy?: boolean;
+  }) {
     // While an animation is running, override the displayed HP to whatever
     // the current sequencer step has set. Falls back to live engine state.
     const animatedHp = displayedEnemyHp[e.id];
@@ -1353,15 +1688,33 @@ export default function CombatView({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 4,
+          gap: isBossEnemy ? 6 : 4,
           flexShrink: 0,
           opacity: dead ? 0.4 : 1,
           filter: dead ? 'grayscale(1)' : flashing ? 'brightness(1.4) saturate(1.4)' : 'none',
           transition: 'opacity 200ms ease, filter 160ms ease',
           cursor: dead ? 'default' : (multipleEnemies ? 'pointer' : 'default'),
           animation: dead ? 'none' : 'breathe 2.5s ease-in-out infinite',
+          // Boss card sits slightly lower so its top aligns with minion tops
+          // despite being taller — gives it a "rising from the earth" feel.
+          alignSelf: isBossEnemy ? 'flex-end' : undefined,
         }}
       >
+        {/* Boss crown badge */}
+        {isBossEnemy && !dead && (
+          <div style={{
+            fontFamily: 'var(--sb-font-display)',
+            fontSize: 10,
+            fontWeight: 800,
+            letterSpacing: '0.22em',
+            color: '#fbbf24',
+            textShadow: '0 0 10px rgba(251,191,36,0.8), 0 1px 2px rgba(0,0,0,0.9)',
+            marginBottom: -2,
+          }}>
+            ♛ BOSS
+          </div>
+        )}
+
         {/* Intent telegraph — floats above the card so the player can plan. */}
         <div
           className="sb-mono"
@@ -1369,33 +1722,44 @@ export default function CombatView({
             padding: '3px 8px',
             background: dead
               ? 'rgba(60,30,15,0.7)'
-              : 'linear-gradient(180deg, #2a1810 0%, #1a0f0a 100%)',
-            border: `1.5px solid ${dead ? '#5b3a1f' : 'var(--sb-bronze)'}`,
+              : isBossEnemy
+                ? 'linear-gradient(180deg, #3d1a0a 0%, #1a0f0a 100%)'
+                : 'linear-gradient(180deg, #2a1810 0%, #1a0f0a 100%)',
+            border: `1.5px solid ${dead ? '#5b3a1f' : isBossEnemy ? '#fbbf24' : 'var(--sb-bronze)'}`,
             borderRadius: 4,
-            color: dead ? '#7f1d1d' : 'var(--sb-gold)',
-            fontSize: 11,
+            color: dead ? '#7f1d1d' : isBossEnemy ? '#fde68a' : 'var(--sb-gold)',
+            fontSize: isBossEnemy ? 12 : 11,
             fontWeight: 700,
             letterSpacing: '0.04em',
-            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+            textShadow: isBossEnemy ? '0 0 6px rgba(251,191,36,0.5), 0 1px 2px rgba(0,0,0,0.8)' : '0 1px 2px rgba(0,0,0,0.8)',
             whiteSpace: 'nowrap',
+            maxWidth: cardW + 8,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            boxShadow: isBossEnemy && !dead ? '0 0 12px rgba(251,191,36,0.3)' : 'none',
           }}
         >
           {dead ? '💀 SLAIN' : intentDisplay(e.intent)}
         </div>
 
-        {/* The universal enemy card. Falls back to a sprite-only card if the
-            EnemyDef can't be found (defensive — should never happen in prod). */}
-        {def ? (
-          <EnemyCardDisplay
-            enemy={def}
-            customWidth={cardW}
-            currentHp={shownHp}
-            selected={selected}
-            onClick={dead ? undefined : () => handleEnemySelect(e.id)}
-          />
-        ) : (
-          <div style={{ width: cardW, height: cardW * 1.4, background: '#222', borderRadius: 8 }} />
-        )}
+        {/* The universal enemy card. Boss gets a golden glow wrapper. */}
+        <div style={isBossEnemy && !dead ? {
+          borderRadius: 10,
+          boxShadow: '0 0 0 2px #fbbf24, 0 0 24px rgba(251,191,36,0.45), 0 0 48px rgba(185,28,28,0.3)',
+          flexShrink: 0,
+        } : undefined}>
+          {def ? (
+            <EnemyCardDisplay
+              enemy={def}
+              customWidth={cardW}
+              currentHp={shownHp}
+              selected={selected}
+              onClick={dead ? undefined : () => handleEnemySelect(e.id)}
+            />
+          ) : (
+            <div style={{ width: cardW, height: cardH, background: '#222', borderRadius: 8 }} />
+          )}
+        </div>
 
         {selected && (
           <div
@@ -1419,71 +1783,66 @@ export default function CombatView({
     );
   }
 
-  function SigilSlot({ slot, slotIdx, size }: {
-    slot: typeof runner.state.slots[number]; slotIdx: number; size: number;
+  // Damage-type accent colors for slot card tinting.
+  const dmgTypeColor = (t: string): string => {
+    switch (t) {
+      case 'pyre':   return '#f97316';
+      case 'frost':  return '#7ec4ff';
+      case 'arcane': return '#c084fc';
+      case 'pierce': return '#fde68a';
+      case 'dark':   return '#a78bfa';
+      case 'nature': return '#4ade80';
+      case 'holy':   return '#fde68a';
+      case 'thunder':return '#facc15';
+      case 'steel':
+      default:       return '#cbd5e1';
+    }
+  };
+
+  // Slot card — redesigned rectangular card replacing the hexagon.
+  // Shows: card emoji + name, damage preview, charge pips, damage-type color.
+  function SigilSlot({ slot, slotIdx, cardW, cardH }: {
+    slot: typeof runner.state.slots[number]; slotIdx: number; cardW: number; cardH: number;
   }) {
-    // Resolve which card is "in" the slot — prefer the live binding, fall
-    // back to the ghost binding (set during animation when the engine has
-    // already emptied the slot but the wind-up + flight haven't finished).
     const ghostCardId = ghostBindings.get(slotIdx);
     const liveCardDef = slot.bound ? getAction(slot.bound.cardId) : null;
     const ghostCardDef = !slot.bound && ghostCardId ? getAction(ghostCardId) : null;
     const def = liveCardDef ?? ghostCardDef;
-    // The slot visually "has a card" if either the live binding or the
-    // ghost is present.
-    const hasCardInSlot = !!def;
-    // After a strike resolves we mark the ghost as "consumed" — fades the
-    // icon out so the player sees feedback that the card has fired.
+    const hasCard = !!def;
     const ghostResolved = !slot.bound && resolvedGhostSlots.has(slotIdx);
 
     const ready = slot.bound && slot.bound.charge === 0;
     const hovered = hoverSlotIdx === slotIdx && draggingHandIdx !== null;
-    // Returnable: bound this turn → tap retrieves the card.
     const returnable = !!slot.bound && runner.canReturnSlotToHand(slotIdx);
-    // Locked: bound but from a previous turn — visually marked, not tappable.
     const locked = !!slot.bound && !returnable;
     const armed = draggingHandIdx !== null || selectedHandIdx !== null;
     const tappable = armed || returnable;
-    // Combo color + wind-up state.
     const comboColor = !!slot.bound ? comboColorFor(slotIdx) : null;
     const windingUp = windingUpSlots.has(slotIdx);
 
+    // Damage preview for this slot.
+    const dmgInfo = slotDamagePreview[slotIdx];
+    const typeColor = slot.bound ? dmgTypeColor(slot.bound.damageType) : '#94a3b8';
+    const charge = slot.bound ? slot.bound.charge : 0;
+
+    // Animation class.
+    const animClass = windingUp
+      ? 'sb-slot-windup'
+      : comboColor && !locked
+        ? 'sb-slot-combo'
+        : (ready && hasCard ? 'sb-slot-ready' : '');
+
     const borderColor = comboColor && !locked
       ? comboColor
-      : ready
-        ? 'var(--sb-crimson-light)'
-        : locked
-          ? '#5b3a1f'
-          : (slot.bound ? 'var(--sb-gold)' : 'var(--sb-bronze)');
+      : locked ? '#5b3a1f'
+      : ready ? 'var(--sb-crimson-light)'
+      : hasCard ? 'var(--sb-gold)'
+      : 'rgba(180,83,9,0.4)';
 
-    const title = locked
-      ? 'Locked — bound on a previous turn'
-      : returnable
-        ? 'Tap to return to hand'
-        : armed
-          ? 'Tap to bind'
-          : '';
-
-    // Box-shadow priority: wind-up pulse > combo glow > ready/bound/locked.
-    let boxShadow: string;
-    if (windingUp && comboColor) {
-      boxShadow = `0 0 36px ${comboColor}, 0 0 18px ${comboColor}, inset 0 0 0 2px ${comboColor}cc`;
-    } else if (comboColor && !locked) {
-      // Hex-to-rgba isn't worth a helper for two values; use raw rgba blends.
-      boxShadow = `0 0 22px ${comboColor}aa, inset 0 0 0 1px ${comboColor}66`;
-    } else if (ready) {
-      boxShadow = '0 0 22px rgba(220,38,38,0.55), inset 0 0 0 1px rgba(255,235,180,0.25)';
-    } else if (locked) {
-      boxShadow = 'inset 0 0 0 1px rgba(91,58,31,0.6), 0 2px 6px rgba(0,0,0,0.7)';
-    } else {
-      boxShadow = slot.bound ? '0 0 14px rgba(251,191,36,0.5)' : 'inset 0 0 0 1px rgba(180,83,9,0.4)';
-    }
-
-    // Combo-pulse animation classes — soft pulse during plan phase, faster
-    // pulse during the wind-up moment before launch.
-    const comboPulseClass = windingUp
-      ? 'sb-combo-windup'
-      : (comboColor ? 'sb-combo-pulse' : '');
+    const title = locked ? 'Locked — bound on a previous turn'
+      : returnable ? 'Tap to return to hand'
+      : armed ? 'Tap to bind card'
+      : '';
 
     return (
       <div
@@ -1505,81 +1864,195 @@ export default function CombatView({
           if (Number.isFinite(handIdx)) handleBindToSlot(handIdx, slotIdx);
         }}
         title={title}
-        className={comboPulseClass}
+        className={animClass}
         style={{
           position: 'relative',
-          width: size, height: size,
-          clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-          background: locked
-            ? 'linear-gradient(180deg, #1a120a 0%, #0a0604 100%)'
-            : 'linear-gradient(180deg, #2a1810 0%, #1a0f0a 100%)',
-          border: `2.5px solid ${borderColor}`,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          cursor: tappable ? 'pointer' : (locked ? 'not-allowed' : 'default'),
-          boxShadow,
-          transform: hovered ? 'scale(1.07)' : 'scale(1)',
-          transition: 'transform 120ms ease, box-shadow 200ms ease, border-color 200ms ease',
+          width: cardW,
+          height: cardH,
+          borderRadius: 8,
+          background: !hasCard
+            ? 'linear-gradient(180deg, rgba(20,12,8,0.7) 0%, rgba(10,6,4,0.8) 100%)'
+            : locked
+              ? 'linear-gradient(180deg, #1a120a 0%, #0c0804 100%)'
+              : comboColor
+                ? `linear-gradient(180deg, color-mix(in srgb, ${comboColor} 18%, #1a0f0a) 0%, #1a0f0a 100%)`
+                : `linear-gradient(180deg, color-mix(in srgb, ${typeColor} 10%, #2a1810) 0%, #1a0f0a 100%)`,
+          border: `2px solid ${borderColor}`,
+          cursor: tappable ? 'pointer' : locked ? 'not-allowed' : 'default',
+          transform: hovered ? 'scale(1.06) translateY(-3px)' : 'scale(1)',
+          transition: 'transform 120ms ease, border-color 200ms ease',
+          filter: locked ? 'saturate(0.45)' : 'none',
           flexShrink: 0,
-          // Slight desaturation on locked so it reads as inert.
-          filter: locked ? 'saturate(0.5)' : 'none',
-        }}
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          ['--slot-combo-color' as string]: comboColor ?? '#ff5757',
+        } as React.CSSProperties}
       >
-        {/* Bound card image fills the hex; emoji is the fallback. */}
-        {hasCardInSlot && def && (
-          <SigilSlotCardArt cardId={def.id} emoji={def.emoji} size={size} dimmed={locked} />
-        )}
+        {/* ── Top accent bar — colored by damage type / combo ── */}
         <div style={{
-          pointerEvents: 'none',
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          position: 'relative',
-          opacity: ghostResolved ? 0 : 1,
-          transition: 'opacity 350ms ease-out',
-        }}>
-          {hasCardInSlot && def ? (
-            <div className="sb-mono" style={{
-              marginTop: size * 0.55, fontSize: size < 80 ? 10 : 12, fontWeight: 800,
-              padding: '2px 6px',
-              background: 'rgba(0,0,0,0.78)',
-              borderRadius: 4,
-              border: `1px solid ${ready ? 'var(--sb-crimson-light)' : (locked ? '#8b6238' : 'var(--sb-gold)')}`,
-              color: ready ? 'var(--sb-crimson-light)' : (locked ? '#8b6238' : 'var(--sb-gold)'),
-              textShadow: '0 1px 2px rgba(0,0,0,0.95)',
-              letterSpacing: '0.04em',
-            }}>
-              {ready || !slot.bound ? '⚡ READY' : `⏱ ${slot.bound.charge}`}
-            </div>
+          height: 3,
+          background: comboColor ?? typeColor,
+          opacity: hasCard ? 1 : 0.2,
+          boxShadow: hasCard ? `0 0 8px ${comboColor ?? typeColor}` : 'none',
+          flexShrink: 0,
+          transition: 'background 200ms ease, opacity 200ms ease',
+        }} />
+
+        {/* ── Card content ── */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: hasCard ? 'space-between' : 'center',
+            padding: '4px 4px 5px',
+            opacity: ghostResolved ? 0 : 1,
+            transition: 'opacity 350ms ease-out',
+            position: 'relative',
+          }}
+        >
+          {hasCard && def ? (
+            <>
+              {/* Slot number badge — top-left */}
+              <div style={{
+                position: 'absolute', top: 0, left: 2,
+                fontFamily: 'var(--sb-font-mono)',
+                fontSize: 8,
+                color: 'rgba(255,235,180,0.35)',
+                letterSpacing: '0.04em',
+                lineHeight: 1,
+              }}>
+                {slotIdx + 1}
+              </div>
+
+              {/* Lock / return badge — top-right */}
+              {locked && (
+                <div style={{ position: 'absolute', top: 0, right: 2, fontSize: cardH < 80 ? 9 : 11, lineHeight: 1 }}>
+                  🔒
+                </div>
+              )}
+              {returnable && !locked && (
+                <div style={{
+                  position: 'absolute', top: 0, right: 2,
+                  fontFamily: 'var(--sb-font-mono)',
+                  fontSize: 8, color: 'var(--sb-gold-light)', opacity: 0.7,
+                }}>↩</div>
+              )}
+
+              {/* Card emoji — large, centered */}
+              <div style={{
+                fontSize: cardH < 80 ? 18 : 24,
+                lineHeight: 1,
+                filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.8)) drop-shadow(0 0 6px ${typeColor}88)`,
+                marginTop: 6,
+                flexShrink: 0,
+              }}>
+                {def.emoji}
+              </div>
+
+              {/* Card name — truncated */}
+              <div style={{
+                fontFamily: 'var(--sb-font-display)',
+                fontSize: cardH < 80 ? 7 : 8,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                color: 'var(--sb-gold-light)',
+                textAlign: 'center',
+                lineHeight: 1.1,
+                maxWidth: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                padding: '0 2px',
+                flexShrink: 0,
+              }}>
+                {def.name.toUpperCase()}
+              </div>
+
+              {/* Bottom row: damage + charge pips */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '0 2px',
+                gap: 2,
+                flexShrink: 0,
+              }}>
+                {/* Damage preview */}
+                <div style={{
+                  fontFamily: 'var(--sb-font-mono)',
+                  fontSize: cardH < 80 ? 9 : 11,
+                  fontWeight: 800,
+                  color: dmgInfo?.combo ? (comboColor ?? typeColor) : (ready ? 'var(--sb-crimson-light)' : typeColor),
+                  textShadow: dmgInfo?.combo ? `0 0 8px ${comboColor ?? typeColor}` : 'none',
+                  letterSpacing: '0.02em',
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}>
+                  {dmgInfo ? `⚔${dmgInfo.effective}` : (slot.bound ? `⚔${slot.bound.damage}` : '')}
+                </div>
+
+                {/* Charge pips */}
+                <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexShrink: 0 }}>
+                  {ready ? (
+                    <div style={{
+                      fontFamily: 'var(--sb-font-mono)',
+                      fontSize: 7,
+                      color: 'var(--sb-crimson-light)',
+                      fontWeight: 800,
+                      letterSpacing: '0.06em',
+                      textShadow: '0 0 6px rgba(220,38,38,0.8)',
+                    }}>▶</div>
+                  ) : charge > 0 ? (
+                    Array.from({ length: Math.min(charge, 4) }).map((_, i) => (
+                      <span
+                        key={i}
+                        className="sb-charge-pip"
+                        style={{ '--pip-color': typeColor } as React.CSSProperties}
+                      />
+                    ))
+                  ) : null}
+                </div>
+              </div>
+            </>
           ) : (
-            <div className="sb-display" style={{ fontSize: size * 0.4, color: 'rgba(180,83,9,0.55)' }}>⬡</div>
+            /* Empty slot — dashed invite */
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 4,
+              opacity: hovered ? 0.8 : 0.3,
+              transition: 'opacity 150ms ease',
+            }}>
+              <div style={{ fontFamily: 'var(--sb-font-display)', fontSize: cardH < 80 ? 16 : 22, color: 'rgba(180,83,9,0.6)' }}>
+                ⬡
+              </div>
+              <div style={{
+                fontFamily: 'var(--sb-font-mono)',
+                fontSize: 7,
+                color: 'rgba(255,235,180,0.4)',
+                letterSpacing: '0.1em',
+                lineHeight: 1,
+              }}>
+                {slotIdx + 1}
+              </div>
+            </div>
           )}
         </div>
-        {/* Lock badge — small chained padlock at top-right of the hex.
-            Pulses subtly to call attention on first sight. */}
-        {locked && (
-          <div aria-hidden style={{
-            position: 'absolute', top: '14%', right: '14%',
-            fontSize: size * 0.22, lineHeight: 1,
-            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.9))',
-            color: '#d4c08a',
+
+        {/* ── Drop-target highlight rim ── */}
+        {hovered && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            borderRadius: 7,
+            border: '2px solid var(--sb-gold)',
+            boxShadow: 'inset 0 0 16px rgba(251,191,36,0.3)',
             pointerEvents: 'none',
-          }}>
-            🔒
-          </div>
-        )}
-        {/* Same-turn return-affordance hint — tiny ↩ glyph at bottom-left. */}
-        {returnable && (
-          <div aria-hidden className="sb-mono" style={{
-            position: 'absolute', bottom: '12%', left: '50%',
-            transform: 'translateX(-50%)',
-            fontSize: size < 80 ? 8 : 9,
-            color: 'var(--sb-gold-light)',
-            opacity: 0.75,
-            textShadow: '0 1px 2px rgba(0,0,0,0.9)',
-            pointerEvents: 'none',
-            letterSpacing: '0.06em',
-          }}>
-            ↩ TAP
-          </div>
+          }} />
         )}
       </div>
     );
@@ -1749,6 +2222,188 @@ export default function CombatView({
     );
   })();
 
+  // Card-back placeholder used during the deal animation flip.
+  const CardBack = ({ width, height }: { width: number; height: number }) => (
+    <div style={{
+      width, height,
+      borderRadius: 8,
+      background: 'linear-gradient(145deg, #1a2a4a 0%, #0d1a2e 60%, #12223b 100%)',
+      border: '1.5px solid rgba(126,196,255,0.35)',
+      boxShadow: 'inset 0 0 14px rgba(0,60,120,0.6), inset 0 2px 0 rgba(255,255,255,0.07)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      overflow: 'hidden',
+    }}>
+      {/* diamond pattern */}
+      <div style={{
+        width: width * 0.62, height: height * 0.62,
+        border: '1.5px solid rgba(126,196,255,0.22)',
+        transform: 'rotate(45deg)',
+        boxShadow: '0 0 8px rgba(126,196,255,0.15)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          width: width * 0.28, height: height * 0.28,
+          border: '1px solid rgba(126,196,255,0.28)',
+          transform: 'rotate(0deg)',
+          background: 'radial-gradient(circle, rgba(126,196,255,0.12) 0%, transparent 80%)',
+        }} />
+      </div>
+    </div>
+  );
+
+  // Deal card overlay — same pattern as FlyingCardOverlay but uses
+  // dealOverlayRef and shows a card-back → face flip during flight.
+  const DealCardOverlay = dealOverlay && (
+    <div
+      ref={dealOverlayRef}
+      aria-hidden
+      style={{
+        position: 'fixed',
+        left: 0, top: 0,
+        width: dealOverlay.cardW, height: dealOverlay.cardH,
+        transform: `translate3d(${dealOverlay.from.x}px, ${dealOverlay.from.y}px, 0)`,
+        transformOrigin: 'center center',
+        willChange: 'transform, opacity',
+        pointerEvents: 'none',
+        userSelect: 'none',
+        filter: 'drop-shadow(0 0 18px rgba(126,196,255,0.7)) drop-shadow(0 8px 18px rgba(0,0,0,0.8))',
+        zIndex: 210,
+      }}
+    >
+      {dealOverlay.flipped
+        ? <ActionCardDisplay card={dealOverlay.def} customWidth={dealOverlay.cardW} />
+        : <CardBack width={dealOverlay.cardW} height={dealOverlay.cardH} />
+      }
+    </div>
+  );
+
+  // ── Battle outcome announcement ──────────────────────────────────────────
+  // Shown for ~3.2 s after battle ends, before the result screen appears.
+  // WIN  → gold burst + dramatic text sweep
+  // LOSE → red desaturating vignette + heavy text drop
+  const OutcomeAnnounceLayer = outcomeAnnounce && (() => {
+    const isWin = outcomeAnnounce === 'cleared';
+    // Particle seeds — deterministic so they're stable while layer mounts.
+    const particles = Array.from({ length: isWin ? 24 : 14 }, (_, i) => {
+      const angle = (i / (isWin ? 24 : 14)) * Math.PI * 2;
+      const dist  = 120 + (i % 3) * 80;
+      return {
+        px: `${Math.cos(angle) * dist}px`,
+        py: `${Math.sin(angle) * dist}px`,
+        delay: `${(i * 0.04).toFixed(2)}s`,
+        size: 6 + (i % 4) * 4,
+        color: isWin
+          ? ['#fbbf24', '#f59e0b', '#fde68a', '#fff7d6'][i % 4]
+          : ['#ef4444', '#dc2626', '#fca5a5', '#7f1d1d'][i % 4],
+      };
+    });
+
+    return (
+      <div
+        aria-live="assertive"
+        style={{
+          position: 'fixed', inset: 0,
+          zIndex: 500,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          pointerEvents: 'none',
+          animation: 'sb-outcome-bg-in 0.35s ease-out forwards',
+          background: isWin
+            ? 'radial-gradient(ellipse at 50% 45%, rgba(251,191,36,0.18) 0%, rgba(180,100,0,0.22) 40%, rgba(0,0,0,0.88) 100%)'
+            : 'radial-gradient(ellipse at 50% 45%, rgba(220,38,38,0.22) 0%, rgba(100,0,0,0.32) 40%, rgba(0,0,0,0.92) 100%)',
+        }}
+      >
+        {/* Scanline sweep for dramatic feel */}
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0,
+          background: isWin
+            ? 'linear-gradient(180deg, transparent 0%, rgba(251,191,36,0.06) 50%, transparent 100%)'
+            : 'linear-gradient(180deg, transparent 0%, rgba(220,38,38,0.08) 50%, transparent 100%)',
+          height: '60px', width: '100%',
+          animation: 'sb-outcome-scanline 1.2s ease-in-out 0.1s forwards',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Particle burst */}
+        {particles.map((p, i) => (
+          <div key={i} aria-hidden style={{
+            position: 'absolute',
+            left: '50%', top: '45%',
+            width: p.size, height: p.size,
+            borderRadius: '50%',
+            background: p.color,
+            boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+            animationName: 'sb-outcome-particle',
+            animationDuration: `${0.8 + (i % 3) * 0.3}s`,
+            animationTimingFunction: 'ease-out',
+            animationDelay: p.delay,
+            animationFillMode: 'forwards',
+            // @ts-ignore CSS custom properties
+            '--px': p.px,
+            '--py': p.py,
+          } as React.CSSProperties} />
+        ))}
+
+        {/* Main label */}
+        <div
+          className="sb-display"
+          style={{
+            fontSize: 'clamp(52px, 12vw, 96px)',
+            fontWeight: 900,
+            letterSpacing: '0.18em',
+            lineHeight: 1,
+            textAlign: 'center',
+            color: isWin ? '#fde68a' : '#fca5a5',
+            textShadow: isWin
+              ? '0 0 40px #fbbf24, 0 0 80px #f59e0b88, 0 4px 0 rgba(0,0,0,0.7)'
+              : '0 0 40px #ef4444, 0 0 80px #dc262688, 0 4px 0 rgba(0,0,0,0.7)',
+            animation: 'sb-outcome-text-in 0.65s cubic-bezier(0.22,1,0.36,1) 0.05s both',
+            willChange: 'transform, opacity, filter',
+          }}
+        >
+          {isWin ? 'VICTORY' : 'DEFEATED'}
+        </div>
+
+        {/* Sub-label */}
+        <div
+          className="sb-mono"
+          style={{
+            marginTop: 18,
+            fontSize: 'clamp(11px, 2.5vw, 16px)',
+            letterSpacing: '0.35em',
+            color: isWin ? 'rgba(253,230,138,0.75)' : 'rgba(252,165,165,0.6)',
+            textAlign: 'center',
+            animation: 'sb-outcome-sub-in 0.5s ease-out 0.6s both',
+          }}
+        >
+          {isWin ? '✦  BATTLE CLEARED  ✦' : '✦  YOU HAVE FALLEN  ✦'}
+        </div>
+
+        {/* Pulse ring */}
+        <div aria-hidden style={{
+          position: 'absolute',
+          left: '50%', top: '44%',
+          width: 260, height: 260,
+          borderRadius: '50%',
+          border: `2px solid ${isWin ? 'rgba(251,191,36,0.35)' : 'rgba(220,38,38,0.35)'}`,
+          transform: 'translate(-50%, -50%)',
+          animation: 'sb-outcome-pulse 1.1s ease-in-out 0.3s infinite',
+          pointerEvents: 'none',
+        }} />
+        <div aria-hidden style={{
+          position: 'absolute',
+          left: '50%', top: '44%',
+          width: 380, height: 380,
+          borderRadius: '50%',
+          border: `1px solid ${isWin ? 'rgba(251,191,36,0.18)' : 'rgba(220,38,38,0.18)'}`,
+          transform: 'translate(-50%, -50%)',
+          animation: 'sb-outcome-pulse 1.4s ease-in-out 0.5s infinite',
+          pointerEvents: 'none',
+        }} />
+      </div>
+    );
+  })();
+
   // Projectile overlays — fly from slot/enemy to target. Each one renders
   // a damage-type-styled glow that travels along a CSS-driven transform
   // animation. The duration is set per-projectile so the React layer can
@@ -1760,19 +2415,101 @@ export default function CombatView({
         const dx = p.to.x - p.from.x;
         const dy = p.to.y - p.from.y;
         const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-        // Per-archetype shape: each archetype picks its own width/height,
-        // gradient style, and glow intensity. The CSS keyframe handles the
-        // travel; we only style the static appearance here.
+
+        // ── Fireball: multi-layer fire orb with comet tail ──────────────────
+        if (p.archetype === 'fireball') {
+          const orbSize = 48;
+          // Tail angle points opposite to travel direction.
+          const tailAngle = angle + 180;
+          const tailLen = 72;
+          return (
+            // Outer wrapper handles the travel animation (same css var trick).
+            <div
+              key={p.id}
+              className="sb-projectile"
+              style={{
+                position: 'absolute',
+                left: p.from.x - orbSize / 2,
+                top: p.from.y - orbSize / 2,
+                width: orbSize, height: orbSize,
+                transformOrigin: '50% 50%',
+                ['--proj-dx' as string]: `${dx}px`,
+                ['--proj-dy' as string]: `${dy}px`,
+                ['--proj-angle' as string]: '0deg', // no travel rotation — fire orb stays upright
+                ['--proj-duration' as string]: `${p.durationMs}ms`,
+                pointerEvents: 'none',
+              } as React.CSSProperties}
+            >
+              {/* Comet tail — elongated gradient pointing opposite travel */}
+              <div style={{
+                position: 'absolute',
+                left: '50%', top: '50%',
+                width: tailLen, height: 22,
+                transformOrigin: '0% 50%',
+                transform: `translate(-4px, -11px) rotate(${tailAngle}deg)`,
+                background: `linear-gradient(90deg, transparent 0%, #ff6a0044 15%, #ff8c0088 40%, #ffb30066 65%, transparent 100%)`,
+                borderRadius: 99,
+                filter: 'blur(4px)',
+              }} />
+              {/* Second narrower hot tail */}
+              <div style={{
+                position: 'absolute',
+                left: '50%', top: '50%',
+                width: tailLen * 0.55, height: 10,
+                transformOrigin: '0% 50%',
+                transform: `translate(-3px, -5px) rotate(${tailAngle}deg)`,
+                background: `linear-gradient(90deg, transparent 0%, #fff5b888 20%, #ffcc0099 55%, transparent 100%)`,
+                borderRadius: 99,
+                filter: 'blur(2px)',
+              }} />
+
+              {/* Outer fire corona — wobbly, hot orange */}
+              <div className="sb-fireball-wobble" style={{
+                position: 'absolute', inset: -10,
+                borderRadius: '50%',
+                background: `radial-gradient(circle at 48% 48%,
+                  transparent 28%,
+                  #ff6a0055 45%,
+                  #ff4500aa 62%,
+                  #cc200066 80%,
+                  transparent 100%)`,
+                filter: 'blur(5px)',
+              }} />
+
+              {/* Mid flame layer — bright orange-yellow */}
+              <div className="sb-fireball-wobble" style={{
+                position: 'absolute', inset: -2,
+                borderRadius: '50%',
+                background: `radial-gradient(circle at 45% 45%,
+                  #fffbe0 0%,
+                  #ffe066 18%,
+                  #ff8c00 42%,
+                  #cc3300 68%,
+                  transparent 88%)`,
+                boxShadow: `0 0 28px #ff6a00cc, 0 0 56px #ff4500aa, 0 0 90px #ff200066`,
+                animationDuration: '195ms', // faster wobble for inner layer
+              }} />
+
+              {/* White-hot core */}
+              <div style={{
+                position: 'absolute',
+                left: '22%', top: '18%',
+                width: '36%', height: '36%',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, #ffffff 0%, #fff5b8 50%, transparent 80%)',
+                filter: 'blur(2px)',
+                opacity: 0.9,
+              }} />
+            </div>
+          );
+        }
+
+        // ── All other archetypes ─────────────────────────────────────────────
         let w = 26, h = 26, radius = 13;
         let bg = `radial-gradient(circle, ${color} 0%, ${color}cc 40%, transparent 75%)`;
         let glow = `0 0 18px ${color}, 0 0 36px ${color}99`;
         let extraStyle: React.CSSProperties = {};
         switch (p.archetype) {
-          case 'fireball':
-            w = 32; h = 32; radius = 16;
-            bg = `radial-gradient(circle at 35% 35%, #fff5b8 0%, ${color} 35%, ${color}88 65%, transparent 80%)`;
-            glow = `0 0 26px ${color}, 0 0 48px ${color}cc, 0 0 80px ${color}66`;
-            break;
           case 'ice_shard':
             w = 36; h = 14; radius = 4;
             bg = `linear-gradient(90deg, transparent 0%, ${color} 30%, #ffffff 50%, ${color} 70%, transparent 100%)`;
@@ -1795,20 +2532,16 @@ export default function CombatView({
             radius = 2;
             bg = `linear-gradient(90deg, ${color}00 0%, ${color} 50%, ${color}00 100%)`;
             glow = `0 0 14px ${color}, 0 0 28px ${color}aa`;
-            // Beam: positions at midpoint, doesn't translate.
             break;
           case 'slash':
           case 'smash':
           default:
-            // Slash & smash render as a small streak in flight (the real
-            // VFX is the slash overlay on impact). Brief visual only.
             w = 40; h = 5; radius = 2;
             bg = `linear-gradient(90deg, transparent 0%, ${color} 50%, transparent 100%)`;
             glow = `0 0 14px ${color}aa`;
             break;
         }
         if (p.archetype === 'beam') {
-          // Static beam — no flight tween.
           return (
             <div
               key={p.id}
@@ -1938,6 +2671,81 @@ export default function CombatView({
     </div>
   );
 
+  // Fireball explosion layer — flash disc + rising flame licks + smoke puff.
+  // Rendered between the impact rings and the generic particles so the smoke
+  // sits on top of the rings but under the ember sparks.
+  const FireballExplosionLayer = fireballExplosions.length > 0 && (
+    <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 253 }}>
+      {fireballExplosions.map(exp => {
+        const s = exp.size;
+        // Pre-seed 16 flame lick particles around the explosion center.
+        const flameAngles = Array.from({ length: 16 }, (_, i) => {
+          const spread = (i / 16) * Math.PI * 2;
+          const dist = s * (0.28 + (i % 3) * 0.18);
+          // Bias upward — flames rise.
+          const biasY = -s * 0.22;
+          return {
+            px: Math.cos(spread) * dist,
+            py: Math.sin(spread) * dist + biasY,
+            rot: (spread * 180 / Math.PI) + 90,
+            scale: 0.6 + (i % 4) * 0.25,
+            dur: 700 + (i % 5) * 110,
+            // Cycle through hot → orange → red colors.
+            color: ['#fffbe0', '#ffe066', '#ff8c00', '#ff4500', '#cc2200'][i % 5],
+            w: 10 + (i % 3) * 6,
+            h: 18 + (i % 4) * 10,
+          };
+        });
+        return (
+          <div key={exp.id} style={{ position: 'absolute', left: exp.x, top: exp.y }}>
+            {/* Instant white-orange flash disc */}
+            <div className="sb-fireball-flash" style={{
+              position: 'absolute',
+              left: -s * 0.8, top: -s * 0.8,
+              width: s * 1.6, height: s * 1.6,
+              borderRadius: '50%',
+              background: `radial-gradient(circle, #ffffff 0%, #fff5b8 18%, #ff8c00 40%, #ff3300 65%, transparent 85%)`,
+              boxShadow: `0 0 ${s * 0.8}px #ff6a00cc, 0 0 ${s * 1.4}px #ff330088`,
+              transform: 'translate(-50%, -50%)',
+            }} />
+
+            {/* Flame lick particles */}
+            {flameAngles.map((f, fi) => (
+              <div
+                key={fi}
+                className="sb-fireball-particle"
+                style={{
+                  position: 'absolute',
+                  left: -f.w / 2, top: -f.h / 2,
+                  width: f.w, height: f.h,
+                  borderRadius: '50% 50% 30% 30% / 60% 60% 40% 40%',
+                  background: `radial-gradient(ellipse at 50% 80%, ${f.color} 0%, ${f.color}bb 40%, transparent 80%)`,
+                  boxShadow: `0 0 ${f.w * 1.5}px ${f.color}cc`,
+                  filter: 'blur(1.5px)',
+                  ['--px' as string]: `${f.px}px`,
+                  ['--py' as string]: `${f.py}px`,
+                  ['--prot' as string]: `${f.rot}deg`,
+                  ['--pscale' as string]: String(f.scale),
+                  ['--pdur' as string]: `${f.dur}ms`,
+                } as React.CSSProperties}
+              />
+            ))}
+
+            {/* Smoke puff */}
+            <div className="sb-fireball-smoke" style={{
+              position: 'absolute',
+              left: 0, top: 0,
+              width: s * 1.1, height: s * 0.9,
+              borderRadius: '50%',
+              background: `radial-gradient(circle, rgba(80,60,50,0.55) 0%, rgba(60,40,30,0.3) 50%, transparent 80%)`,
+              filter: 'blur(8px)',
+            }} />
+          </div>
+        );
+      })}
+    </div>
+  );
+
   // Particle burst layer — small particles flying outward from impact point.
   // Each particle is positioned via its index → angle/distance pattern, so
   // bursts feel organic without per-particle React state.
@@ -1946,33 +2754,45 @@ export default function CombatView({
       {particles.map(burst => (
         <div key={burst.id} style={{ position: 'absolute', left: burst.x, top: burst.y, width: 0, height: 0 }}>
           {Array.from({ length: burst.count }).map((_, i) => {
-            const angle = (i / burst.count) * Math.PI * 2 + Math.random() * 0.4;
-            const distance = 50 + Math.random() * 60;
-            const dx = Math.cos(angle) * distance;
-            const dy = Math.sin(angle) * distance;
+            const baseAngle = (i / burst.count) * Math.PI * 2;
+            const distance = 55 + (i % 5) * 18;
+            const pDx = Math.cos(baseAngle) * distance;
+            // Fireball embers fly upward-biased (gravity pulls down but heat
+            // drives up — net upward bias for embers).
+            const pDy = burst.archetype === 'fireball'
+              ? Math.sin(baseAngle) * distance - 30
+              : Math.sin(baseAngle) * distance;
             const size = burst.archetype === 'fireball' || burst.archetype === 'smash'
-              ? 6 + Math.random() * 4
+              ? 5 + (i % 4) * 3
               : burst.archetype === 'ice_shard'
-                ? 4 + Math.random() * 3
-                : 3 + Math.random() * 3;
+                ? 4 + (i % 3) * 2
+                : 3 + (i % 3) * 2;
             const isShard = burst.archetype === 'ice_shard';
             const isOrb = burst.archetype === 'arcane_orb';
+            const isFireball = burst.archetype === 'fireball';
+            // Fireball embers cycle through white-hot → orange → deep red.
+            const fireColors = ['#fffbe0', '#ffe066', '#ff8c00', '#ff5500', '#cc2200'];
+            const particleColor = isFireball ? fireColors[i % fireColors.length] : burst.color;
             return (
               <div
                 key={i}
                 className="sb-particle"
                 style={{
                   position: 'absolute',
-                  width: isShard ? size * 2 : size,
-                  height: size,
-                  background: isOrb
-                    ? `radial-gradient(circle, #ffffff 0%, ${burst.color} 50%, transparent 80%)`
-                    : `radial-gradient(circle, ${burst.color} 0%, ${burst.color}cc 60%, transparent 90%)`,
-                  borderRadius: isShard ? '2px' : '50%',
-                  boxShadow: `0 0 8px ${burst.color}`,
-                  ['--particle-dx' as string]: `${dx}px`,
-                  ['--particle-dy' as string]: `${dy}px`,
-                  ['--particle-rot' as string]: `${Math.random() * 360}deg`,
+                  // Flame particles are elongated teardrop shapes.
+                  width: isFireball ? size : (isShard ? size * 2 : size),
+                  height: isFireball ? size * 1.8 : size,
+                  background: isFireball
+                    ? `radial-gradient(ellipse at 50% 30%, #ffffff 0%, ${particleColor} 40%, ${particleColor}88 70%, transparent 100%)`
+                    : isOrb
+                      ? `radial-gradient(circle, #ffffff 0%, ${particleColor} 50%, transparent 80%)`
+                      : `radial-gradient(circle, ${particleColor} 0%, ${particleColor}cc 60%, transparent 90%)`,
+                  borderRadius: isFireball ? '50% 50% 30% 30%' : (isShard ? '2px' : '50%'),
+                  boxShadow: `0 0 ${isFireball ? 10 : 8}px ${particleColor}`,
+                  filter: isFireball ? 'blur(0.8px)' : 'none',
+                  ['--particle-dx' as string]: `${pDx}px`,
+                  ['--particle-dy' as string]: `${pDy}px`,
+                  ['--particle-rot' as string]: `${(i * 47) % 360}deg`,
                 } as React.CSSProperties}
               />
             );
@@ -2153,63 +2973,119 @@ export default function CombatView({
     </>
   );
 
-  // Damage preview row above the slot hexes. Shows per-slot effective damage
-  // and a combo summary banner when a combo is ready.
-  function SlotDamageRow({ slotSize, gap }: { slotSize: number; gap: number }) {
-    const comboSlots = slotDamagePreview.filter(d => d?.combo && d.willResolve);
-    const activeCombo = comboSlots.length > 0 ? comboSlots[0]!.combo : null;
-    const comboTotal = comboSlots.reduce((sum, d) => sum + (d?.effective ?? 0), 0);
-    const comboColor = activeCombo === 'onslaught' ? '#ff5757'
-                     : activeCombo === 'relentless' ? '#c084fc'
-                     : '#7ec4ff';
-    const comboLabel = activeCombo === 'onslaught' ? '⚔ ONSLAUGHT'
-                     : activeCombo === 'relentless' ? '◈ RELENTLESS'
-                     : '✦ TRIADIC STRIKE';
+  // SVG connector lines drawn between adjacent slots that share the same combo.
+  // Rendered as an absolutely-positioned overlay behind the slot cards.
+  function AdjacentComboConnectors({ slots, slotCardW, slotCardH, slotGap }: {
+    slots: typeof runner.state.slots; slotCardW: number; slotCardH: number; slotGap: number;
+  }) {
+    const totalW = slots.length * slotCardW + (slots.length - 1) * slotGap;
+    const connectors: JSX.Element[] = [];
+    for (let i = 0; i < slots.length - 1; i++) {
+      const j = i + 1;
+      const leftHasCombo  = slots[i].bound && comboColorFor(i) !== null;
+      const rightHasCombo = slots[j].bound && comboColorFor(j) !== null;
+      const sameCombo = leftHasCombo && rightHasCombo && comboColorFor(i) === comboColorFor(j);
+      if (!sameCombo) continue;
+      const color = comboColorFor(i)!;
+      const x1 = i * (slotCardW + slotGap) + slotCardW;
+      const x2 = j * (slotCardW + slotGap);
+      const y  = slotCardH / 2;
+      connectors.push(
+        <line key={`${i}-${j}`}
+          x1={x1} y1={y} x2={x2} y2={y}
+          stroke={color} strokeWidth={2} strokeDasharray="4 3"
+          className="sb-connector-path"
+          style={{ ['--slot-combo-color' as string]: color } as React.CSSProperties}
+        />
+      );
+    }
+    if (connectors.length === 0) return null;
+    return (
+      <svg
+        width={totalW} height={slotCardH}
+        style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', overflow: 'visible', zIndex: 1 }}
+        aria-hidden
+      >
+        {connectors}
+      </svg>
+    );
+  }
+
+  // Inline combo preview banner shown below the slot row.
+  // During active preview (before end-turn), shows which slots form a combo
+  // and the expected total damage. During animation it's hidden.
+  function ComboPreviewBanner({ compact }: { compact: boolean }) {
+    if (animating) return null;
+    // Collect active combos with their slot indices and totals.
+    type ComboBand = { kind: 'onslaught' | 'triadic' | 'relentless'; slots: number[]; total: number; color: string; icon: string; label: string };
+    const bands: ComboBand[] = [];
+    if (comboPreview.onslaught.length > 0) {
+      const total = comboPreview.onslaught.reduce((s, idx) => s + (slotDamagePreview[idx]?.effective ?? 0), 0);
+      bands.push({ kind: 'onslaught', slots: comboPreview.onslaught, total, color: '#ff5757', icon: '⚔', label: 'ONSLAUGHT' });
+    }
+    if (comboPreview.relentless.length > 0) {
+      const total = comboPreview.relentless.reduce((s, idx) => s + (slotDamagePreview[idx]?.effective ?? 0), 0);
+      bands.push({ kind: 'relentless', slots: comboPreview.relentless, total, color: '#c084fc', icon: '◈', label: 'RELENTLESS' });
+    }
+    if (comboPreview.triadic.length > 0) {
+      const total = comboPreview.triadic.reduce((s, idx) => s + (slotDamagePreview[idx]?.effective ?? 0), 0);
+      bands.push({ kind: 'triadic', slots: comboPreview.triadic, total, color: '#7ec4ff', icon: '✦', label: 'TRIADIC' });
+    }
+    if (bands.length === 0) return null;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-        {/* Per-slot damage chips aligned with each slot */}
-        <div style={{ display: 'flex', gap, alignItems: 'flex-end' }}>
-          {slotDamagePreview.map((info, idx) => (
-            <div key={idx} style={{
-              width: slotSize, display: 'flex', justifyContent: 'center',
-            }}>
-              {info ? (
-                <div className="sb-mono" style={{
-                  fontSize: 10, fontWeight: 700,
-                  padding: '2px 5px',
-                  background: 'rgba(0,0,0,0.7)',
-                  border: `1px solid ${info.combo ? comboColor : (info.willResolve ? 'var(--sb-crimson)' : 'var(--sb-bronze-dark)')}`,
-                  color: info.combo ? comboColor : (info.willResolve ? 'var(--sb-crimson-light)' : 'rgba(255,235,180,0.45)'),
-                  borderRadius: 3,
-                  textShadow: '0 1px 2px rgba(0,0,0,0.9)',
-                  whiteSpace: 'nowrap',
-                }}>
-                  ⚔ {info.effective}
-                </div>
-              ) : (
-                <div style={{ height: 18 }} />
-              )}
-            </div>
-          ))}
-        </div>
-        {/* Combo summary banner */}
-        {activeCombo && (
-          <div className="sb-display" style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-            padding: '2px 10px',
-            background: `${comboColor}22`,
-            border: `1px solid ${comboColor}`,
-            color: comboColor,
-            borderRadius: 3,
-            textShadow: `0 0 8px ${comboColor}`,
-            whiteSpace: 'nowrap',
+        {bands.map(b => (
+          <div key={b.kind} style={{
+            display: 'flex', alignItems: 'center', gap: compact ? 5 : 8,
+            padding: compact ? '3px 10px' : '4px 14px',
+            background: `${b.color}18`,
+            border: `1px solid ${b.color}`,
+            borderRadius: 4,
+            boxShadow: `0 0 10px ${b.color}40`,
           }}>
-            {comboLabel} · {comboTotal} total
+            <span style={{
+              fontFamily: 'var(--sb-font-display)',
+              fontSize: compact ? 9 : 11,
+              fontWeight: 700,
+              color: b.color,
+              letterSpacing: '0.18em',
+              textShadow: `0 0 8px ${b.color}`,
+            }}>
+              {b.icon} {b.label}
+            </span>
+            <span style={{
+              fontFamily: 'var(--sb-font-mono)',
+              fontSize: compact ? 8 : 9,
+              color: 'rgba(255,235,180,0.5)',
+              letterSpacing: '0.06em',
+            }}>
+              SLOTS {b.slots.map(s => s + 1).join(' + ')}
+            </span>
+            <span style={{
+              fontFamily: 'var(--sb-font-mono)',
+              fontSize: compact ? 10 : 12,
+              fontWeight: 800,
+              color: b.color,
+              letterSpacing: '0.04em',
+              textShadow: `0 0 6px ${b.color}80`,
+            }}>
+              ⚔{b.total}
+            </span>
           </div>
-        )}
+        ))}
       </div>
     );
   }
+
+  // Triggered combo flash — fires when END TURN resolves a combo.
+  // Shows which slots participated and the combo name.
+  const comboFlashSlots = comboFlash === 'onslaught' ? comboPreview.onslaught
+                        : comboFlash === 'relentless' ? comboPreview.relentless
+                        : comboFlash === 'triadic'    ? comboPreview.triadic
+                        : [];
+  const comboFlashSlotLabel = comboFlashSlots.length > 0
+    ? ` · SLOTS ${comboFlashSlots.map(s => s + 1).join(' + ')}`
+    : '';
 
   const ComboFlashLayer = comboFlash && (
     <div
@@ -2228,14 +3104,24 @@ export default function CombatView({
         border: '3px solid var(--sb-gold)',
         color: 'var(--sb-gold-light)',
         fontFamily: 'var(--sb-font-display)',
-        fontSize: isMobile ? 18 : 26, fontWeight: 700, letterSpacing: '0.18em',
         textShadow: '0 2px 4px rgba(0,0,0,0.85)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(253,230,138,0.5)',
       }}
     >
-      {comboFlash === 'onslaught' && '⚔  ONSLAUGHT  ⚔'}
-      {comboFlash === 'triadic'    && '✦  TRIADIC STRIKE  ✦'}
-      {comboFlash === 'relentless' && '◈  RELENTLESS  ◈'}
+      <div style={{ fontSize: isMobile ? 18 : 26, fontWeight: 700, letterSpacing: '0.18em' }}>
+        {comboFlash === 'onslaught' && '⚔  ONSLAUGHT  ⚔'}
+        {comboFlash === 'triadic'    && '✦  TRIADIC STRIKE  ✦'}
+        {comboFlash === 'relentless' && '◈  RELENTLESS  ◈'}
+      </div>
+      {comboFlashSlotLabel && (
+        <div style={{
+          fontSize: isMobile ? 9 : 11, fontWeight: 600, letterSpacing: '0.2em',
+          marginTop: 4, opacity: 0.75,
+          fontFamily: 'var(--sb-font-mono)',
+        }}>
+          {comboFlashSlotLabel}
+        </div>
+      )}
     </div>
   );
 
@@ -2252,10 +3138,7 @@ export default function CombatView({
     const total = actionsInHand.length;
     const cardW = total >= 6 ? 68 : total >= 5 ? 73 : 82;
     const cardH = Math.round(cardW * 1.4);
-    const spacing = total >= 6 ? 40 : total >= 5 ? 48 : 58;
-    const handAreaHeight = cardH + 40;
-
-    const slotSize = runner.state.slots.length >= 5 ? 52 : 60;
+    const spacing = total >= 6 ? 40 : total >= 5 ? 48 : 56;
 
     // Adaptive enemy card sizing — fit all cards on screen with overlap if needed.
     // Available width: screen width minus padding (16px total)
@@ -2288,94 +3171,104 @@ export default function CombatView({
       }
     }
 
+    // Hand area height: cards are `cardH` tall, drawn from bottom:18 inside
+    // the container. Add 24px top breathing room so lifted cards don't clip.
+    const handAreaHeight = cardH + 42;
+
     return (
       <div
-        className={`relative w-full h-full overflow-hidden flex flex-col ${screenShake === 'heavy' ? 'sb-shake-heavy' : screenShake === 'light' ? 'sb-shake-light' : ''}`}
+        className={`relative w-full h-full overflow-hidden flex flex-col safe-top safe-bottom ${screenShake === 'heavy' ? 'sb-shake-heavy' : screenShake === 'light' ? 'sb-shake-light' : ''}`}
         style={containerStyle}
       >
         {Background}
+        {SigilBorder({ position: 'top' })}
+        {SigilBorder({ position: 'bottom' })}
 
-        {/* Top status row: flee · stage · turn · hardcore */}
-        <div className="relative z-10 flex items-center gap-1.5 px-2 pt-2 pb-1 flex-shrink-0">
-          <button
-            onClick={() => setConfirmDialog('exit')}
-            className="sb-chip"
-            style={{ cursor: 'pointer', padding: '4px 8px', fontSize: '10px', flexShrink: 0 }}
-          >
-            ←
-          </button>
-          <div className="sb-display flex-1 text-center" style={{
-            fontSize: '11px', padding: '5px 8px',
-            background: 'linear-gradient(180deg, #3a2a1c 0%, #1a120a 50%, #3a2a1c 100%)',
-            border: '2px solid var(--sb-bronze)',
-            color: 'var(--sb-gold-light)',
-            letterSpacing: '0.12em', textShadow: '0 1px 2px rgba(0,0,0,0.7)',
-            boxShadow: 'inset 0 1px 0 rgba(255,235,180,0.3), 0 2px 6px rgba(0,0,0,0.5)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            ⚔ {stage.title.toUpperCase()} · T{runner.state.turn}
+        {/* ── TOP BAR: flee · stage title · turn · resources ── */}
+        <div className="relative z-10 flex-shrink-0 px-2 pt-3 pb-1 flex flex-col gap-1">
+          {/* Row 1: flee button + stage title + HC badge */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setConfirmDialog('exit')}
+              className="sb-chip flex-shrink-0"
+              style={{ cursor: 'pointer', padding: '6px 10px', fontSize: '12px', minWidth: 44, minHeight: 36 }}
+            >
+              ←
+            </button>
+            <div className="sb-display flex-1 min-w-0 text-center" style={{
+              fontSize: '11px', padding: '6px 8px',
+              background: 'linear-gradient(180deg, #3a2a1c 0%, #1a120a 50%, #3a2a1c 100%)',
+              border: '2px solid var(--sb-bronze)',
+              color: 'var(--sb-gold-light)',
+              letterSpacing: '0.12em', textShadow: '0 1px 2px rgba(0,0,0,0.7)',
+              boxShadow: 'inset 0 1px 0 rgba(255,235,180,0.3), 0 2px 6px rgba(0,0,0,0.5)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              borderRadius: 4,
+            }}>
+              ⚔ {stage.title.toUpperCase()} · T{runner.state.turn}
+            </div>
+            {hardcore && (
+              <span className="sb-display sb-pulse-crimson flex-shrink-0" style={{
+                fontSize: '9px', padding: '6px 8px',
+                background: 'linear-gradient(180deg, #b91c1c 0%, #5b0e0e 100%)',
+                border: '1.5px solid var(--sb-gold)', color: 'var(--sb-gold-light)',
+                letterSpacing: '0.18em', borderRadius: 4,
+              }}>HC</span>
+            )}
           </div>
-          {hardcore && (
-            <span className="sb-display sb-pulse-crimson" style={{
-              fontSize: '9px', padding: '3px 6px',
-              background: 'linear-gradient(180deg, #b91c1c 0%, #5b0e0e 100%)',
-              border: '1.5px solid var(--sb-gold)', color: 'var(--sb-gold-light)',
-              letterSpacing: '0.18em', flexShrink: 0,
-            }}>HC</span>
-          )}
+          {/* Row 2: resource chips — stamina / deck / discard */}
+          <div className="flex items-center justify-end gap-1.5">
+            <span className="sb-chip sb-chip-gold" style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0 }}>
+              ⚡ {runner.state.staminaThisTurn}
+            </span>
+            <span className="sb-chip" style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0 }}>
+              🃏 {runner.state.deck.length}
+            </span>
+            <span className="sb-chip" style={{ fontSize: 10, padding: '3px 8px', opacity: 0.75, flexShrink: 0 }}>
+              🗑 {runner.state.discard.length}
+            </span>
+          </div>
         </div>
 
-        {/* Resource chips row — HP moved to the bottom player bar.
-            Stamina/deck/discard stay near the top so the player can see
-            their resources at a glance. */}
-        <div className="relative z-10 flex items-center justify-end gap-1.5 px-2 pb-1.5 flex-shrink-0">
-          <span className="sb-chip sb-chip-gold" style={{ fontSize: 10, padding: '3px 6px', flexShrink: 0 }}>
-            ⚡{runner.state.staminaThisTurn}
-          </span>
-          <span className="sb-chip" style={{ fontSize: 10, padding: '3px 6px', flexShrink: 0 }}>
-            🃏{runner.state.deck.length}
-          </span>
-          <span className="sb-chip" style={{ fontSize: 10, padding: '3px 6px', opacity: 0.75, flexShrink: 0 }}>
-            🗑{runner.state.discard.length}
-          </span>
-        </div>
-
-        {/* Enemy row — adaptive sizing to fit all cards on screen */}
+        {/* ── ENEMY ROW — clipped to row, adaptive card sizing ── */}
         <div
-          className="relative z-10 flex justify-center px-2 py-2 flex-shrink-0"
-          style={{
-            gap: `${enemyGap}px`,
-            overflow: 'hidden',
-            overflowY: 'visible',
-          }}
+          className="relative z-10 flex-shrink-0 flex justify-center items-end px-2 py-1"
+          style={{ gap: `${Math.max(enemyGap, 4)}px`, overflow: 'hidden' }}
         >
-          {runner.state.enemies.map(e => EnemyCard({ e, cardW: enemyCardW, cardH: enemyCardH }))}
+          {runner.state.enemies.map(e => {
+            const isBossEnemy = getEnemy(e.defId)?.archetype === 'boss';
+            const w = isBossEnemy ? Math.round(enemyCardW * 1.45) : enemyCardW;
+            const h = isBossEnemy ? Math.round(enemyCardH * 1.45) : enemyCardH;
+            return EnemyCard({ e, cardW: w, cardH: h, isBossEnemy });
+          })}
         </div>
 
-        {/* Top spacer — lets the slot row sit closer to vertical center
-            rather than getting pushed all the way down to the hand. */}
-        <div style={{ flex: 1, minHeight: 4 }} />
+        {/* ── SIGIL SLOTS — centered vertically in remaining space ── */}
+        {(() => {
+          const slotCardW = runner.state.slots.length >= 5 ? 62 : 72;
+          const slotCardH = Math.round(slotCardW * 1.5);
+          const slotGap = 6;
+          return (
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-2 py-2 min-h-0" style={{ gap: 4 }}>
+              {/* Slot row with SVG connector overlay */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: slotGap }}>
+                {AdjacentComboConnectors({ slots: runner.state.slots, slotCardW, slotCardH, slotGap })}
+                {runner.state.slots.map((slot, slotIdx) => SigilSlot({ slot, slotIdx, cardW: slotCardW, cardH: slotCardH }))}
+              </div>
+              {/* Combo preview banner */}
+              {ComboPreviewBanner({ compact: true })}
+            </div>
+          );
+        })()}
 
-        {/* Damage preview above slots + slot row */}
-        <div className="relative z-10 flex flex-col items-center gap-2 px-2 py-3 flex-shrink-0" style={{ overflowX: 'auto' }}>
-          {SlotDamageRow({ slotSize, gap: 10 })}
-          <div style={{ display: 'flex', gap: 10 }}>
-            {runner.state.slots.map((slot, slotIdx) => SigilSlot({ slot, slotIdx, size: slotSize }))}
-          </div>
-        </div>
-
-        {/* Bottom spacer — balances the top spacer to roughly center the slots. */}
-        <div style={{ flex: 1, minHeight: 4 }} />
-
-        {/* Tactics chip — anchored to the LEFT edge in the gap between
-            the slot row above and the hand fan below. */}
+        {/* ── TACTICS TOGGLE — above hand, left-aligned ── */}
         {tacticsInHand.length > 0 && (
           <div className="relative z-10 flex-shrink-0 px-2 pb-1">
             <button
               onClick={() => setTacticsOpen(o => !o)}
               className="sb-chip"
               style={{
-                padding: '5px 12px', fontSize: 11,
+                padding: '6px 14px', fontSize: 11, minHeight: 34,
                 background: tacticsOpen ? 'var(--sb-leather)' : undefined,
                 color: tacticsOpen ? 'var(--sb-gold-light)' : undefined,
               }}
@@ -2385,72 +3278,108 @@ export default function CombatView({
           </div>
         )}
 
-        {/* Hand fan area */}
-        <div className="relative flex justify-center items-end flex-shrink-0" style={{
-          height: handAreaHeight, pointerEvents: 'none',
+        {/* ── HAND FAN ── */}
+        <div className="relative flex-shrink-0 flex justify-center items-end" style={{
+          height: handAreaHeight, pointerEvents: 'none', overflow: 'visible',
         }}>
           <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
             {actionsInHand.map(({ def, realIndex }, i) =>
               ActionCard({
                 def, realIndex, i, total: actionsInHand.length,
                 cardW, cardH,
-                fan: { spacing, arcMul: 1.0, rotMax: 5 },
+                fan: { spacing, arcMul: 0.8, rotMax: 4 },
               }))}
           </div>
         </div>
 
-        {/* Action bar — END TURN sits ABOVE the player bar so it's the
-            first thing the thumb naturally rests on. Tactics chip moved
-            up to sit at the hand-vs-plot edge (see below); only the
-            END TURN button lives here. */}
-        <div className="relative z-20 flex items-stretch gap-2 px-2 pt-2 pb-2 flex-shrink-0" style={{
-          background: 'linear-gradient(180deg, transparent 0%, rgba(15,10,7,0.75) 100%)',
-        }}>
-          <button
-            onClick={() => handleEndTurn()}
-            disabled={animating}
-            style={{
-              flex: 1, height: 50,
-              background: animating
-                ? 'linear-gradient(180deg, #4a3530 0%, #2a1f15 100%)'
-                : 'linear-gradient(180deg, var(--sb-crimson) 0%, var(--sb-crimson-dark) 100%)',
-              border: '2.5px solid var(--sb-gold)',
-              borderRadius: 6,
-              color: animating ? '#8b6238' : 'var(--sb-gold-light)',
-              fontFamily: 'var(--sb-font-display)',
-              fontSize: 15, fontWeight: 700, letterSpacing: '0.12em',
-              cursor: animating ? 'wait' : 'pointer',
-              textShadow: '0 1px 2px rgba(0,0,0,0.85)',
-              boxShadow: 'inset 0 1px 0 rgba(253,230,138,0.55), inset 0 -1px 0 rgba(0,0,0,0.45), 0 4px 14px rgba(0,0,0,0.5)',
-              opacity: animating ? 0.7 : 1,
-            }}
-          >
-            {animating ? '⚔ RESOLVING…' : '▶ END TURN'}
-          </button>
-        </div>
+        {/* ── BOTTOM ACTION BAR: END TURN + AUTO + player bar ── */}
+        <div
+          className="relative z-20 flex-shrink-0 px-2 pt-1.5 pb-4 flex flex-col gap-1.5"
+          style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(10,7,4,0.88) 40%)' }}
+        >
+          <div style={{ display: 'flex', gap: 6 }}>
+            {/* AUTO BATTLE button */}
+            <button
+              onClick={() => handleAutoBattle()}
+              disabled={animating || isDealing}
+              style={{
+                flexShrink: 0,
+                width: 64,
+                height: 52,
+                background: (animating || isDealing)
+                  ? 'linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)'
+                  : 'linear-gradient(180deg, #1e3a5f 0%, #0f1e33 100%)',
+                border: '2.5px solid #7ec4ff',
+                borderRadius: 6,
+                color: (animating || isDealing) ? '#4a6a8a' : '#7ec4ff',
+                fontFamily: 'var(--sb-font-display)',
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                cursor: (animating || isDealing) ? 'wait' : 'pointer',
+                textShadow: (animating || isDealing) ? 'none' : '0 0 8px #7ec4ff80',
+                boxShadow: (animating || isDealing)
+                  ? 'none'
+                  : 'inset 0 1px 0 rgba(126,196,255,0.3), 0 0 12px rgba(126,196,255,0.2)',
+                opacity: (animating || isDealing) ? 0.5 : 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 3,
+              }}
+            >
+              <span style={{ fontSize: 16, lineHeight: 1 }}>⚡</span>
+              <span>AUTO</span>
+            </button>
 
-        {/* Player profile bar — sits BELOW the END TURN button. Avatar +
-            name + HP. Receives enemy projectiles. */}
-        <div className="relative z-10 px-2 pb-2 pt-1 flex-shrink-0">
+            {/* END TURN button */}
+            <button
+              onClick={() => handleEndTurn()}
+              disabled={animating || isDealing}
+              style={{
+                flex: 1,
+                height: 52,
+                background: (animating || isDealing)
+                  ? 'linear-gradient(180deg, #4a3530 0%, #2a1f15 100%)'
+                  : 'linear-gradient(180deg, var(--sb-crimson) 0%, var(--sb-crimson-dark) 100%)',
+                border: '2.5px solid var(--sb-gold)',
+                borderRadius: 6,
+                color: (animating || isDealing) ? '#8b6238' : 'var(--sb-gold-light)',
+                fontFamily: 'var(--sb-font-display)',
+                fontSize: 16, fontWeight: 700, letterSpacing: '0.14em',
+                cursor: (animating || isDealing) ? 'wait' : 'pointer',
+                textShadow: '0 1px 2px rgba(0,0,0,0.85)',
+                boxShadow: (animating || isDealing)
+                  ? 'none'
+                  : 'inset 0 1px 0 rgba(253,230,138,0.55), inset 0 -1px 0 rgba(0,0,0,0.45), 0 4px 14px rgba(0,0,0,0.5)',
+                opacity: (animating || isDealing) ? 0.7 : 1,
+                flexShrink: 0,
+              }}
+            >
+              {animating ? '⚔ RESOLVING…' : isDealing ? '✦ DEALING…' : '▶ END TURN'}
+            </button>
+          </div>
+
+          {/* Player HP bar — compact, full-width */}
           {PlayerBar({ compact: true })}
         </div>
 
-        {/* Tactics drawer — slides up from above the action bar */}
+        {/* ── TACTICS DRAWER — slides up from bottom bar ── */}
         {tacticsOpen && tacticsInHand.length > 0 && (
           <>
-            {/* Tap-out backdrop */}
             <div
               onClick={() => setTacticsOpen(false)}
               className="absolute inset-0 z-30"
-              style={{ background: 'rgba(0,0,0,0.5)' }}
+              style={{ background: 'rgba(0,0,0,0.55)' }}
             />
             <div className="absolute left-2 right-2 z-40 sb-fade-up" style={{
-              bottom: 64,
+              bottom: 'calc(52px + 54px + 12px)', // clears END TURN + player bar + gap
               background: 'linear-gradient(180deg, #2a1810 0%, #1a0f0a 100%)',
               border: '2px solid var(--sb-bronze)',
               borderRadius: 6,
-              padding: 8,
-              maxHeight: '50vh',
+              padding: 10,
+              maxHeight: '42vh',
               overflowY: 'auto',
               boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
             }}>
@@ -2462,15 +3391,13 @@ export default function CombatView({
                   onClick={() => setTacticsOpen(false)}
                   style={{
                     background: 'transparent', border: 'none', color: 'var(--sb-gold)',
-                    fontSize: 16, cursor: 'pointer', padding: '0 4px',
+                    fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1,
                   }}
                   aria-label="Close tactics"
                 >×</button>
               </div>
               <div className="flex flex-col gap-1.5">
-                {tacticsInHand.map(({ def, realIndex }) => (
-                  TacticButton({ def, realIndex })
-                ))}
+                {tacticsInHand.map(({ def, realIndex }) => TacticButton({ def, realIndex }))}
               </div>
             </div>
           </>
@@ -2479,12 +3406,15 @@ export default function CombatView({
         {ChargeAuraLayer}
         {ComboFlashLayer}
         {FlyingCardOverlay}
+        {DealCardOverlay}
         {ProjectileLayer}
         {ImpactRingLayer}
+        {FireballExplosionLayer}
         {SlashLayer}
         {ParticleLayer}
         {FloaterLayer}
         {InfoModal}
+        {OutcomeAnnounceLayer}
         {ConfirmDialogLayer}
       </div>
     );
@@ -2507,8 +3437,10 @@ export default function CombatView({
         }
       `}</style>
       {Background}
+      <div className="sb-sigil-border sb-sigil-border-top" aria-hidden />
+      <div className="sb-sigil-border sb-sigil-border-bottom" aria-hidden />
 
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
         <span className="sb-display" style={{
           fontSize: '13px', padding: '6px 14px',
           background: 'linear-gradient(180deg, #3a2a1c 0%, #1a120a 50%, #3a2a1c 100%)',
@@ -2530,33 +3462,37 @@ export default function CombatView({
 
       <button
         onClick={() => setConfirmDialog('exit')}
-        className="absolute top-2 left-2 z-20 sb-chip"
+        className="absolute top-4 left-2 z-20 sb-chip"
         style={{ cursor: 'pointer', padding: '5px 11px', fontSize: '11px' }}
       >
         ← FLEE
       </button>
 
-      <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-1.5 pointer-events-none">
+      <div className="absolute top-4 right-2 z-20 flex flex-col items-end gap-1.5 pointer-events-none">
         <span className="sb-chip sb-chip-gold" style={{ fontSize: '12px' }}>⚡ {runner.state.staminaThisTurn} STAMINA</span>
         <span className="sb-chip">🃏 {runner.state.deck.length} DECK</span>
         <span className="sb-chip" style={{ opacity: 0.75 }}>🗑 {runner.state.discard.length} DISCARD</span>
       </div>
 
-      {/* Enemy row — uses the same card design + size as the player's hand. */}
-      {/* Enemy row — bumped 70% larger to give enemies the visual weight
-          they deserve as the focal target. */}
-      <div className="absolute z-10 left-0 right-0 flex justify-center gap-3 px-4" style={{ top: 56 }}>
-        {runner.state.enemies.map(e => EnemyCard({ e, cardW: 194, cardH: 270 }))}
+      {/* Enemy row — boss appears larger and centered, flanked by minions. */}
+      <div className="absolute z-10 left-0 right-0 flex justify-center items-end gap-3 px-4" style={{ top: 56 }}>
+        {runner.state.enemies.map(e => {
+          const isBossEnemy = getEnemy(e.defId)?.archetype === 'boss';
+          const w = isBossEnemy ? 270 : 194;
+          const h = isBossEnemy ? 378 : 270;
+          return EnemyCard({ e, cardW: w, cardH: h, isBossEnemy });
+        })}
       </div>
 
-      {/* Sigil slots with damage preview above — pulled toward vertical middle */}
-      <div className="absolute z-10 left-0 right-0 flex flex-col items-center gap-2" style={{
+      {/* Sigil slots — pulled toward vertical middle */}
+      <div className="absolute z-10 left-0 right-0 flex flex-col items-center gap-3" style={{
         top: '50%', transform: 'translateY(-25%)',
       }}>
-        {SlotDamageRow({ slotSize: 92, gap: 16 })}
-        <div style={{ display: 'flex', gap: 16 }}>
-          {runner.state.slots.map((slot, slotIdx) => SigilSlot({ slot, slotIdx, size: 92 }))}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 16 }}>
+          {AdjacentComboConnectors({ slots: runner.state.slots, slotCardW: 92, slotCardH: 128, slotGap: 16 })}
+          {runner.state.slots.map((slot, slotIdx) => SigilSlot({ slot, slotIdx, cardW: 92, cardH: 128 }))}
         </div>
+        {ComboPreviewBanner({ compact: false })}
       </div>
 
       {/* Hand fan — cards bumped 30% (88→114 wide, 122→159 tall) with
@@ -2584,34 +3520,63 @@ export default function CombatView({
         </div>
       </div>
 
-      {/* END TURN button — sits centered DIRECTLY ABOVE the player HP bar.
-          The player bar is at bottom:16 with ~76px height (top edge ~92);
-          this button anchors at bottom:100 so its bottom edge is just
-          above the player bar's top edge. */}
-      <button
-        onClick={() => handleEndTurn()}
-        disabled={animating}
-        className="absolute z-20"
-        style={{
-          left: '50%', bottom: 100,
-          transform: 'translateX(-50%)',
-          width: 220, height: 52,
-          background: animating
-            ? 'linear-gradient(180deg, #4a3530 0%, #2a1f15 100%)'
-            : 'linear-gradient(180deg, var(--sb-crimson) 0%, var(--sb-crimson-dark) 100%)',
-          border: '2.5px solid var(--sb-gold)',
-          borderRadius: 4,
-          color: animating ? '#8b6238' : 'var(--sb-gold-light)',
-          fontFamily: 'var(--sb-font-display)',
-          fontSize: 14, fontWeight: 700, letterSpacing: '0.12em',
-          cursor: animating ? 'wait' : 'pointer',
-          textShadow: '0 1px 2px rgba(0,0,0,0.85)',
-          boxShadow: 'inset 0 1px 0 rgba(253,230,138,0.55), inset 0 -1px 0 rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.6)',
-          opacity: animating ? 0.7 : 1,
-        }}
-      >
-        {animating ? '⚔ RESOLVING…' : '▶ END TURN'}
-      </button>
+      {/* END TURN + AUTO BATTLE button row */}
+      <div className="absolute z-20" style={{
+        left: '50%', bottom: 108,
+        transform: 'translateX(-50%)',
+        display: 'flex', gap: 8,
+      }}>
+        {/* AUTO BATTLE */}
+        <button
+          onClick={() => handleAutoBattle()}
+          disabled={animating || isDealing}
+          style={{
+            width: 72, height: 52,
+            background: (animating || isDealing)
+              ? 'linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)'
+              : 'linear-gradient(180deg, #1e3a5f 0%, #0f1e33 100%)',
+            border: '2.5px solid #7ec4ff',
+            borderRadius: 4,
+            color: (animating || isDealing) ? '#4a6a8a' : '#7ec4ff',
+            fontFamily: 'var(--sb-font-display)',
+            fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+            cursor: (animating || isDealing) ? 'wait' : 'pointer',
+            textShadow: (animating || isDealing) ? 'none' : '0 0 8px #7ec4ff80',
+            boxShadow: (animating || isDealing)
+              ? 'none'
+              : 'inset 0 1px 0 rgba(126,196,255,0.3), 0 0 16px rgba(126,196,255,0.15)',
+            opacity: (animating || isDealing) ? 0.5 : 1,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 3,
+          }}
+        >
+          <span style={{ fontSize: 18, lineHeight: 1 }}>⚡</span>
+          <span>AUTO</span>
+        </button>
+
+        {/* END TURN */}
+        <button
+          onClick={() => handleEndTurn()}
+          disabled={animating || isDealing}
+          style={{
+            width: 220, height: 52,
+            background: (animating || isDealing)
+              ? 'linear-gradient(180deg, #4a3530 0%, #2a1f15 100%)'
+              : 'linear-gradient(180deg, var(--sb-crimson) 0%, var(--sb-crimson-dark) 100%)',
+            border: '2.5px solid var(--sb-gold)',
+            borderRadius: 4,
+            color: (animating || isDealing) ? '#8b6238' : 'var(--sb-gold-light)',
+            fontFamily: 'var(--sb-font-display)',
+            fontSize: 14, fontWeight: 700, letterSpacing: '0.12em',
+            cursor: (animating || isDealing) ? 'wait' : 'pointer',
+            textShadow: '0 1px 2px rgba(0,0,0,0.85)',
+            boxShadow: 'inset 0 1px 0 rgba(253,230,138,0.55), inset 0 -1px 0 rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.6)',
+            opacity: (animating || isDealing) ? 0.7 : 1,
+          }}
+        >
+          {animating ? '⚔ RESOLVING…' : isDealing ? '✦ DEALING…' : '▶ END TURN'}
+        </button>
+      </div>
 
       {/* Tactics rail — anchored to the LEFT EDGE of the screen, vertically
           positioned in the gap between the slot row (upper third) and the
@@ -2633,7 +3598,7 @@ export default function CombatView({
       {/* Player profile bar — bottom-center, peer to the enemy cards at the
           top. Receives enemy projectiles. Sits below the hand fan. */}
       <div className="absolute z-10" style={{
-        left: '50%', bottom: 16,
+        left: '50%', bottom: 22,
         transform: 'translateX(-50%)',
         width: 'min(560px, calc(100% - 200px))',
       }}>
@@ -2643,60 +3608,17 @@ export default function CombatView({
       {ChargeAuraLayer}
       {ComboFlashLayer}
       {FlyingCardOverlay}
+      {DealCardOverlay}
       {ProjectileLayer}
       {ImpactRingLayer}
+      {FireballExplosionLayer}
       {SlashLayer}
       {ParticleLayer}
       {FloaterLayer}
       {InfoModal}
+      {OutcomeAnnounceLayer}
       {ConfirmDialogLayer}
     </div>
   );
 }
 
-// ─── Sigil-slot card art ──────────────────────────────────────────────────────
-// Tries the same image fallback chain as GameCard. When no image exists the
-// card's emoji is rendered on a dark gradient — keeps the slot legible even
-// before assets are added.
-
-function SigilSlotCardArt({ cardId, emoji, size, dimmed }: {
-  cardId: string; emoji: string; size: number; dimmed?: boolean;
-}) {
-  const [attempt, setAttempt] = useState(0);
-  const exts = ['png', 'jpg', 'webp'];
-  const src = attempt < exts.length ? `/cards/${cardId}.${exts[attempt]}` : null;
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        pointerEvents: 'none',
-        opacity: dimmed ? 0.55 : 1,
-      }}
-    >
-      {src ? (
-        <img
-          src={src}
-          onError={() => setAttempt(a => a + 1)}
-          alt=""
-          draggable={false}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center 25%',
-            filter: 'brightness(0.85) contrast(1.05)',
-          }}
-        />
-      ) : (
-        <span style={{ fontSize: size * 0.5, lineHeight: 1, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}>
-          {emoji}
-        </span>
-      )}
-    </div>
-  );
-}

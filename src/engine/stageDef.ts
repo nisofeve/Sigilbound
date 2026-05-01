@@ -67,6 +67,8 @@ interface BandSpec {
 }
 
 function specForStage(stage: number, isBoss: boolean): BandSpec {
+  void isBoss; // reserved for future per-band boss scaling
+  if (stage === 200) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'final' };
   if (stage === 100) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'final' };
   if (stage <= 5)   return { enemyCount: 1, difficulties: ['easy'], band: 'tutorial' };
   if (stage <= 15)  return { enemyCount: 2, difficulties: ['easy', 'easy'], band: 'easy' };
@@ -75,11 +77,12 @@ function specForStage(stage: number, isBoss: boolean): BandSpec {
   if (stage <= 60)  return { enemyCount: 3, difficulties: ['medium', 'medium', 'hard'], band: 'medium' };
   if (stage <= 75)  return { enemyCount: 4, difficulties: ['medium', 'medium', 'hard', 'hard'], band: 'hard' };
   if (stage <= 90)  return { enemyCount: 4, difficulties: ['medium', 'hard', 'hard', 'hard'], band: 'hard' };
-  if (stage <= 99)  return { enemyCount: 5, difficulties: ['medium', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
-  // 101+ plateau — same as 91-99 with mild scaling handled by reward fn
-  const _bossLine = isBoss; // (silence unused param when stage isn't 100)
-  void _bossLine;
-  return { enemyCount: 5, difficulties: ['medium', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
+  if (stage <= 110) return { enemyCount: 5, difficulties: ['medium', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
+  if (stage <= 130) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
+  if (stage <= 150) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
+  if (stage <= 170) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
+  if (stage <= 199) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
+  return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
 }
 
 // === Hand-tuned overrides ===
@@ -91,23 +94,53 @@ interface StageOverride {
 }
 
 const STAGE_OVERRIDES: Partial<Record<number, StageOverride>> = {
-  1:   { title: 'The First Step',          flavor: 'A goblin scout blocks the path. The forest watches.' },
-  5:   { title: 'The Antlered Watcher',    flavor: 'The forest king tests you. He is older than your village.' , bossEnemyId: 'boss_antlered_king' },
-  10:  { title: 'Deeper Woods',            flavor: 'The trees grow closer. Branches scrape your shoulders.' },
-  20:  { title: 'The Antlered King',       flavor: 'A crown of bone and thorn. The Antlered King reveals himself fully.', bossEnemyId: 'boss_antlered_king' },
-  25:  { title: 'Crypts Awaken',           flavor: 'Skeletons stir as you cross the threshold of the Sunken Crypts.' },
-  40:  { title: 'The Bone Tyrant',         flavor: 'A throne of bones. A king who refused to die.', bossEnemyId: 'boss_bone_tyrant' },
-  50:  { title: 'The Ascent',              flavor: 'Frost bites at your hands. The Hollows whisper.' },
-  60:  { title: 'Ymir the Glacier-Born',   flavor: 'Older than the mountain, colder than its heart.', bossEnemyId: 'boss_ymir' },
-  75:  { title: 'Forge Heart',             flavor: 'The Volcanic Forge pulses. Your steel is hot in your hand.' },
-  80:  { title: 'Vulkar the Eternal Flame', flavor: 'A dragon-king of cinders. He has been waiting.', bossEnemyId: 'boss_vulkar' },
-  100: { title: 'The Sigilbreaker',        flavor: 'The Lord of Ashes — the one who started the binding. Three forms. One ending.', bossEnemyId: 'boss_sigilbreaker' },
+  // ── Act I: Whispering Forest (1–20) ──────────────────────────────────────
+  1:   { title: 'The First Step',              flavor: 'A goblin scout blocks the path. The forest watches.' },
+  10:  { title: 'The Antlered Watcher',        flavor: 'The forest king tests you. He is older than your village.', bossEnemyId: 'boss_antlered_king' },
+  15:  { title: 'Deeper Woods',                flavor: 'The trees grow closer. Branches scrape your shoulders.' },
+  20:  { title: 'The Antlered King',           flavor: 'A crown of bone and thorn. The Antlered King reveals himself fully.', bossEnemyId: 'boss_antlered_king' },
+  // ── Act II: Sunken Crypts (21–40) ────────────────────────────────────────
+  25:  { title: 'Crypts Awaken',               flavor: 'Skeletons stir as you cross the threshold of the Sunken Crypts.' },
+  30:  { title: 'Herald of the Bone Tyrant',   flavor: 'A lieutenant of the dead king rides out to meet you.', bossEnemyId: 'boss_bone_tyrant' },
+  40:  { title: 'The Bone Tyrant',             flavor: 'A throne of bones. A king who refused to die.', bossEnemyId: 'boss_bone_tyrant' },
+  // ── Act III: Frostpeak Hollows (41–60) ───────────────────────────────────
+  45:  { title: 'The Ascent',                  flavor: 'Frost bites at your hands. The Hollows whisper.' },
+  50:  { title: 'Cold Vanguard',               flavor: 'Ymir\'s servants descend the mountain in waves.', bossEnemyId: 'boss_ymir' },
+  60:  { title: 'Ymir the Glacier-Born',       flavor: 'Older than the mountain, colder than its heart.', bossEnemyId: 'boss_ymir' },
+  // ── Act IV: Volcanic Forge (61–80) ───────────────────────────────────────
+  65:  { title: 'Forge Heart',                 flavor: 'The Volcanic Forge pulses. Your steel is hot in your hand.' },
+  70:  { title: 'Cinder Warden',               flavor: 'A fire-sworn guardian stands between you and Vulkar.', bossEnemyId: 'boss_vulkar' },
+  80:  { title: 'Vulkar the Eternal Flame',    flavor: 'A dragon-king of cinders. He has been waiting.', bossEnemyId: 'boss_vulkar' },
+  // ── Act V: Ashen Citadel (81–100) ────────────────────────────────────────
+  85:  { title: 'Citadel Gates',               flavor: 'The Ashen Citadel looms. Old magic hums in the walls.' },
+  90:  { title: 'The Sigil Vanguard',          flavor: 'Bound warriors, their sigils still burning after death.', bossEnemyId: 'boss_sigilbreaker' },
+  100: { title: 'The Sigilbreaker',            flavor: 'The Lord of Ashes — the one who started the binding. Three forms. One ending.', bossEnemyId: 'boss_sigilbreaker' },
+  // ── Act VI: The Second Cycle — Forest Reborn (101–120) ───────────────────
+  101: { title: 'A Darker Path',               flavor: 'You have passed the Sigilbreaker. The forest is different now.' },
+  110: { title: 'The Antlered King — Risen',   flavor: 'Defeated once, he returned wearing a crown of shadow-wood.', bossEnemyId: 'boss_antlered_king' },
+  120: { title: 'Forest Ascendant',            flavor: 'The Antlered King at full strength — the forest bends to his will.', bossEnemyId: 'boss_antlered_king' },
+  // ── Act VII: Crypts Eternal (121–140) ────────────────────────────────────
+  125: { title: 'Catacombs Unbound',           flavor: 'The lower crypts were sealed for good reason.' },
+  130: { title: 'Bone Tyrant Reawakened',      flavor: 'The throne of bones reformed in your absence. He remembered your face.', bossEnemyId: 'boss_bone_tyrant' },
+  140: { title: 'Undying Legion',              flavor: 'He raised every corpse you left behind. All of them remember.', bossEnemyId: 'boss_bone_tyrant' },
+  // ── Act VIII: Eternal Frost (141–160) ────────────────────────────────────
+  145: { title: 'Blizzard\'s Heart',           flavor: 'The frostpeak shudders. Something beneath the ice wakes.' },
+  150: { title: 'Ymir Unchained',              flavor: 'The glacier cracks open. Ymir walks free of his mountain prison.', bossEnemyId: 'boss_ymir' },
+  160: { title: 'The Glacial Throne',          flavor: 'An ancient seat of ice. Ymir sits in silence — until now.', bossEnemyId: 'boss_ymir' },
+  // ── Act IX: Forge Infernal (161–180) ─────────────────────────────────────
+  165: { title: 'The Smelting Pits',           flavor: 'Lava flows through every corridor. The forge never stopped burning.' },
+  170: { title: 'Vulkar Enraged',              flavor: 'Half-molten, fully furious. The dragon-king remembers being slain.', bossEnemyId: 'boss_vulkar' },
+  180: { title: 'Pyre Eternal',                flavor: 'Vulkar merged with the Forge itself. The mountain is alive.', bossEnemyId: 'boss_vulkar' },
+  // ── Act X: Void Citadel (181–200) — Final Ascent ─────────────────────────
+  185: { title: 'The Void Threshold',          flavor: 'Beyond the Ashen Citadel, where the sigils unravel into nothing.' },
+  190: { title: 'Sigilbreaker Reborn',         flavor: 'He shed his ashen form. The true Sigilbreaker is woven from your own power.', bossEnemyId: 'boss_sigilbreaker' },
+  200: { title: 'The Last Sigil',              flavor: 'There is no binding left. Only you, and the thing you summoned by surviving this far.', bossEnemyId: 'boss_sigilbreaker' },
 };
 
 // === Generation ===
 
 export function isBossStage(stage: number): boolean {
-  return stage > 0 && stage % 5 === 0;
+  return stage > 0 && stage % 10 === 0;
 }
 
 export function getStage(stage: number): CombatStageDef {
@@ -122,10 +155,10 @@ export function getStage(stage: number): CombatStageDef {
   const override = STAGE_OVERRIDES[stage];
   if (isBoss) {
     const bossId = override?.bossEnemyId ?? defaultBossForBiome(biome);
-    // Boss + 2 minions (per GDD: "1 boss + 2 minions or single elite")
+    // Boss flanked by 2 minions: [minion, BOSS, minion] — boss always center.
     const minionPool = enemiesByBiome(biome).filter(e => e.archetype !== 'boss');
     const minions = sampleN(minionPool.map(e => e.id), 2, rng);
-    enemyIds = [bossId, ...minions];
+    enemyIds = [minions[0]!, bossId, minions[1]!];
   } else {
     const pool = enemiesByBiome(biome).filter(e => e.archetype !== 'boss');
     const ids = pool.map(e => e.id);
@@ -152,11 +185,10 @@ export function getStage(stage: number): CombatStageDef {
   };
 }
 
-// Generate the full 100 stages eagerly. Useful for tests + the StageSelect
-// screen. Stages 101+ are produced on demand via getStage().
+// Generate all 200 stages eagerly. Useful for tests + the StageSelect screen.
 export function allStages(): CombatStageDef[] {
   const out: CombatStageDef[] = [];
-  for (let i = 1; i <= 100; i++) out.push(getStage(i));
+  for (let i = 1; i <= 200; i++) out.push(getStage(i));
   return out;
 }
 

@@ -1,50 +1,195 @@
 import { useMemo, useState } from 'react';
 import type { Profile } from '@storage/index';
-import { getStageDef } from '@engine/index';
-import AnimatedBackground from '@ui/components/AnimatedBackground';
-import StarRatingTooltip from '@ui/components/StarRatingTooltip';
+import { getStageDef, allActions, allTactics } from '@engine/index';
 
 interface Props {
   profile: Profile;
   onPick: (stage: number) => void;
   onBack: () => void;
+  onDeck?: () => void;
 }
 
 const PAGE_SIZE = 20;
 
-// Linear list of stages 1..currentStage (unlocked) plus the next stage as
-// a "preview" so the player can see what's next. Beyond that the list
-// shows "🔒 Locked" placeholders the player can scroll through but not
-// pick. Paged in groups of 20 so very-late-game players don't render 100+
-// rows at once.
-export default function StageSelectScreen({ profile, onPick, onBack }: Props) {
-  const unlockedThrough = profile.currentStage; // includes one un-cleared stage past the last clear
-  const showThrough = Math.max(unlockedThrough, 100);
+
+const RARITY_PIPS: Array<{ key: string; color: string }> = [
+  { key: 'common',    color: '#94a3b8' },
+  { key: 'uncommon',  color: '#4ade80' },
+  { key: 'rare',      color: '#60a5fa' },
+  { key: 'epic',      color: '#c084fc' },
+  { key: 'legendary', color: '#fbbf24' },
+  { key: 'mythic',    color: '#f87171' },
+];
+
+export default function StageSelectScreen({ profile, onPick, onBack, onDeck }: Props) {
+  const unlockedThrough = profile.currentStage;
+  const showThrough = Math.max(unlockedThrough, 200);
   const totalPages = Math.max(1, Math.ceil(showThrough / PAGE_SIZE));
-  // Default page lands on the player's current stage so they don't have to
-  // scroll on every visit.
-  const [page, setPage] = useState(() => Math.min(totalPages - 1, Math.floor((unlockedThrough - 1) / PAGE_SIZE)));
+  const [page, setPage] = useState(() =>
+    Math.min(totalPages - 1, Math.floor((unlockedThrough - 1) / PAGE_SIZE)),
+  );
   const startStage = page * PAGE_SIZE + 1;
   const endStage = Math.min(showThrough, startStage + PAGE_SIZE - 1);
+
   const stages = useMemo(() => {
     const arr: number[] = [];
     for (let s = startStage; s <= endStage; s++) arr.push(s);
     return arr;
   }, [startStage, endStage]);
 
+  // Deck HUD data
+  const allCardDefs = useMemo(() => {
+    const actions = allActions();
+    const tactics = allTactics();
+    return new Map([...actions, ...tactics].map(c => [c.id, c]));
+  }, []);
+
+  const deckCards = profile.combatDeck
+    .map(id => allCardDefs.get(id))
+    .filter(Boolean) as Array<{ id: string; type: string; rarity: string; name: string; emoji?: string }>;
+
+  const deckTotal = deckCards.length;
+  const deckActions = deckCards.filter(c => c.type === 'action').length;
+  const deckTactics = deckCards.filter(c => c.type === 'tactic').length;
+  const deckRarity = deckCards.reduce<Record<string, number>>((acc, c) => {
+    acc[c.rarity] = (acc[c.rarity] ?? 0) + 1;
+    return acc;
+  }, {});
+  const previewEmojis = [...new Map(deckCards.filter(c => c.emoji).map(c => [c.id, c.emoji])).values()].slice(0, 5) as string[];
+
   return (
-    <div className="h-full w-full relative overflow-hidden text-white safe-top safe-bottom flex flex-col">
-      <AnimatedBackground variant="menu" />
-      <div className="relative z-10 px-3 pt-3 pb-2 flex items-center gap-2">
-        <button onClick={onBack} className="pb-btn pb-btn-cream pb-btn-sm">← Back</button>
-        <h2 className="pb-title text-2xl flex-1 text-center">Stages</h2>
-        <div className="text-[10px] opacity-75 font-extrabold w-16 text-right">
-          {unlockedThrough}/100+
+    <div
+      className="safe-top safe-bottom"
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'linear-gradient(160deg, #0a150c 0%, #060d07 60%, #0c0c10 100%)',
+        color: '#e2e8f0',
+        overflow: 'hidden',
+      }}
+    >
+      {/* ── Header ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '14px 16px 10px',
+        borderBottom: '1px solid rgba(255,235,180,0.08)',
+        flexShrink: 0,
+      }}>
+        <button
+          onClick={onBack}
+          style={{
+            background: 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
+            border: '1.5px solid var(--sb-bronze-dark)',
+            borderRadius: 8,
+            color: 'var(--sb-gold-light)',
+            padding: '6px 12px',
+            cursor: 'pointer',
+            fontFamily: "'Nunito', sans-serif",
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            letterSpacing: '0.08em',
+          }}
+        >
+          ← HOME
+        </button>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div
+            className="sb-display"
+            style={{ fontSize: '1.1rem', color: 'var(--sb-gold-light)', letterSpacing: '0.25em' }}
+          >
+            ⚔ STAGES
+          </div>
+        </div>
+        <div
+          className="sb-mono"
+          style={{ fontSize: '0.7rem', color: 'var(--sb-gold)', opacity: 0.7, letterSpacing: '0.1em', minWidth: 52, textAlign: 'right' }}
+        >
+          {unlockedThrough}/200
         </div>
       </div>
 
-      <div className="relative z-10 flex-1 overflow-y-auto px-3 pb-2">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-3xl mx-auto">
+      {/* ── Deck HUD strip ── */}
+      <button
+        onClick={onDeck}
+        disabled={!onDeck}
+        style={{
+          flexShrink: 0,
+          margin: '8px 16px 4px',
+          background: 'linear-gradient(180deg, rgba(44,24,16,0.8) 0%, rgba(20,12,8,0.85) 100%)',
+          border: '1.5px solid var(--sb-bronze-dark)',
+          borderRadius: 10,
+          padding: '8px 12px',
+          cursor: onDeck ? 'pointer' : 'default',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          boxShadow: 'inset 0 1px 0 rgba(255,200,140,0.08)',
+          textAlign: 'left',
+        }}
+      >
+        {/* Left: label + count */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12 }}>🃏</span>
+            <span className="sb-display" style={{ fontSize: 8, letterSpacing: '0.2em', color: 'var(--sb-gold-light)' }}>
+              ACTIVE DECK
+            </span>
+            {deckTotal > 0 && (
+              <>
+                <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 8 }}>│</span>
+                <span className="sb-mono" style={{ fontSize: 9, color: '#94a3b8' }}>⚔ {deckActions}</span>
+                <span className="sb-mono" style={{ fontSize: 9, color: '#c084fc' }}>✦ {deckTactics}</span>
+              </>
+            )}
+          </div>
+          {deckTotal > 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              {/* emoji previews */}
+              {previewEmojis.map((em, i) => (
+                <span key={i} style={{ fontSize: 13, lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }}>
+                  {em}
+                </span>
+              ))}
+              {deckTotal > previewEmojis.length && (
+                <span className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.35)', marginLeft: 1 }}>
+                  +{deckTotal - previewEmojis.length}
+                </span>
+              )}
+              {/* rarity pips */}
+              <div style={{ display: 'flex', gap: 3, marginLeft: 4, alignItems: 'center' }}>
+                {RARITY_PIPS.filter(r => deckRarity[r.key]).map(r => (
+                  <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: r.color, boxShadow: `0 0 3px ${r.color}80` }} />
+                    <span className="sb-mono" style={{ fontSize: 7, color: r.color, opacity: 0.85 }}>{deckRarity[r.key]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <span className="sb-display" style={{ fontSize: 8, color: 'rgba(255,235,180,0.25)', letterSpacing: '0.12em' }}>
+              — NO DECK CONFIGURED —
+            </span>
+          )}
+        </div>
+        {/* Right: total + edit hint */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+          <span className="sb-mono" style={{ fontSize: 13, color: 'var(--sb-gold)', fontWeight: 800 }}>
+            {deckTotal}
+          </span>
+          {onDeck && (
+            <span className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.35)', letterSpacing: '0.08em' }}>
+              EDIT ✎
+            </span>
+          )}
+        </div>
+      </button>
+
+      {/* ── Stage grid ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 12px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.08) transparent' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, maxWidth: 600, margin: '0 auto' }}>
           {stages.map(s => (
             <StageCard
               key={s}
@@ -58,30 +203,64 @@ export default function StageSelectScreen({ profile, onPick, onBack }: Props) {
         </div>
       </div>
 
-      <div className="relative z-10 px-3 pb-3 pt-1 flex items-center justify-between gap-2">
+      {/* ── Pagination ── */}
+      <div style={{
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '8px 16px 12px',
+        borderTop: '1px solid rgba(255,235,180,0.08)',
+        background: 'linear-gradient(180deg, transparent 0%, rgba(10,8,6,0.7) 100%)',
+        gap: 12,
+      }}>
         <button
           onClick={() => setPage(p => Math.max(0, p - 1))}
           disabled={page === 0}
-          className="pb-btn pb-btn-cream pb-btn-sm"
-          style={{ opacity: page === 0 ? 0.4 : 1 }}
+          style={{
+            background: 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
+            border: '1.5px solid var(--sb-bronze-dark)',
+            borderRadius: 8,
+            color: 'var(--sb-gold-light)',
+            padding: '6px 14px',
+            cursor: page === 0 ? 'not-allowed' : 'pointer',
+            opacity: page === 0 ? 0.35 : 1,
+            fontFamily: "'Nunito', sans-serif",
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+          }}
         >
-          ← Prev
+          ← PREV
         </button>
-        <div className="text-[11px] font-extrabold opacity-90">
-          Stages {startStage}–{endStage}
-        </div>
+        <span className="sb-mono" style={{ fontSize: '0.72rem', color: 'var(--sb-gold)', opacity: 0.7, letterSpacing: '0.1em' }}>
+          {startStage}–{endStage}
+        </span>
         <button
           onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
           disabled={page >= totalPages - 1}
-          className="pb-btn pb-btn-cream pb-btn-sm"
-          style={{ opacity: page >= totalPages - 1 ? 0.4 : 1 }}
+          style={{
+            background: 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
+            border: '1.5px solid var(--sb-bronze-dark)',
+            borderRadius: 8,
+            color: 'var(--sb-gold-light)',
+            padding: '6px 14px',
+            cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer',
+            opacity: page >= totalPages - 1 ? 0.35 : 1,
+            fontFamily: "'Nunito', sans-serif",
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+          }}
         >
-          Next →
+          NEXT →
         </button>
       </div>
     </div>
   );
 }
+
+// ─── Stage Card ───────────────────────────────────────────────────────────────
 
 function StageCard({
   stage, unlocked, stars, isCurrent, onPick,
@@ -93,67 +272,94 @@ function StageCard({
   onPick: () => void;
 }) {
   const def = unlocked ? getStageDef(stage) : null;
-  const isBoss = stage % 5 === 0;
+  const isBoss = def?.kind === 'boss' || stage % 10 === 0;
+
   return (
     <button
       onClick={unlocked ? onPick : undefined}
       disabled={!unlocked}
-      className={`relative rounded-xl p-2 text-left transition ${unlocked ? 'active:scale-95' : 'cursor-not-allowed'}`}
       style={{
+        position: 'relative',
+        borderRadius: 10,
+        padding: '10px 12px',
+        textAlign: 'left',
+        cursor: unlocked ? 'pointer' : 'not-allowed',
         background: !unlocked
-          ? 'rgba(0,0,0,0.45)'
+          ? 'rgba(0,0,0,0.5)'
           : isBoss
-            ? 'linear-gradient(180deg, rgba(255,128,171,0.22) 0%, rgba(194,24,91,0.22) 100%)'
-            : 'rgba(13,58,20,0.7)',
-        border: `2px solid ${!unlocked ? 'rgba(255,255,255,0.08)' : isBoss ? 'rgba(255,128,171,0.6)' : 'rgba(106,180,123,0.5)'}`,
-        boxShadow: isCurrent ? '0 0 0 2px #ffd54f, 0 4px 0 rgba(0,0,0,0.25)' : '0 3px 0 rgba(0,0,0,0.25)',
-        minHeight: 90,
-        opacity: unlocked ? 1 : 0.65,
+            ? 'linear-gradient(160deg, rgba(127,29,29,0.6) 0%, rgba(60,12,12,0.7) 100%)'
+            : 'linear-gradient(160deg, rgba(34,89,46,0.35) 0%, rgba(6,13,7,0.7) 100%)',
+        border: `1.5px solid ${!unlocked
+          ? 'rgba(255,255,255,0.06)'
+          : isBoss
+            ? '#f87171'
+            : '#4ade8066'
+        }`,
+        boxShadow: isCurrent
+          ? '0 0 0 2px #fbbf24, 0 4px 12px rgba(251,191,36,0.2)'
+          : !unlocked
+            ? 'none'
+            : '0 3px 8px rgba(0,0,0,0.4)',
+        opacity: unlocked ? 1 : 0.5,
+        transition: 'all 140ms ease',
+        minHeight: 84,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
       }}
     >
-      <div className="flex items-baseline justify-between">
-        <div className="text-[10px] uppercase tracking-widest font-extrabold opacity-85">
-          Stage
-        </div>
-        {isBoss && unlocked && <span className="text-base">👑</span>}
-        {!unlocked && <span className="text-base">🔒</span>}
-      </div>
-      <div className="fredoka text-2xl mt-0.5" style={{ color: '#ffd54f' }}>
-        {stage}
-      </div>
-      {def && (
-        <div className="text-[10px] opacity-80 leading-tight mt-0.5">
-          {def.orders.length} goal{def.orders.length === 1 ? '' : 's'}
-        </div>
-      )}
-      {unlocked && (
-        <div className="mt-1">
-          <StarRatingTooltip placement="bottom">
-            <span className="flex gap-0.5">
-              {[1, 2, 3].map(i => (
-                <span
-                  key={i}
-                  className="text-base"
-                  style={{ color: stars >= i ? '#ffd54f' : 'rgba(255,255,255,0.18)' }}
-                >
-                  ★
-                </span>
-              ))}
-            </span>
-          </StarRatingTooltip>
-        </div>
-      )}
+      {/* Current badge */}
       {isCurrent && (
-        <div
-          className="absolute -top-1.5 -right-1.5 text-[9px] uppercase tracking-widest font-extrabold px-1.5 py-0.5 rounded-full"
-          style={{
-            background: '#ffd54f', color: '#4a2e00', border: '2px solid #4a2e00',
-            boxShadow: '0 2px 0 rgba(0,0,0,0.35)',
-          }}
-        >
-          Current
+        <div style={{
+          position: 'absolute', top: -8, right: -2,
+          background: '#fbbf24', color: '#3a2000',
+          border: '1.5px solid #3a2000',
+          borderRadius: 999,
+          fontSize: 8, fontWeight: 800,
+          padding: '2px 7px',
+          letterSpacing: '0.1em',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+          fontFamily: "'Nunito', sans-serif",
+        }}>
+          NOW
         </div>
       )}
+
+      {/* Top: stage number + boss/lock icon */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <div className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.4)', letterSpacing: '0.15em', marginBottom: 1 }}>
+            STAGE
+          </div>
+          <div className="sb-display" style={{ fontSize: 22, color: isBoss ? '#fca5a5' : 'var(--sb-gold-light)', lineHeight: 1 }}>
+            {stage}
+          </div>
+        </div>
+        <span style={{ fontSize: 16, lineHeight: 1, marginTop: 2 }}>
+          {!unlocked ? '🔒' : isBoss ? '👑' : ''}
+        </span>
+      </div>
+
+      {/* Bottom: goal count + stars */}
+      <div>
+        {def && (
+          <div className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.3)', letterSpacing: '0.08em', marginBottom: 4 }}>
+            {def.orders.length} GOAL{def.orders.length === 1 ? '' : 'S'}
+          </div>
+        )}
+        {unlocked && (
+          <div style={{ display: 'flex', gap: 2 }}>
+            {[1, 2, 3].map(i => (
+              <span
+                key={i}
+                style={{ fontSize: 11, color: stars >= i ? '#fbbf24' : 'rgba(255,255,255,0.12)', lineHeight: 1 }}
+              >
+                ★
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </button>
   );
 }

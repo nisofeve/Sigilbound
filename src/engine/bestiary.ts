@@ -44,11 +44,13 @@ export function enemiesByArchetype(archetype: Archetype): ReadonlyArray<Bestiary
   return ALL.filter(e => e.archetype === archetype);
 }
 
-// Stage → Biome mapping. Stages 101+ plateau into the Ashen Citadel.
+// Stage → Biome mapping. Two full cycles (1–100, 101–200).
 export function biomeForStage(stage: number): Biome {
-  if (stage <= 20) return 'forest';
-  if (stage <= 40) return 'crypts';
-  if (stage <= 60) return 'frostpeak';
-  if (stage <= 80) return 'volcano';
+  // Normalise into a 1–100 cycle so 101–200 mirrors 1–100.
+  const s = stage <= 100 ? stage : ((stage - 1) % 100) + 1;
+  if (s <= 20) return 'forest';
+  if (s <= 40) return 'crypts';
+  if (s <= 60) return 'frostpeak';
+  if (s <= 80) return 'volcano';
   return 'ashen';
 }
