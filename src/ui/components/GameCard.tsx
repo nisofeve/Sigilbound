@@ -15,6 +15,7 @@
 
 import { useState } from 'react';
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import { IMAGE_MANIFEST } from './imageManifest';
 
 // ─── Image fallback chain ─────────────────────────────────────────────────────
 //
@@ -23,10 +24,18 @@ import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as Reac
 // the placeholder emoji renders. This lets call sites pass both the canonical
 // id and a normalised display-name fallback so artists can name files either
 // way.
+//
+// IMAGE_MANIFEST is checked first — it contains Vite-processed data URIs so
+// the game works on itch.io and file:// without external requests.
 
 const IMG_EXTS = ['png', 'jpg', 'webp'];
 function imageUrlAt(base: string, ids: string[], attempt: number): string | null {
   if (ids.length === 0) return null;
+  // Check manifest first (covers all ids regardless of extension attempt).
+  for (const id of ids) {
+    const hit = IMAGE_MANIFEST[`${base}/${id}`];
+    if (hit) return hit;
+  }
   const idIdx  = Math.floor(attempt / IMG_EXTS.length);
   const extIdx = attempt % IMG_EXTS.length;
   if (idIdx >= ids.length) return null;

@@ -14,8 +14,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root      = resolve(__dirname, '..');
 const distDir   = join(root, 'dist-standalone');
-const outDir    = join(root, 'dist');
-const outFile   = join(outDir, 'Sigilbound.html');
+const outDir    = join(root, 'dist-itch');
+const outFile   = join(outDir, 'index.html');
+const zipFile   = join(root, 'dist', 'Sigilbound-itch.zip');
 
 // ── 1. Build ─────────────────────────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ html = html.replace(/<script([^>]*)><\/script>/gi, (match, attrs) => {
 // ── 7. Write output ───────────────────────────────────────────────────────────
 
 mkdirSync(outDir, { recursive: true });
+mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(outFile, html, 'utf8');
 
 const bytes  = readFileSync(outFile).length;
@@ -109,7 +111,22 @@ const sizeMB = (bytes / 1024 / 1024).toFixed(1);
 console.log(`\n✅  Standalone file ready!\n`);
 console.log(`    ${outFile}`);
 console.log(`    Size: ${sizeMB} MB\n`);
-console.log('    Open in any Windows browser — no server needed.\n');
+
+// ── 8. ZIP for itch.io ────────────────────────────────────────────────────────
+// The ZIP contains only the single inlined index.html (all JS and CSS are
+// already inlined into it). itch.io will find index.html at the ZIP root.
+
+console.log('📦  Creating itch.io ZIP…');
+execSync(
+  `powershell -Command "Compress-Archive -Force -Path '${outFile}' -DestinationPath '${zipFile}'"`,
+  { cwd: root, stdio: 'inherit' },
+);
+const zipBytes  = readFileSync(zipFile).length;
+const zipSizeMB = (zipBytes / 1024 / 1024).toFixed(1);
+console.log(`\n🎮  itch.io ZIP ready!\n`);
+console.log(`    ${zipFile}`);
+console.log(`    Size: ${zipSizeMB} MB`);
+console.log('\n    Upload this ZIP to itch.io → set "This file will be played in the browser"\n');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
