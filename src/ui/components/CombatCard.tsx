@@ -56,6 +56,12 @@ interface SizingProps {
 
 // ─── ActionCard ───────────────────────────────────────────────────────────────
 
+function nameAlternates(name: string): string[] {
+  const under = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const dash  = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return [under, dash];
+}
+
 export function ActionCard({
   card, size = 'md', customWidth, ...interaction
 }: { card: ActionCardDef } & SizingProps & InteractionProps) {
@@ -73,6 +79,7 @@ export function ActionCard({
     <GameCard
       name={card.name}
       imageId={card.id}
+      imageIdAlternates={nameAlternates(card.name)}
       imageBase="cards"
       placeholderEmoji={card.emoji}
       size={size}
@@ -110,6 +117,7 @@ export function TacticCard({
     <GameCard
       name={card.name}
       imageId={card.id}
+      imageIdAlternates={nameAlternates(card.name)}
       imageBase="cards"
       placeholderEmoji={card.emoji}
       size={size}
@@ -142,6 +150,7 @@ export function ReactionCard({
     <GameCard
       name={card.name}
       imageId={card.id}
+      imageIdAlternates={nameAlternates(card.name)}
       imageBase="cards"
       placeholderEmoji={card.emoji}
       size={size}

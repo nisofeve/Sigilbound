@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import type { Profile } from '@storage/index';
-import { getStageDef, allActions, allTactics } from '@engine/index';
+import { setActiveCombatDeckSet } from '@storage/index';
+import { getStageDef, allActions, allTactics, MAX_STAGES } from '@engine/index';
 
 interface Props {
   profile: Profile;
+  onProfileChange?: (next: Profile) => void;
   onPick: (stage: number) => void;
   onBack: () => void;
   onDeck?: () => void;
@@ -11,19 +13,14 @@ interface Props {
 
 const PAGE_SIZE = 20;
 
+const RARITY_COLOR_SS: Record<string, string> = {
+  common: '#94a3b8', uncommon: '#4ade80', rare: '#60a5fa',
+  epic: '#c084fc', legendary: '#fbbf24', mythic: '#f87171',
+};
 
-const RARITY_PIPS: Array<{ key: string; color: string }> = [
-  { key: 'common',    color: '#94a3b8' },
-  { key: 'uncommon',  color: '#4ade80' },
-  { key: 'rare',      color: '#60a5fa' },
-  { key: 'epic',      color: '#c084fc' },
-  { key: 'legendary', color: '#fbbf24' },
-  { key: 'mythic',    color: '#f87171' },
-];
-
-export default function StageSelectScreen({ profile, onPick, onBack, onDeck }: Props) {
+export default function StageSelectScreen({ profile, onProfileChange, onPick, onBack, onDeck }: Props) {
   const unlockedThrough = profile.currentStage;
-  const showThrough = Math.max(unlockedThrough, 200);
+  const showThrough = Math.min(MAX_STAGES, Math.max(unlockedThrough, 200));
   const totalPages = Math.max(1, Math.ceil(showThrough / PAGE_SIZE));
   const [page, setPage] = useState(() =>
     Math.min(totalPages - 1, Math.floor((unlockedThrough - 1) / PAGE_SIZE)),
@@ -37,25 +34,31 @@ export default function StageSelectScreen({ profile, onPick, onBack, onDeck }: P
     return arr;
   }, [startStage, endStage]);
 
-  // Deck HUD data
+  const [deckExpanded, setDeckExpanded] = useState(false);
+
   const allCardDefs = useMemo(() => {
     const actions = allActions();
     const tactics = allTactics();
     return new Map([...actions, ...tactics].map(c => [c.id, c]));
   }, []);
 
-  const deckCards = profile.combatDeck
+  const activeSetIdx = profile.activeCombatDeckSet ?? 0;
+  const deckCards = (profile.combatDeck ?? [])
     .map(id => allCardDefs.get(id))
-    .filter(Boolean) as Array<{ id: string; type: string; rarity: string; name: string; emoji?: string }>;
+    .filter(Boolean) as Array<{ id: string; type: string; rarity: string; name: string }>;
 
   const deckTotal = deckCards.length;
   const deckActions = deckCards.filter(c => c.type === 'action').length;
   const deckTactics = deckCards.filter(c => c.type === 'tactic').length;
-  const deckRarity = deckCards.reduce<Record<string, number>>((acc, c) => {
-    acc[c.rarity] = (acc[c.rarity] ?? 0) + 1;
-    return acc;
-  }, {});
-  const previewEmojis = [...new Map(deckCards.filter(c => c.emoji).map(c => [c.id, c.emoji])).values()].slice(0, 5) as string[];
+
+  const cardNameCounts = useMemo(() => {
+    const m = new Map<string, { name: string; rarity: string; type: string; count: number }>();
+    for (const c of deckCards) {
+      if (m.has(c.id)) { m.get(c.id)!.count++; }
+      else m.set(c.id, { name: c.name, rarity: c.rarity, type: c.type, count: 1 });
+    }
+    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [deckCards]);
 
   return (
     <div
@@ -107,85 +110,116 @@ export default function StageSelectScreen({ profile, onPick, onBack, onDeck }: P
           className="sb-mono"
           style={{ fontSize: '0.7rem', color: 'var(--sb-gold)', opacity: 0.7, letterSpacing: '0.1em', minWidth: 52, textAlign: 'right' }}
         >
-          {unlockedThrough}/200
+          {unlockedThrough}/{MAX_STAGES}
         </div>
       </div>
 
       {/* ── Deck HUD strip ── */}
-      <button
-        onClick={onDeck}
-        disabled={!onDeck}
-        style={{
-          flexShrink: 0,
-          margin: '8px 16px 4px',
-          background: 'linear-gradient(180deg, rgba(44,24,16,0.8) 0%, rgba(20,12,8,0.85) 100%)',
-          border: '1.5px solid var(--sb-bronze-dark)',
-          borderRadius: 10,
-          padding: '8px 12px',
-          cursor: onDeck ? 'pointer' : 'default',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          boxShadow: 'inset 0 1px 0 rgba(255,200,140,0.08)',
-          textAlign: 'left',
-        }}
-      >
-        {/* Left: label + count */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12 }}>🃏</span>
-            <span className="sb-display" style={{ fontSize: 8, letterSpacing: '0.2em', color: 'var(--sb-gold-light)' }}>
-              ACTIVE DECK
-            </span>
-            {deckTotal > 0 && (
-              <>
-                <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 8 }}>│</span>
-                <span className="sb-mono" style={{ fontSize: 9, color: '#94a3b8' }}>⚔ {deckActions}</span>
-                <span className="sb-mono" style={{ fontSize: 9, color: '#c084fc' }}>✦ {deckTactics}</span>
-              </>
+      <div style={{
+        flexShrink: 0,
+        margin: '8px 16px 4px',
+        background: 'linear-gradient(180deg, rgba(44,24,16,0.88) 0%, rgba(20,12,8,0.93) 100%)',
+        border: '1.5px solid var(--sb-bronze-dark)',
+        borderRadius: 10,
+        overflow: 'hidden',
+        boxShadow: 'inset 0 1px 0 rgba(255,200,140,0.08)',
+      }}>
+        {/* Header row */}
+        <div
+          style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', gap: 10 }}
+          onClick={() => setDeckExpanded(v => !v)}
+        >
+          <span style={{ fontSize: 12 }}>🃏</span>
+          <span className="sb-display" style={{ fontSize: 8, letterSpacing: '0.2em', color: 'var(--sb-gold-light)', flex: 1 }}>
+            {(profile.combatDeckSets ?? [])[activeSetIdx]?.name?.toUpperCase() ?? 'ACTIVE DECK'}
+          </span>
+          {deckTotal > 0 && (
+            <>
+              <span className="sb-mono" style={{ fontSize: 9, color: '#94a3b8' }}>⚔ {deckActions}</span>
+              <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 8 }}>│</span>
+              <span className="sb-mono" style={{ fontSize: 9, color: '#c084fc' }}>✦ {deckTactics}</span>
+            </>
+          )}
+          <span className="sb-mono" style={{ fontSize: 9, color: 'var(--sb-gold)', opacity: 0.7 }}>
+            {deckTotal > 0 ? `${deckTotal}` : 'EMPTY'} {deckExpanded ? '▲' : '▼'}
+          </span>
+        </div>
+
+        {/* Expanded panel */}
+        {deckExpanded && (
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {/* Set switcher */}
+            {(profile.combatDeckSets ?? []).length > 0 && (
+              <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
+                {(profile.combatDeckSets ?? []).map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => onProfileChange && onProfileChange(setActiveCombatDeckSet(profile, i))}
+                    disabled={!onProfileChange}
+                    style={{
+                      flexShrink: 0, padding: '3px 8px', borderRadius: 6,
+                      fontSize: 9, fontWeight: 800, fontFamily: "'Nunito', sans-serif",
+                      background: i === activeSetIdx ? 'rgba(196,146,42,0.22)' : 'rgba(0,0,0,0.2)',
+                      border: i === activeSetIdx ? '1.5px solid rgba(196,146,42,0.7)' : '1.5px solid rgba(120,80,30,0.2)',
+                      color: i === activeSetIdx ? '#c4922a' : '#8d6e3f',
+                      cursor: onProfileChange ? 'pointer' : 'default',
+                    }}
+                  >
+                    {s.name ?? `Deck ${i + 1}`}
+                    <span style={{ opacity: 0.6, marginLeft: 3 }}>({s.cards?.length ?? 0})</span>
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
-          {deckTotal > 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              {/* emoji previews */}
-              {previewEmojis.map((em, i) => (
-                <span key={i} style={{ fontSize: 13, lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }}>
-                  {em}
-                </span>
-              ))}
-              {deckTotal > previewEmojis.length && (
-                <span className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.35)', marginLeft: 1 }}>
-                  +{deckTotal - previewEmojis.length}
-                </span>
-              )}
-              {/* rarity pips */}
-              <div style={{ display: 'flex', gap: 3, marginLeft: 4, alignItems: 'center' }}>
-                {RARITY_PIPS.filter(r => deckRarity[r.key]).map(r => (
-                  <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: r.color, boxShadow: `0 0 3px ${r.color}80` }} />
-                    <span className="sb-mono" style={{ fontSize: 7, color: r.color, opacity: 0.85 }}>{deckRarity[r.key]}</span>
+
+            {/* Card list */}
+            {deckTotal === 0 ? (
+              <span className="sb-display" style={{ fontSize: 8, color: 'rgba(255,235,180,0.25)', letterSpacing: '0.12em', textAlign: 'center' }}>
+                — NO DECK CONFIGURED —
+              </span>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 160, overflowY: 'auto' }}>
+                {cardNameCounts.map((entry, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{
+                      width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                      background: RARITY_COLOR_SS[entry.rarity] ?? '#94a3b8',
+                      boxShadow: `0 0 4px ${RARITY_COLOR_SS[entry.rarity] ?? '#94a3b8'}80`,
+                    }} />
+                    <span className="sb-mono" style={{ fontSize: 9, color: '#e2d5b0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {entry.name}
+                    </span>
+                    <span style={{ fontSize: 8, color: entry.type === 'action' ? '#94a3b8' : '#c084fc', flexShrink: 0 }}>
+                      {entry.type === 'action' ? '⚔' : '✦'}
+                    </span>
+                    <span className="sb-mono" style={{ fontSize: 9, color: '#c4922a', flexShrink: 0, minWidth: 16, textAlign: 'right' }}>
+                      ×{entry.count}
+                    </span>
                   </div>
                 ))}
               </div>
-            </div>
-          ) : (
-            <span className="sb-display" style={{ fontSize: 8, color: 'rgba(255,235,180,0.25)', letterSpacing: '0.12em' }}>
-              — NO DECK CONFIGURED —
-            </span>
-          )}
-        </div>
-        {/* Right: total + edit hint */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-          <span className="sb-mono" style={{ fontSize: 13, color: 'var(--sb-gold)', fontWeight: 800 }}>
-            {deckTotal}
-          </span>
-          {onDeck && (
-            <span className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.35)', letterSpacing: '0.08em' }}>
-              EDIT ✎
-            </span>
-          )}
-        </div>
-      </button>
+            )}
+
+            {/* Edit button */}
+            {onDeck && (
+              <button
+                onClick={onDeck}
+                style={{
+                  width: '100%', padding: '5px 0', borderRadius: 6,
+                  fontSize: 9, fontWeight: 800, letterSpacing: '0.15em',
+                  fontFamily: "'Nunito', sans-serif",
+                  background: 'rgba(196,146,42,0.15)',
+                  border: '1.5px solid rgba(196,146,42,0.4)',
+                  color: 'var(--sb-gold-light)',
+                  cursor: 'pointer',
+                }}
+              >
+                ✎ EDIT DECK
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ── Stage grid ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 12px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.08) transparent' }}>

@@ -37,4 +37,5 @@ export type Screen =
   | { kind: 'combat_home' }
   | { kind: 'combat'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; carryHp?: number; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string> }
   | { kind: 'combat_result'; outcome: 'cleared' | 'defeated'; stage: CombatStageDef; runner: BattleRunner; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string>; clearOutcome?: CombatClearOutcome }
-  | { kind: 'bestiary' };
+  | { kind: 'bestiary' }
+  | { kind: 'encyclopedia' };

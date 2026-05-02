@@ -21,6 +21,7 @@ import SigilboundHubScreen from '@ui/screens/SigilboundHubScreen';
 import CombatDeckScreen from '@ui/screens/CombatDeckScreen';
 import CombatShopScreen from '@ui/screens/CombatShopScreen';
 import BestiaryScreen from '@ui/screens/BestiaryScreen';
+import CardEncyclopediaScreen from '@ui/screens/CardEncyclopediaScreen';
 import {
   applyStageOutcomeToProfile,
   applyCombatClearToProfile,
@@ -217,6 +218,7 @@ export default function App() {
       {screen.kind === 'sigilbound_hub' && (
         <SigilboundHubScreen
           profile={profile}
+          onProfileChange={persistProfile}
           onCombat={() => setScreen({ kind: 'combat_home' })}
           onStronghold={() => setScreen({ kind: 'farmstead' })}
           onProfile={() => setScreen({ kind: 'profile' })}
@@ -224,6 +226,7 @@ export default function App() {
           onDeck={() => setScreen({ kind: 'deck' })}
           onShop={() => setScreen({ kind: 'shop' })}
           onBestiary={() => setScreen({ kind: 'bestiary' })}
+          onEncyclopedia={() => setScreen({ kind: 'encyclopedia' })}
         />
       )}
       {screen.kind === 'home' && (
@@ -246,6 +249,7 @@ export default function App() {
       {screen.kind === 'stage_select' && (
         <StageSelectScreen
           profile={profile}
+          onProfileChange={persistProfile}
           onPick={(stage) => setStageInfoOpen(stage)}
           onBack={() => setScreen({ kind: 'home' })}
           onDeck={() => setScreen({ kind: 'deck' })}
@@ -467,6 +471,9 @@ export default function App() {
       )}
       {screen.kind === 'bestiary' && (
         <BestiaryScreen onBack={() => setScreen({ kind: 'sigilbound_hub' })} />
+      )}
+      {screen.kind === 'encyclopedia' && (
+        <CardEncyclopediaScreen onBack={() => setScreen({ kind: 'sigilbound_hub' })} />
       )}
       {screen.kind === 'combat_result' && (
         <CombatResultScreen

@@ -43,3 +43,5 @@ export * from './combatShop';
 export * from './cardLevels';
 // Phase 3 — drop tables (equipment from enemies, talents from 3-star clears).
 export * from './dropTables';
+// Battle intro narratives — per-biome area descriptions shown before combat.
+export * from './battleIntros';
