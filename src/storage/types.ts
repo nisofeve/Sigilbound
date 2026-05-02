@@ -99,7 +99,12 @@ export interface Profile {
   combatCardTiers: Record<string, number>;
   // Player-built combat deck. Ordered list of card ids (duplicates allowed).
   // Empty array → BattleRunner falls back to the gear-only auto-deck.
+  // Kept as the ACTIVE deck mirror — always equals combatDeckSets[activeCombatDeckSet].cards.
   combatDeck: string[];
+  // 7 named deck presets. Index 0..6. Each has a name + card list.
+  combatDeckSets: CombatDeckSet[];
+  // Which of the 7 sets is currently active (0-based).
+  activeCombatDeckSet: number;
   // Sigilbound daily shop. Separate from the legacy Plotbound shop fields
   // because the combat shop uses crystals/soul-shards rather than coins/gems
   // and rotates daily-rolled Action/Tactic cards instead of seeds/tools.
@@ -108,6 +113,13 @@ export interface Profile {
   combatShopBoughtCounts: Record<string, number>; // tracks copies purchased per cardId
   combatShopRerolls: number;
 }
+
+export interface CombatDeckSet {
+  name: string;           // Player-chosen name, e.g. "Aggro Build"
+  cards: string[];        // Ordered card ids (duplicates allowed), 0–30
+}
+
+export const MAX_COMBAT_DECK_SETS = 7;
 
 export interface DeckEntry {
   cardId: CardId;

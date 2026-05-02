@@ -16,6 +16,7 @@ import {
   type CombatShopRoll,
   type Rarity,
 } from '@engine/index';
+import { MAX_COMBAT_DECK_SETS } from './types';
 import type { Profile } from './types';
 
 // === Daily rollover ===
@@ -139,22 +140,66 @@ const DECK_MAX = 30;
  * Add a card id to the player's combat deck (if they own at least one
  * unused copy and the deck isn't at the cap).
  */
+// Internal: return updated sets array with the active set's cards replaced.
+function withActiveSetCards(profile: Profile, cards: string[]): Profile {
+  const sets = profile.combatDeckSets.map((s, i) =>
+    i === profile.activeCombatDeckSet ? { ...s, cards } : s,
+  );
+  return { ...profile, combatDeckSets: sets, combatDeck: cards };
+}
+
 export function addToCombatDeck(profile: Profile, cardId: string): Profile | null {
-  if (profile.combatDeck.length >= DECK_MAX) return null;
+  const deck = profile.combatDeck;
+  if (deck.length >= DECK_MAX) return null;
   const owned = profile.combatCardInventory[cardId] ?? 0;
-  const inDeck = profile.combatDeck.filter(id => id === cardId).length;
-  if (inDeck >= owned) return null; // can't add more than you own
-  return { ...profile, combatDeck: [...profile.combatDeck, cardId] };
+  const inDeck = deck.filter(id => id === cardId).length;
+  if (inDeck >= owned) return null;
+  return withActiveSetCards(profile, [...deck, cardId]);
 }
 
 /** Remove the first occurrence of a card id from the combat deck. */
 export function removeFromCombatDeck(profile: Profile, cardId: string): Profile | null {
-  if (profile.combatDeck.length <= DECK_MIN) return null;
-  const idx = profile.combatDeck.indexOf(cardId);
+  const deck = profile.combatDeck;
+  if (deck.length <= DECK_MIN) return null;
+  const idx = deck.indexOf(cardId);
   if (idx < 0) return null;
-  const next = profile.combatDeck.slice();
+  const next = deck.slice();
   next.splice(idx, 1);
-  return { ...profile, combatDeck: next };
+  return withActiveSetCards(profile, next);
+}
+
+/** Switch the active deck set to `setIndex` (0-based). Updates combatDeck. */
+export function setActiveCombatDeckSet(profile: Profile, setIndex: number): Profile {
+  const clamped = Math.max(0, Math.min(MAX_COMBAT_DECK_SETS - 1, setIndex));
+  const cards = profile.combatDeckSets[clamped]?.cards ?? [];
+  return { ...profile, activeCombatDeckSet: clamped, combatDeck: cards };
+}
+
+/** Rename a deck set. */
+export function renameCombatDeckSet(profile: Profile, setIndex: number, name: string): Profile {
+  const sets = profile.combatDeckSets.map((s, i) =>
+    i === setIndex ? { ...s, name: name.slice(0, 24) } : s,
+  );
+  return { ...profile, combatDeckSets: sets };
+}
+
+/** Clear all cards from a deck set. */
+export function clearCombatDeckSet(profile: Profile, setIndex: number): Profile {
+  const sets = profile.combatDeckSets.map((s, i) =>
+    i === setIndex ? { ...s, cards: [] } : s,
+  );
+  const combatDeck = setIndex === profile.activeCombatDeckSet ? [] : profile.combatDeck;
+  return { ...profile, combatDeckSets: sets, combatDeck };
+}
+
+/** Copy one deck set's cards into another set. */
+export function copyCombatDeckSet(profile: Profile, fromIndex: number, toIndex: number): Profile {
+  const cards = [...(profile.combatDeckSets[fromIndex]?.cards ?? [])];
+  const sets = profile.combatDeckSets.map((s, i) =>
+    i === toIndex ? { ...s, cards } : s,
+  );
+  const combatDeck = toIndex === profile.activeCombatDeckSet ? cards : profile.combatDeck;
+  return { ...profile, combatDeckSets: sets, combatDeck };
 }
 
 export function combatDeckLimits(): { min: number; max: number } {
@@ -258,6 +303,11 @@ export function upgradeCombatCard(profile: Profile, cardId: string): CombatBuyRe
       toRemove--;
     }
     next.combatDeck = nextDeck;
+    // Keep the active deck set in sync.
+    const sets = next.combatDeckSets.map((s, i) =>
+      i === next.activeCombatDeckSet ? { ...s, cards: nextDeck } : s,
+    );
+    next.combatDeckSets = sets;
   }
 
   return { ok: true, profile: next };

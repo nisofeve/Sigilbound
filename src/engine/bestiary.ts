@@ -12,7 +12,7 @@ export const BIOMES: ReadonlyArray<Biome> = [
   'forest', 'crypts', 'frostpeak', 'volcano', 'ashen',
 ];
 
-// Stage range each biome covers (per GDD §Run Structure).
+// Stage range each biome covers within one 100-stage cycle.
 export const BIOME_RANGES: Record<Biome, { min: number; max: number }> = {
   forest:    { min: 1,  max: 20 },
   crypts:    { min: 21, max: 40 },

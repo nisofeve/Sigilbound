@@ -13,6 +13,7 @@
 import {
   ACHIEVEMENT_REWARDS,
   allPerks,
+  allTalents,
   applyQuestProgress,
   evaluateNewlyUnlocked,
   rewardsForLevel,
@@ -42,6 +43,7 @@ import {
 } from '@engine/index';
 import { addPerkCharges, isStarterPerk } from './perks';
 import {
+  MAX_COMBAT_DECK_SETS,
   STARTER_DECK_IDS,
   STARTER_PERKS,
   STORAGE_KEY,
@@ -102,6 +104,8 @@ const empty: Profile = {
   // saves migrate forward without an explicit version bump.
   combatCardInventory: {},
   combatDeck: [],
+  combatDeckSets: [],
+  activeCombatDeckSet: 0,
   combatCardTiers: {},
   combatShopISO: null,
   combatShopBoughtIds: [],
@@ -167,12 +171,28 @@ function withDefaults(partial: Partial<Profile>): Profile {
     combatCardInventory: partial.combatCardInventory ?? empty.combatCardInventory,
     combatCardTiers: partial.combatCardTiers ?? empty.combatCardTiers,
     combatDeck: partial.combatDeck ?? empty.combatDeck,
+    combatDeckSets: partial.combatDeckSets ?? empty.combatDeckSets,
+    activeCombatDeckSet: partial.activeCombatDeckSet ?? empty.activeCombatDeckSet,
     combatShopISO: partial.combatShopISO ?? empty.combatShopISO,
     combatShopBoughtIds: partial.combatShopBoughtIds ?? empty.combatShopBoughtIds,
     combatShopBoughtCounts: partial.combatShopBoughtCounts ?? empty.combatShopBoughtCounts,
     combatShopRerolls: partial.combatShopRerolls ?? empty.combatShopRerolls,
   };
   p = seedCombatStarter(p);
+  // Migration: ensure combatDeckSets exists. Promote the active combatDeck
+  // to Set 0 if sets are empty so existing saves keep their deck.
+  if (!p.combatDeckSets || p.combatDeckSets.length === 0) {
+    p.combatDeckSets = [
+      { name: 'Deck 1', cards: p.combatDeck.length > 0 ? [...p.combatDeck] : [] },
+    ];
+    p.activeCombatDeckSet = 0;
+  }
+  // Pad to MAX_COMBAT_DECK_SETS slots with empty entries.
+  while (p.combatDeckSets.length < MAX_COMBAT_DECK_SETS) {
+    p.combatDeckSets.push({ name: `Deck ${p.combatDeckSets.length + 1}`, cards: [] });
+  }
+  // Keep combatDeck in sync with the active set.
+  p.combatDeck = p.combatDeckSets[p.activeCombatDeckSet]?.cards ?? [];
   // Ensure starter perks always present for new accounts.
   for (const id of STARTER_PERKS) if (!p.perksOwned.includes(id)) p.perksOwned.push(id);
   // Migration: legacy profiles may have non-starter perks in `perksOwned`
@@ -187,7 +207,12 @@ function withDefaults(partial: Partial<Profile>): Profile {
     isStarterPerk(id) || (p.perksInventory[id] ?? 0) > 0,
   );
   // Drop equipped perks that don't exist in current data.
-  const validIds = new Set(allPerks().map(perk => perk.id));
+  // validIds must include both legacy perks (perk.*) AND new talents (talent.*)
+  // so starter talents like talent.battlecry survive the filter.
+  const validIds = new Set([
+    ...allPerks().map(perk => perk.id),
+    ...allTalents().map(t => t.id),
+  ]);
   p.perksOwned = p.perksOwned.filter(id => validIds.has(id));
   p.perksEquipped = p.perksEquipped.filter(id => validIds.has(id));
   // Clean dead inventory entries.

@@ -32,6 +32,12 @@ interface Props {
   selected?: boolean;
 }
 
+function nameAlts(name: string): string[] {
+  const under = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const dash  = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return [under, dash];
+}
+
 export function EquipmentCard({ equipment, size = 'md', customWidth, onClick, selected }: Props) {
   const accent = RARITY_COLOR[equipment.rarity] ?? RARITY_COLOR.common;
 
@@ -46,6 +52,9 @@ export function EquipmentCard({ equipment, size = 'md', customWidth, onClick, se
   return (
     <GameCard
       name={equipment.name}
+      imageId={equipment.id}
+      imageIdAlternates={nameAlts(equipment.name)}
+      imageBase="equipment"
       placeholderEmoji={equipment.icon}
       size={size}
       customWidth={customWidth}

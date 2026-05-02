@@ -19,6 +19,8 @@ import {
 import { CombatCard } from '@ui/components/CombatCard';
 import { EquipmentCard } from '@ui/components/EquipmentCard';
 import { TalentCard } from '@ui/components/TalentCard';
+import { BattleCardDetail, EquipmentDetail, TalentDetail } from '@ui/components/CardDetailBody';
+import { RARITY_COLOR } from '@ui/components/GameCard';
 
 interface Props {
   profile: Profile;
@@ -213,6 +215,8 @@ export default function CombatShopScreen({ profile, onProfileChange, onBack }: P
         const maxAvailable = inspectEntry.copiesAvailable - boughtCount;
         const goldCost = inspectEntry.goldPrice * purchaseQuantity;
         const crystalCost = inspectEntry.crystalPrice * purchaseQuantity;
+        const def = inspectEntry.def;
+        const accent = RARITY_COLOR[(def as { rarity?: string }).rarity ?? 'common'] ?? RARITY_COLOR.common;
 
         return (
           <div
@@ -220,42 +224,55 @@ export default function CombatShopScreen({ profile, onProfileChange, onBack }: P
             style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)' }}
             onClick={(e) => { if (e.target === e.currentTarget) setInspectEntry(null); }}
           >
-            <div className="relative w-full max-w-sm flex flex-col items-center">
-              {/* Display the large card */}
-              <div className="mb-4 w-full flex justify-center" style={{ pointerEvents: 'none' }}>
-                {inspectEntry.kind === 'action' || inspectEntry.kind === 'tactic' ? (
-                  <CombatCard card={inspectEntry.def as ActionCardDef | TacticCardDef} customWidth={240} />
-                ) : inspectEntry.kind === 'equipment' ? (
-                  <EquipmentCard equipment={inspectEntry.def as EquipmentDef} customWidth={240} />
-                ) : (
-                  <TalentCard talent={inspectEntry.def as Perk} customWidth={240} />
+            <div
+              className="relative w-full max-w-sm overflow-y-auto"
+              style={{
+                maxHeight: 'calc(100vh - 32px)',
+                background: 'linear-gradient(160deg, #111c13 0%, #0c1310 100%)',
+                border: `1.5px solid ${accent}`,
+                borderRadius: 16,
+                boxShadow: `0 0 32px ${accent}28, 0 20px 60px rgba(0,0,0,0.85)`,
+                color: '#e2e8f0',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Card detail body */}
+              <div style={{ padding: 16 }}>
+                {(inspectEntry.kind === 'action' || inspectEntry.kind === 'tactic') && (
+                  <BattleCardDetail card={def as ActionCardDef | TacticCardDef} />
+                )}
+                {inspectEntry.kind === 'equipment' && (
+                  <EquipmentDetail eq={def as EquipmentDef} />
+                )}
+                {inspectEntry.kind === 'talent' && (
+                  <TalentDetail perk={def as Perk} />
                 )}
               </div>
 
-              {/* Modal Actions */}
-              <div className="w-full flex flex-col gap-2 p-4 rounded-lg" style={{ background: 'var(--sb-leather-dark)', border: '2px solid var(--sb-gold)' }}>
-                <div className="text-center sb-display text-lg mb-2" style={{ color: 'var(--sb-gold-light)' }}>
-                  {inspectEntry.def.name}
-                </div>
-                <div className="text-center text-xs mb-4" style={{ color: 'var(--sb-parchment)' }}>
-                  {'description' in inspectEntry.def ? (inspectEntry.def as any).description : 'A powerful combat card.'}
-                </div>
-                
+              {/* Purchase actions */}
+              <div style={{
+                padding: '12px 16px 16px',
+                borderTop: '1px solid rgba(255,255,255,0.07)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}>
                 {maxAvailable > 1 && (
-                  <div className="flex flex-col items-center mb-4">
-                    <label className="text-xs mb-2" style={{ color: 'var(--sb-gold-light)' }}>Quantity: {purchaseQuantity}</label>
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max={maxAvailable} 
-                      value={purchaseQuantity} 
-                      onChange={(e) => setPurchaseQuantity(parseInt(e.target.value))} 
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <label style={{ fontSize: '0.65rem', color: 'var(--sb-gold-light)', letterSpacing: '0.1em' }}>
+                      QTY: {purchaseQuantity}
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max={maxAvailable}
+                      value={purchaseQuantity}
+                      onChange={(e) => setPurchaseQuantity(parseInt(e.target.value))}
                       className="w-full"
                     />
                   </div>
                 )}
-                
-                <div className="flex gap-2">
+                <div style={{ display: 'flex', gap: 8 }}>
                   {inspectEntry.kind !== 'equipment' && (
                     <button
                       onClick={() => buy(inspectEntry, 'gold', purchaseQuantity)}
@@ -263,7 +280,7 @@ export default function CombatShopScreen({ profile, onProfileChange, onBack }: P
                       className="sb-btn sb-btn-gold flex-1 py-2"
                       style={{ opacity: profile.bankCoins < goldCost ? 0.5 : 1 }}
                     >
-                      BUY 💰 {goldCost >= Infinity ? '---' : goldCost.toLocaleString()}
+                      BUY 💰 {goldCost >= Infinity ? '—' : goldCost.toLocaleString()}
                     </button>
                   )}
                   <button
@@ -273,7 +290,7 @@ export default function CombatShopScreen({ profile, onProfileChange, onBack }: P
                     style={{
                       background: 'linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 100%)',
                       border: '1.5px solid #93c5fd',
-                      opacity: profile.gems < crystalCost ? 0.5 : 1
+                      opacity: profile.gems < crystalCost ? 0.5 : 1,
                     }}
                   >
                     BUY 💎 {crystalCost.toLocaleString()}
@@ -281,7 +298,7 @@ export default function CombatShopScreen({ profile, onProfileChange, onBack }: P
                 </div>
                 <button
                   onClick={() => setInspectEntry(null)}
-                  className="sb-btn sb-btn-steel w-full mt-2 py-2"
+                  className="sb-btn sb-btn-steel w-full py-2"
                 >
                   CLOSE
                 </button>

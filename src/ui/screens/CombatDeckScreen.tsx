@@ -20,25 +20,23 @@ import {
   removeFromCombatDeck,
   combatCardUpgradePreview,
   upgradeCombatCard,
+  setActiveCombatDeckSet,
+  renameCombatDeckSet,
+  clearCombatDeckSet,
+  copyCombatDeckSet,
+  MAX_COMBAT_DECK_SETS,
   type Profile,
 } from '@storage/index';
 import { CombatCard } from '@ui/components/CombatCard';
 import { EquipmentCard } from '@ui/components/EquipmentCard';
 import { TalentCard } from '@ui/components/TalentCard';
-import { RARITY_COLOR, DAMAGE_TYPE_COLOR } from '@ui/components/GameCard';
+import { RARITY_COLOR } from '@ui/components/GameCard';
+import { BattleCardDetail } from '@ui/components/CardDetailBody';
 
 type CombatCard = ActionCardDef | TacticCardDef;
 type Tab = 'edit' | 'battle' | 'equipment' | 'talent';
 type Filter = 'all' | 'action' | 'tactic';
 
-const RARITY_LABEL: Record<string, string> = {
-  common: 'Common', uncommon: 'Uncommon', rare: 'Rare',
-  epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic',
-};
-
-function isAction(card: CombatCard): card is ActionCardDef {
-  return card.type === 'action';
-}
 
 interface Props {
   profile: Profile;
@@ -61,9 +59,22 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
   const [msg, setMsg]         = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [preview, setPreview] = useState<PreviewTarget | null>(null);
   const [upgradeTarget, setUpgradeTarget] = useState<string | null>(null);
+  const [renamingSet, setRenamingSet] = useState<number | null>(null);
+  const [renameValue, setRenameValue]  = useState('');
+  const [setMenuOpen, setSetMenuOpen]  = useState<number | null>(null);
 
   const limits = useMemo(() => combatDeckLimits(), []);
   const deckCount = profile.combatDeck.length;
+
+  useEffect(() => {
+    if (setMenuOpen === null) return;
+    function handle(e: PointerEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-set-menu]')) setSetMenuOpen(null);
+    }
+    const id = window.setTimeout(() => document.addEventListener('pointerdown', handle), 0);
+    return () => { window.clearTimeout(id); document.removeEventListener('pointerdown', handle); };
+  }, [setMenuOpen]);
   const deckOk    = deckCount >= limits.min && deckCount <= limits.max;
 
   const allActionCards = useMemo(() => allActions(), []);
@@ -136,6 +147,36 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
     const next = removeFromCombatDeck(profile, cardId);
     if (!next) { showMsg('err', `Deck minimum is ${limits.min}`); return; }
     onProfileChange(next);
+  }
+
+  function switchSet(idx: number) {
+    onProfileChange(setActiveCombatDeckSet(profile, idx));
+    setSetMenuOpen(null);
+  }
+
+  function startRename(idx: number) {
+    setRenamingSet(idx);
+    setRenameValue(profile.combatDeckSets[idx]?.name ?? `Deck ${idx + 1}`);
+    setSetMenuOpen(null);
+  }
+
+  function commitRename() {
+    if (renamingSet === null) return;
+    const trimmed = renameValue.trim();
+    if (trimmed) onProfileChange(renameCombatDeckSet(profile, renamingSet, trimmed));
+    setRenamingSet(null);
+  }
+
+  function clearSet(idx: number) {
+    onProfileChange(clearCombatDeckSet(profile, idx));
+    showMsg('ok', 'Deck cleared');
+    setSetMenuOpen(null);
+  }
+
+  function copySet(fromIdx: number, toIdx: number) {
+    onProfileChange(copyCombatDeckSet(profile, fromIdx, toIdx));
+    showMsg('ok', `Copied to Deck ${toIdx + 1}`);
+    setSetMenuOpen(null);
   }
 
   return (
@@ -212,12 +253,120 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
           {/* ── EDIT TAB ── */}
           {tab === 'edit' && (
             <>
+              {/* Deck set selector */}
+              <div className="pb-panel px-3 py-3 mb-3 overflow-x-auto" style={{ color: '#3e2723' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-base">🗂</span>
+                  <span className="fredoka text-sm font-bold" style={{ color: '#5d4037' }}>Deck Sets</span>
+                </div>
+                <div className="flex gap-2 min-w-max pb-1">
+                  {Array.from({ length: MAX_COMBAT_DECK_SETS }, (_, i) => {
+                    const set = profile.combatDeckSets[i];
+                    const active = i === profile.activeCombatDeckSet;
+                    const cardCount = set?.cards?.length ?? 0;
+                    return (
+                      <div key={i} className="relative flex flex-col items-center">
+                        <button
+                          onClick={() => active ? setSetMenuOpen(setMenuOpen === i ? null : i) : switchSet(i)}
+                          className="relative flex flex-col items-center rounded-xl transition-all"
+                          style={{
+                            padding: '6px 10px',
+                            minWidth: 64,
+                            background: active
+                              ? 'linear-gradient(135deg, rgba(196,146,42,0.25) 0%, rgba(196,146,42,0.1) 100%)'
+                              : 'rgba(0,0,0,0.10)',
+                            border: active
+                              ? '2px solid rgba(196,146,42,0.7)'
+                              : '2px solid rgba(120,80,30,0.25)',
+                            color: active ? '#c4922a' : '#6d4c2a',
+                          }}
+                        >
+                          <span className="text-[10px] font-extrabold leading-tight truncate max-w-[60px]" style={{ color: active ? '#c4922a' : '#5d4037' }}>
+                            {set?.name ?? `Deck ${i + 1}`}
+                          </span>
+                          <span className="text-[9px] opacity-70 mt-0.5">{cardCount} cards</span>
+                          {active && <span className="text-[8px] mt-0.5 font-bold" style={{ color: '#c4922a' }}>ACTIVE ▾</span>}
+                        </button>
+
+                        {/* Per-set context menu */}
+                        {setMenuOpen === i && (
+                          <div
+                            className="absolute top-full mt-1 left-0 z-30 rounded-xl overflow-hidden shadow-xl pb-pop-in"
+                            style={{
+                              background: '#1a0f07',
+                              border: '1.5px solid rgba(196,146,42,0.5)',
+                              minWidth: 140,
+                            }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => startRename(i)}
+                              className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-white/10 transition-colors"
+                              style={{ color: '#e2d5b0' }}
+                            >
+                              ✏️ Rename
+                            </button>
+                            <button
+                              onClick={() => clearSet(i)}
+                              className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-white/10 transition-colors"
+                              style={{ color: '#f87171' }}
+                            >
+                              🗑 Clear deck
+                            </button>
+                            {Array.from({ length: MAX_COMBAT_DECK_SETS }, (_, j) => j !== i && (
+                              <button
+                                key={j}
+                                onClick={() => copySet(i, j)}
+                                className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-white/10 transition-colors"
+                                style={{ color: '#86efac' }}
+                              >
+                                📋 Copy → {profile.combatDeckSets[j]?.name ?? `Deck ${j + 1}`}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => setSetMenuOpen(null)}
+                              className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-white/10 transition-colors border-t"
+                              style={{ color: '#94a3b8', borderColor: 'rgba(255,255,255,0.08)' }}
+                            >
+                              ✕ Close
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Rename input */}
+              {renamingSet !== null && (
+                <div className="pb-panel px-3 py-3 mb-3 flex items-center gap-2" style={{ color: '#3e2723' }}>
+                  <span className="text-sm font-bold" style={{ color: '#5d4037' }}>Rename:</span>
+                  <input
+                    autoFocus
+                    className="flex-1 rounded-lg px-2 py-1 text-sm font-bold"
+                    style={{
+                      background: 'rgba(0,0,0,0.2)',
+                      border: '1.5px solid rgba(196,146,42,0.5)',
+                      color: '#e2d5b0',
+                      outline: 'none',
+                    }}
+                    maxLength={24}
+                    value={renameValue}
+                    onChange={e => setRenameValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingSet(null); }}
+                  />
+                  <button className="pb-btn pb-btn-gold pb-btn-sm" onClick={commitRename}>Save</button>
+                  <button className="pb-btn pb-btn-cream pb-btn-sm" onClick={() => setRenamingSet(null)}>Cancel</button>
+                </div>
+              )}
+
               {/* Deck slots panel */}
               <div className="pb-panel px-3 sm:px-4 py-3 mb-3" style={{ color: '#3e2723' }}>
                 <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                   <h2 className="fredoka text-lg flex items-center gap-2">
                     <span className="text-xl">📦</span>
-                    Combat Deck
+                    {profile.combatDeckSets[profile.activeCombatDeckSet]?.name ?? 'Combat Deck'}
                   </h2>
                   <span
                     className="text-[11px] font-extrabold"
@@ -703,8 +852,8 @@ function FilterChip({ active, onClick, label }: { active: boolean; onClick: () =
 // Dismissed by tapping outside (deferred attachment prevents self-dismissal).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const POPOVER_W = 280;
-const POPOVER_H = 320;
+const POPOVER_W = 300;
+const POPOVER_H = 400;
 
 function CardPreviewPopover({ card, anchorRect, onDismiss }: {
   card: CombatCard;
@@ -712,8 +861,7 @@ function CardPreviewPopover({ card, anchorRect, onDismiss }: {
   onDismiss: () => void;
 }) {
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const accent     = RARITY_COLOR[card.rarity] ?? RARITY_COLOR.common;
-  const act        = isAction(card);
+  const accent = RARITY_COLOR[card.rarity] ?? RARITY_COLOR.common;
 
   useEffect(() => {
     function handle(e: PointerEvent) {
@@ -752,10 +900,6 @@ function CardPreviewPopover({ card, anchorRect, onDismiss }: {
   }
   topPx = Math.max(margin, Math.min(vh - POPOVER_H - margin, topPx));
 
-  const dmgColor = act
-    ? (DAMAGE_TYPE_COLOR[(card as ActionCardDef).damageType] ?? '#cbd5e1')
-    : '#a78bfa';
-
   return (
     <div
       ref={popoverRef}
@@ -766,9 +910,7 @@ function CardPreviewPopover({ card, anchorRect, onDismiss }: {
     >
       <div
         style={{
-          display: 'flex',
-          gap: 12,
-          padding: 12,
+          padding: 14,
           borderRadius: 14,
           background: 'linear-gradient(160deg, #111c13 0%, #0c1310 100%)',
           border: `1.5px solid ${accent}`,
@@ -776,123 +918,15 @@ function CardPreviewPopover({ card, anchorRect, onDismiss }: {
           color: '#e2e8f0',
         }}
       >
-        <div style={{ flexShrink: 0 }}>
-          <CombatCard card={card} size="sm" />
-        </div>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-          <div>
-            <div style={{
-              fontFamily: "'Fredoka One', cursive",
-              fontSize: '0.95rem',
-              color: '#f1f5f9',
-              lineHeight: 1.1,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}>
-              {card.name}
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              marginTop: 4,
-              flexWrap: 'wrap',
-            }}>
-              <span style={{
-                fontFamily: "'Nunito', sans-serif",
-                fontSize: '0.6rem',
-                fontWeight: 800,
-                letterSpacing: '0.08em',
-                padding: '2px 6px',
-                borderRadius: 99,
-                background: accent,
-                color: '#0f172a',
-              }}>
-                {(RARITY_LABEL[card.rarity] ?? card.rarity).toUpperCase()}
-              </span>
-              <span style={{
-                fontFamily: "'Nunito', sans-serif",
-                fontSize: '0.6rem',
-                fontWeight: 800,
-                letterSpacing: '0.08em',
-                color: dmgColor,
-              }}>
-                {act ? (card as ActionCardDef).damageType.toUpperCase() : 'TACTIC'}
-              </span>
-            </div>
-          </div>
-
-          {act ? (
-            <>
-              <div style={{
-                display: 'flex',
-                gap: 5,
-                fontFamily: "'Fredoka One', cursive",
-                fontSize: '0.7rem',
-              }}>
-                <PreviewStat glyph="⚔" value={(card as ActionCardDef).damage} color="#fbbf24" />
-                <PreviewStat glyph="⏳" value={(card as ActionCardDef).charge} color="#94a3b8" />
-                <PreviewStat glyph="◆" value={(card as ActionCardDef).cost} color="#86efac" />
-              </div>
-              {(card as ActionCardDef).hits !== undefined && (card as ActionCardDef).hits! > 1 && (
-                <div style={{ fontSize: '0.65rem', opacity: 0.75 }}>
-                  Hits: <b>{(card as ActionCardDef).hits}×</b>
-                </div>
-              )}
-              {(card as ActionCardDef).effect && (
-                <div style={{ fontSize: '0.7rem', lineHeight: 1.3, opacity: 0.92, fontStyle: 'italic' }}>
-                  {(card as ActionCardDef).effect}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div style={{ display: 'flex', gap: 5 }}>
-                <PreviewStat glyph="◆" value={(card as TacticCardDef).cost} color="#86efac" />
-                {(card as TacticCardDef).persistent && (
-                  <PreviewStat glyph="∞" value="PERS" color="#c4b5fd" />
-                )}
-              </div>
-              <div style={{ fontSize: '0.7rem', lineHeight: 1.3, opacity: 0.92 }}>
-                {(card as TacticCardDef).description}
-              </div>
-            </>
-          )}
-
-          <div style={{
-            marginTop: 'auto',
-            fontSize: '0.55rem',
-            opacity: 0.45,
-            fontStyle: 'italic',
-          }}>
-            Tap outside to close
-          </div>
+        <BattleCardDetail card={card} />
+        <div style={{ fontSize: '0.5rem', opacity: 0.3, fontStyle: 'italic', marginTop: 6, textAlign: 'right' }}>
+          Tap outside to close
         </div>
       </div>
     </div>
   );
 }
 
-function PreviewStat({ glyph, value, color }: { glyph: string; value: string | number; color: string }) {
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 3,
-      padding: '3px 7px',
-      borderRadius: 5,
-      background: 'rgba(255,255,255,0.05)',
-      border: `1px solid ${color}30`,
-      color,
-      fontFamily: "'Fredoka One', cursive",
-      fontSize: '0.72rem',
-    }}>
-      <span style={{ opacity: 0.85 }}>{glyph}</span>
-      <span>{value}</span>
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Upgrade Modal

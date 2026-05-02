@@ -28,12 +28,16 @@ import {
   triadicStrikeBonus,
   triadicStrikeMultiplier,
   relentlessMultiplier,
+  getBattleIntro,
 } from '@engine/index';
 import { elementalHitLabel } from '../../engine/damage';
 import { sfx } from '@game/sfx';
 import { getEnemy } from '../../engine/bestiary';
 import { EnemyCard as EnemyCardDisplay } from './EnemyCard';
 import { ActionCard as ActionCardDisplay, TacticCard as TacticCardDisplay } from './CombatCard';
+import { BattleCardDetail } from './CardDetailBody';
+import { RARITY_COLOR } from './GameCard';
+import { IMAGE_MANIFEST } from './imageManifest';
 
 interface Props {
   stageNumber: number;
@@ -54,6 +58,16 @@ interface Props {
   playerAvatar?: string;
   onOutcome: (outcome: 'cleared' | 'defeated', stage: CombatStageDef, runner: BattleRunner) => void;
   onExit: () => void;
+}
+
+function cardImageUrl(cardId: string, cardName: string): string | null {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const ids = [cardId, norm(cardName), cardId.replace(/\./g, '-'), cardId.replace(/\./g, '_')];
+  for (const id of ids) {
+    const hit = IMAGE_MANIFEST[`cards/${id}`];
+    if (hit) return hit;
+  }
+  return null;
 }
 
 function intentDisplay(intent: Intent): string {
@@ -152,6 +166,22 @@ export default function CombatView({
   const [hoverSlotIdx, setHoverSlotIdx] = useState<number | null>(null);
   const [selectedHandIdx, setSelectedHandIdx] = useState<number | null>(null);
   const [hoveredHandIdx, setHoveredHandIdx] = useState<number | null>(null);
+  // Popup shown when a hand card is selected — card detail overlay.
+  // Gated by cardInfoEnabled; persisted to localStorage so the preference
+  // survives across battles without threading it through props.
+  type HandPopup = { card: NonNullable<ReturnType<typeof getAction>> | NonNullable<ReturnType<typeof getTactic>>; rect: DOMRect };
+  const [handCardPopup, setHandCardPopup] = useState<HandPopup | null>(null);
+  const [cardInfoEnabled, setCardInfoEnabled] = useState<boolean>(() => {
+    try { return localStorage.getItem('sb_card_info') !== 'off'; } catch { return true; }
+  });
+  function toggleCardInfo() {
+    setCardInfoEnabled(prev => {
+      const next = !prev;
+      try { localStorage.setItem('sb_card_info', next ? 'on' : 'off'); } catch { /* ignore */ }
+      if (!next) setHandCardPopup(null);
+      return next;
+    });
+  }
   // Mobile-only: tactics drawer open/closed.
   const [tacticsOpen, setTacticsOpen] = useState(false);
 
@@ -229,6 +259,22 @@ export default function CombatView({
   // Battle outcome announcement — shows dramatic win/lose screen before
   // transitioning to the result screen.
   const [outcomeAnnounce, setOutcomeAnnounce] = useState<null | 'cleared' | 'defeated'>(null);
+
+  // ── Battle intro overlay state ──
+  // Phase sequence: 'text' → read intro text  → 'drop' → enemies drop in
+  // → 'done' → overlay dismissed, opening deal begins.
+  type IntroPhase = 'text' | 'drop' | 'done';
+  const [introPhase, setIntroPhase] = useState<IntroPhase>('text');
+  // Which enemies have landed (indices into runner.state.enemies).
+  const [droppedEnemies, setDroppedEnemies] = useState<Set<number>>(new Set());
+  // Smash VFX positions: index → { x, y } in viewport px, fired once on land.
+  const [smashVfx, setSmashVfx] = useState<Array<{ id: number; x: number; y: number }>>([]);
+  const smashVfxIdRef = useRef(0);
+  // Whether the intro shake class is applied to the playfield.
+  const [introShaking, setIntroShaking] = useState(false);
+  const introShakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const introFiredRef = useRef(false);
+
   const floaterIdRef = useRef(0);
   const projectileIdRef = useRef(0);
 
@@ -968,6 +1014,7 @@ export default function CombatView({
     if (runner.bindHandToSlot(realHandIndex, slotIndex)) {
       if (selectedEnemyId) runner.retarget(slotIndex, selectedEnemyId);
       setSelectedHandIdx(null);
+      setHandCardPopup(null);
       repaint();
     }
   }
@@ -1090,22 +1137,25 @@ export default function CombatView({
     }
   }
 
-  function handleCardClick(realHandIndex: number): void {
+  function handleCardClick(realHandIndex: number, cardEl?: HTMLDivElement | null): void {
     if (isDealing || animating) return;
     setSelectedHandIdx(prev => {
       if (prev !== realHandIndex) {
-        // First click — just select the card.
+        // First click — select the card and show detail popup.
+        const rect = cardEl?.getBoundingClientRect() ?? null;
+        const cardId = runner.state.hand[realHandIndex] ?? '';
+        const cardDef = getAction(cardId) ?? getTactic(cardId);
+        if (cardDef && rect && cardInfoEnabled) {
+          setHandCardPopup({ card: cardDef, rect });
+        }
         return realHandIndex;
       }
-      // Second click on the same card — auto-bind to the leftmost empty slot.
-      // (Slots are stored top-row-first L→R, so index 0 is the topmost-left.)
+      // Second click on the same card — dismiss popup + auto-bind to leftmost empty slot.
+      setHandCardPopup(null);
       const emptySlotIdx = runner.state.slots.findIndex(s => !s.bound);
       if (emptySlotIdx >= 0) {
-        // Defer to next tick so the state setter completes cleanly before
-        // handleBindToSlot kicks off the flying animation.
         setTimeout(() => handleBindToSlot(realHandIndex, emptySlotIdx), 0);
       }
-      // Either way, deselect — the bind animation will commit the engine state.
       return null;
     });
   }
@@ -1351,7 +1401,7 @@ export default function CombatView({
     return new Promise<void>(resolve => {
       setDealOverlay({ def, cardW, cardH, from, to, flipped: false });
 
-      const duration = 420;
+      const duration = 220;
       const flipAt   = 0.45; // fraction of flight where card face reveals
       const startTime = performance.now();
 
@@ -1457,24 +1507,70 @@ export default function CombatView({
 
       // Brief pause between each card — like a human dealing.
       if (indices.indexOf(idx) < indices.length - 1) {
-        await new Promise<void>(r => setTimeout(r, 80));
+        await new Promise<void>(r => setTimeout(r, 35));
       }
     }
 
     setIsDealing(false);
   }
 
-  // Opening deal — fires once on mount.
+  // ── Enemy drop-in sequence (called when intro text is dismissed) ──────────
+  function startEnemyDropIn() {
+    setIntroPhase('drop');
+    const enemies = runner.state.enemies;
+    // Stagger each enemy dropping in 220ms apart.
+    enemies.forEach((_, i) => {
+      setTimeout(() => {
+        setDroppedEnemies(prev => new Set([...prev, i]));
+        // Play drop SFX.
+        sfx.enemyKill();
+        // After a short delay, spawn smash VFX at the enemy card's position.
+        setTimeout(() => {
+          const enemyEl = enemyRefs.current.get(enemies[i]?.id ?? '');
+          if (enemyEl) {
+            const r = enemyEl.getBoundingClientRect();
+            const cx = r.left + r.width / 2;
+            const cy = r.top + r.height * 0.65;
+            const id = ++smashVfxIdRef.current;
+            setSmashVfx(prev => [...prev, { id, x: cx, y: cy }]);
+            setTimeout(() => setSmashVfx(prev => prev.filter(v => v.id !== id)), 700);
+          }
+          // Apply heavy screen shake on first enemy, lighter for others.
+          if (introShakeTimerRef.current) clearTimeout(introShakeTimerRef.current);
+          setIntroShaking(true);
+          introShakeTimerRef.current = setTimeout(() => setIntroShaking(false), 560);
+        }, 80);
+      }, 180 + i * 220);
+    });
+    // After all enemies have dropped, wait then end intro.
+    const totalDelay = 180 + enemies.length * 220 + 600;
+    setTimeout(() => {
+      setIntroPhase('done');
+      // Kick off the opening deal.
+      if (!openingDealFiredRef.current) {
+        openingDealFiredRef.current = true;
+        const indices: number[] = [];
+        for (let i = 0; i < runner.state.hand.length; i++) indices.push(i);
+        setTimeout(() => { void dealNewCards(indices); }, 150);
+      }
+    }, totalDelay);
+  }
+
+  // Opening deal — fires once, after intro completes.
   const openingDealFiredRef = useRef(false);
   useEffect(() => {
-    if (openingDealFiredRef.current) return;
-    openingDealFiredRef.current = true;
-    const indices: number[] = [];
-    for (let i = 0; i < runner.state.hand.length; i++) indices.push(i);
-    // Brief pause before first card so the board settles.
-    setTimeout(() => { void dealNewCards(indices); }, 350);
+    if (introFiredRef.current) return;
+    introFiredRef.current = true;
+    // The intro is handled by startEnemyDropIn → which fires the deal.
+    // If intro is already 'done' (e.g., hot-reload), go straight to deal.
+    if (introPhase === 'done' && !openingDealFiredRef.current) {
+      openingDealFiredRef.current = true;
+      const indices: number[] = [];
+      for (let i = 0; i < runner.state.hand.length; i++) indices.push(i);
+      setTimeout(() => { void dealNewCards(indices); }, 180);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [introPhase]);
 
   // Ghost-binding map — preserves slot → cardId across the resolve animation.
   // The engine clears slot bindings the moment endTurn() runs (before the
@@ -1657,8 +1753,8 @@ export default function CombatView({
   };
 
 
-  function EnemyCard({ e, cardW, cardH, isBossEnemy }: {
-    e: EnemyState; cardW: number; cardH: number; isBossEnemy?: boolean;
+  function EnemyCard({ e, cardW, cardH, isBossEnemy, enemyIdx = 0 }: {
+    e: EnemyState; cardW: number; cardH: number; isBossEnemy?: boolean; enemyIdx?: number;
   }) {
     // While an animation is running, override the displayed HP to whatever
     // the current sequencer step has set. Falls back to live engine state.
@@ -1694,7 +1790,9 @@ export default function CombatView({
           filter: dead ? 'grayscale(1)' : flashing ? 'brightness(1.4) saturate(1.4)' : 'none',
           transition: 'opacity 200ms ease, filter 160ms ease',
           cursor: dead ? 'default' : (multipleEnemies ? 'pointer' : 'default'),
-          animation: dead ? 'none' : 'breathe 2.5s ease-in-out infinite',
+          // Staggered breathe: each enemy gets a unique duration (2.4–3.1s) and
+          // a phase offset so they never move in sync.
+          animation: dead ? 'none' : `breathe ${2.4 + enemyIdx * 0.37}s ${enemyIdx * 0.71}s ease-in-out infinite`,
           // Boss card sits slightly lower so its top aligns with minion tops
           // despite being taller — gives it a "rising from the earth" feel.
           alignSelf: isBossEnemy ? 'flex-end' : undefined,
@@ -1941,16 +2039,53 @@ export default function CombatView({
                 }}>↩</div>
               )}
 
-              {/* Card emoji — large, centered */}
-              <div style={{
-                fontSize: cardH < 80 ? 18 : 24,
-                lineHeight: 1,
-                filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.8)) drop-shadow(0 0 6px ${typeColor}88)`,
-                marginTop: 6,
-                flexShrink: 0,
-              }}>
-                {def.emoji}
-              </div>
+              {/* Card illustration — fills slot center, emoji fallback */}
+              {(() => {
+                const imgUrl = cardImageUrl(def.id, def.name);
+                return imgUrl ? (
+                  <div style={{
+                    flex: 1,
+                    width: '100%',
+                    minHeight: 0,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderRadius: 4,
+                    marginTop: 4,
+                    flexShrink: 1,
+                  }}>
+                    <img
+                      src={imgUrl}
+                      alt={def.name}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        objectPosition: 'center top',
+                        filter: `drop-shadow(0 0 4px ${typeColor}66)`,
+                        pointerEvents: 'none',
+                      }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: `linear-gradient(to bottom, transparent 55%, rgba(0,0,0,0.7) 100%)`,
+                      borderRadius: 4,
+                    }} />
+                  </div>
+                ) : (
+                  <div style={{
+                    fontSize: cardH < 80 ? 18 : 24,
+                    lineHeight: 1,
+                    filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.8)) drop-shadow(0 0 6px ${typeColor}88)`,
+                    marginTop: 6,
+                    flexShrink: 0,
+                  }}>
+                    {def.emoji}
+                  </div>
+                );
+              })()}
 
               {/* Card name — truncated */}
               <div style={{
@@ -2102,7 +2237,7 @@ export default function CombatView({
           else cardRefs.current.delete(realIndex);
         }}
         draggable
-        onClick={() => handleCardClick(realIndex)}
+        onClick={(ev) => handleCardClick(realIndex, ev.currentTarget as HTMLDivElement)}
         onMouseEnter={() => setHoveredHandIdx(realIndex)}
         onMouseLeave={() => setHoveredHandIdx(prev => (prev === realIndex ? null : prev))}
         onDragStart={(ev) => {
@@ -2110,6 +2245,7 @@ export default function CombatView({
           ev.dataTransfer.effectAllowed = 'move';
           setDraggingHandIdx(realIndex);
           setSelectedHandIdx(null);
+          setHandCardPopup(null);
         }}
         onDragEnd={() => { setDraggingHandIdx(null); setHoverSlotIdx(null); }}
         title={`${def.name} — tap a slot to bind`}
@@ -2159,7 +2295,6 @@ export default function CombatView({
           width: '100%',
           opacity: canAfford ? 1 : 0.55,
         }}
-        title={def.description}
       >
         <div style={{ flexShrink: 0 }}>
           <TacticCardDisplay
@@ -2170,8 +2305,31 @@ export default function CombatView({
           />
         </div>
         <div style={{ flex: 1, minWidth: 0, color: '#e2e8f0' }}>
-          <div className="sb-display" style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {def.name}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 4 }}>
+            <div className="sb-display" style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {def.name}
+            </div>
+            {cardInfoEnabled && (
+              <button
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  const rect = ev.currentTarget.getBoundingClientRect();
+                  setHandCardPopup({ card: def, rect });
+                }}
+                style={{
+                  flexShrink: 0,
+                  width: 20, height: 20,
+                  borderRadius: '50%',
+                  background: 'rgba(148,163,184,0.15)',
+                  border: '1px solid rgba(148,163,184,0.3)',
+                  color: '#94a3b8',
+                  fontSize: 11, fontWeight: 800,
+                  cursor: 'pointer', lineHeight: 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                aria-label={`Info: ${def.name}`}
+              >ℹ</button>
+            )}
           </div>
           <div className="sb-mono" style={{ fontSize: 10, opacity: 0.85, lineHeight: 1.3, marginTop: 2 }}>
             {def.description}
@@ -2250,6 +2408,367 @@ export default function CombatView({
       </div>
     </div>
   );
+
+  // ── Battle intro overlay ─────────────────────────────────────────────────
+  // Full-screen cinematic shown once per stage before the opening deal.
+  // Phase 'text': show area name + narrative + tap to continue.
+  // Phase 'drop': enemies fall into their positions with impact VFX.
+  // Phase 'done': overlay gone, opening deal fires.
+
+  const introEntry = getBattleIntro(stage.number, stage.biome);
+
+  const BIOME_PALETTE: Record<string, { bg: string; accent: string; glow: string }> = {
+    forest:    { bg: 'linear-gradient(160deg, #071a0b 0%, #0a1f0c 60%, #050d06 100%)', accent: '#4ade80', glow: 'rgba(74,222,128,0.25)' },
+    crypts:    { bg: 'linear-gradient(160deg, #0d0a18 0%, #130c20 60%, #08060f 100%)', accent: '#c4b5fd', glow: 'rgba(196,181,253,0.25)' },
+    frostpeak: { bg: 'linear-gradient(160deg, #050d18 0%, #091520 60%, #040d15 100%)', accent: '#93c5fd', glow: 'rgba(147,197,253,0.25)' },
+    volcano:   { bg: 'linear-gradient(160deg, #1a0805 0%, #200b06 60%, #0f0503 100%)', accent: '#fca5a5', glow: 'rgba(252,165,165,0.25)' },
+    ashen:     { bg: 'linear-gradient(160deg, #0f0f0f 0%, #141414 60%, #0a0a0a 100%)', accent: '#94a3b8', glow: 'rgba(148,163,184,0.22)' },
+  };
+  // ── Hand card detail popup ─────────────────────────────────────────────────
+  // Shown when the player taps a hand card (first tap = select + show popup).
+  // Positioned above the card, clamped to viewport. Dismissed by tapping the
+  // backdrop, tapping the card again, or when the card is bound to a slot.
+  const HandCardPopupLayer = handCardPopup && (() => {
+    const { card, rect } = handCardPopup;
+    const accent = RARITY_COLOR[card.rarity] ?? RARITY_COLOR.common;
+    const popW = Math.min(300, window.innerWidth - 24);
+    const popH = 340; // approximate max height
+    const margin = 12;
+
+    // Position above the card, centred on it, clamped to viewport.
+    let left = rect.left + rect.width / 2 - popW / 2;
+    left = Math.max(margin, Math.min(window.innerWidth - popW - margin, left));
+    // Try above the card first, fall back to below if not enough room.
+    const spaceAbove = rect.top - margin;
+    const top = spaceAbove >= popH
+      ? rect.top - popH - 10
+      : rect.bottom + 10;
+
+    return (
+      <>
+        {/* Dimming backdrop — tap to dismiss without deselecting the card */}
+        <div
+          aria-hidden
+          onClick={() => setHandCardPopup(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 502, background: 'rgba(0,0,0,0.45)' }}
+        />
+        <div
+          role="dialog"
+          aria-label={`${card.name} details`}
+          style={{
+            position: 'fixed',
+            top, left,
+            width: popW,
+            maxHeight: popH,
+            overflowY: 'auto',
+            zIndex: 503,
+            borderRadius: 14,
+            background: 'linear-gradient(160deg, #111c13 0%, #0c1310 100%)',
+            border: `1.5px solid ${accent}`,
+            boxShadow: `0 0 28px ${accent}30, 0 16px 40px rgba(0,0,0,0.85)`,
+            color: '#e2e8f0',
+            animation: 'sb-pop-up 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
+          }}
+        >
+          <div style={{ padding: 14 }}>
+            <BattleCardDetail card={card} />
+          </div>
+          {/* "Tap outside to dismiss" hint + close button */}
+          <div style={{
+            padding: '6px 14px 10px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <span style={{ fontSize: '0.5rem', color: '#475569', fontStyle: 'italic' }}>
+              Tap card again to place · tap outside to close
+            </span>
+            <button
+              onClick={() => setHandCardPopup(null)}
+              style={{
+                padding: '4px 10px', borderRadius: 6,
+                background: 'rgba(196,146,42,0.12)',
+                border: '1px solid rgba(196,146,42,0.3)',
+                color: 'var(--sb-gold-light)', cursor: 'pointer',
+                fontSize: '0.65rem', fontWeight: 800,
+              }}
+            >✕</button>
+          </div>
+        </div>
+      </>
+    );
+  })();
+
+  const biomePal = BIOME_PALETTE[stage.biome] ?? BIOME_PALETTE.forest;
+
+  const BattleIntroOverlay = introPhase !== 'done' && (
+    <div
+      aria-label="Battle introduction"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 600,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: biomePal.bg,
+        animation: 'sb-intro-bg-in 0.5s ease both',
+      }}
+    >
+      {/* Atmospheric glow */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${biomePal.glow} 0%, transparent 70%)`,
+        pointerEvents: 'none',
+      }} />
+
+      {/* Stage number badge */}
+      <div style={{
+        position: 'absolute',
+        top: 20,
+        right: 24,
+        fontFamily: "'Fredoka One', cursive",
+        fontSize: '0.75rem',
+        letterSpacing: '0.18em',
+        color: biomePal.accent,
+        opacity: 0.6,
+        animation: 'sb-intro-text-in 0.6s 0.2s ease both',
+      }}>
+        STAGE {stage.number}
+      </div>
+
+      {/* Biome label */}
+      <div style={{
+        fontFamily: "'Nunito', sans-serif",
+        fontSize: '0.65rem',
+        fontWeight: 800,
+        letterSpacing: '0.45em',
+        color: biomePal.accent,
+        opacity: 0.75,
+        marginBottom: 10,
+        textTransform: 'uppercase',
+        animation: 'sb-intro-text-in 0.5s 0.15s ease both',
+      }}>
+        {{ forest: 'Whispering Forest', crypts: 'Sunken Crypts', frostpeak: 'Frostpeak Hollows', volcano: 'Volcanic Forge', ashen: 'Ashen Citadel' }[stage.biome] ?? stage.biome}
+      </div>
+
+      {/* Divider */}
+      <div style={{
+        height: 1,
+        background: `linear-gradient(90deg, transparent, ${biomePal.accent}, transparent)`,
+        animation: 'sb-intro-divider 0.6s 0.3s ease both',
+        width: '60%',
+        marginBottom: 20,
+        opacity: 0.5,
+      }} />
+
+      {/* Area / stage title */}
+      <div style={{
+        fontFamily: "'Fredoka One', cursive",
+        fontSize: 'clamp(1.4rem, 5vw, 2.6rem)',
+        color: '#f1f5f9',
+        textAlign: 'center',
+        letterSpacing: '0.28em',
+        lineHeight: 1.1,
+        maxWidth: '80vw',
+        textShadow: `0 2px 0 rgba(0,0,0,0.7), 0 0 30px ${biomePal.glow}`,
+        animation: 'sb-intro-title-in 0.7s 0.35s cubic-bezier(0.16,1,0.3,1) both',
+        marginBottom: 8,
+      }}>
+        {stage.isBoss ? '⚔ ' : ''}{introEntry.areaName}
+      </div>
+
+      {/* Stage hand-tuned title if different from area name */}
+      {stage.title !== introEntry.areaName && (
+        <div style={{
+          fontFamily: "'Nunito', sans-serif",
+          fontSize: 'clamp(0.7rem, 2.5vw, 0.95rem)',
+          fontWeight: 800,
+          letterSpacing: '0.15em',
+          color: biomePal.accent,
+          opacity: 0.8,
+          marginBottom: 22,
+          animation: 'sb-intro-text-in 0.5s 0.55s ease both',
+        }}>
+          {stage.title}
+        </div>
+      )}
+
+      {/* Divider bottom */}
+      <div style={{
+        height: 1,
+        background: `linear-gradient(90deg, transparent, ${biomePal.accent}, transparent)`,
+        animation: 'sb-intro-divider 0.6s 0.5s ease both',
+        width: '60%',
+        marginTop: stage.title !== introEntry.areaName ? 0 : 16,
+        marginBottom: 24,
+        opacity: 0.35,
+      }} />
+
+      {/* Scene description */}
+      <div style={{
+        fontFamily: "'Nunito', sans-serif",
+        fontSize: 'clamp(0.72rem, 2.2vw, 0.88rem)',
+        fontWeight: 600,
+        color: '#cbd5e1',
+        textAlign: 'center',
+        lineHeight: 1.65,
+        maxWidth: 'min(540px, 88vw)',
+        opacity: 0.9,
+        fontStyle: 'italic',
+        animation: 'sb-intro-text-in 0.6s 0.65s ease both',
+        marginBottom: 16,
+      }}>
+        {introEntry.scene}
+      </div>
+
+      {/* Encounter description */}
+      <div style={{
+        fontFamily: "'Nunito', sans-serif",
+        fontSize: 'clamp(0.72rem, 2.2vw, 0.88rem)',
+        fontWeight: 700,
+        color: '#e2e8f0',
+        textAlign: 'center',
+        lineHeight: 1.65,
+        maxWidth: 'min(540px, 88vw)',
+        opacity: 0.95,
+        animation: 'sb-intro-text-in 0.6s 0.9s ease both',
+        marginBottom: 36,
+      }}>
+        {introEntry.encounter}
+      </div>
+
+      {/* Tap to continue — only shown in text phase */}
+      {introPhase === 'text' && (
+        <button
+          onClick={() => {
+            try { sfx.cardDraw?.(); } catch (_) { /* optional */ }
+            startEnemyDropIn();
+          }}
+          style={{
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: '0.82rem',
+            letterSpacing: '0.25em',
+            color: biomePal.accent,
+            background: 'transparent',
+            border: `1.5px solid ${biomePal.accent}`,
+            borderRadius: 8,
+            padding: '10px 28px',
+            cursor: 'pointer',
+            animation: 'sb-intro-dismiss 2s 1.5s ease infinite',
+            boxShadow: `0 0 16px ${biomePal.glow}`,
+          }}
+        >
+          TAP TO ENTER ▶
+        </button>
+      )}
+
+      {/* Drop phase: show "enemies approaching" message */}
+      {introPhase === 'drop' && (
+        <div style={{
+          fontFamily: "'Fredoka One', cursive",
+          fontSize: '0.78rem',
+          letterSpacing: '0.3em',
+          color: biomePal.accent,
+          opacity: 0.7,
+          animation: 'sb-intro-text-in 0.3s ease both',
+        }}>
+          ENEMIES INCOMING…
+        </div>
+      )}
+
+      {/* Enemy cards in drop phase — positioned in a row */}
+      {introPhase === 'drop' && (
+        <div style={{
+          position: 'absolute',
+          bottom: '8%',
+          left: 0, right: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 12,
+          padding: '0 16px',
+        }}>
+          {runner.state.enemies.map((enemy, i) => {
+            const dropped = droppedEnemies.has(i);
+            return (
+              <div
+                key={enemy.id}
+                ref={el => { if (el) enemyRefs.current.set(enemy.id, el); }}
+                style={{
+                  animation: dropped ? `sb-enemy-drop 0.55s cubic-bezier(0.22,1,0.36,1) both` : 'none',
+                  opacity: dropped ? 1 : 0,
+                  transformOrigin: 'bottom center',
+                }}
+              >
+                <EnemyCardDisplay enemy={getEnemy(enemy.id) ?? { ...enemy, name: enemy.defId, biome: stage.biome, sprite: '👹', baseHp: enemy.maxHp, atk: 0, def: 0, speed: 1, damageType: 'physical', archetype: 'brute', difficulty: 'medium' } as Parameters<typeof EnemyCardDisplay>[0]['enemy']} size="md" />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  // Smash VFX layer — comic-book impact bursts when enemies land.
+  const SmashVfxLayer = smashVfx.length > 0 && smashVfx.map(vfx => (
+    <div key={vfx.id} aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 601, pointerEvents: 'none' }}>
+      {/* Star burst */}
+      <div style={{
+        position: 'absolute',
+        left: vfx.x, top: vfx.y,
+        width: 120, height: 120,
+        animation: 'sb-intro-star 0.6s ease-out both',
+        fontSize: 80,
+        lineHeight: 1,
+        textAlign: 'center',
+        verticalAlign: 'middle',
+        pointerEvents: 'none',
+        transform: 'translate(-50%, -50%)',
+      }}>
+        💥
+      </div>
+      {/* Shockwave ring 1 */}
+      <div style={{
+        position: 'absolute',
+        left: vfx.x, top: vfx.y,
+        width: 80, height: 80,
+        borderRadius: '50%',
+        border: '4px solid rgba(255,200,80,0.8)',
+        animation: 'sb-intro-ring 0.5s ease-out both',
+        pointerEvents: 'none',
+      }} />
+      {/* Shockwave ring 2 — delayed */}
+      <div style={{
+        position: 'absolute',
+        left: vfx.x, top: vfx.y,
+        width: 60, height: 60,
+        borderRadius: '50%',
+        border: '3px solid rgba(255,120,40,0.65)',
+        animation: 'sb-intro-ring 0.5s 0.08s ease-out both',
+        pointerEvents: 'none',
+      }} />
+      {/* SMASH text */}
+      <div style={{
+        position: 'absolute',
+        left: vfx.x - 60, top: vfx.y - 80,
+        width: 120,
+        fontFamily: "'Fredoka One', cursive",
+        fontSize: '1.6rem',
+        fontWeight: 900,
+        color: '#fbbf24',
+        textShadow: '2px 2px 0 #1a0f00, 0 0 12px rgba(251,191,36,0.7)',
+        textAlign: 'center',
+        letterSpacing: '0.05em',
+        animation: 'sb-intro-smash 0.65s ease-out both',
+        pointerEvents: 'none',
+      }}>
+        {stage.isBoss ? 'BOSS!' : 'SMASH!'}
+      </div>
+    </div>
+  ));
 
   // Deal card overlay — same pattern as FlyingCardOverlay but uses
   // dealOverlayRef and shows a card-back → face flip during flight.
@@ -2895,80 +3414,179 @@ export default function CombatView({
     <>
       <div
         onClick={() => setInfoModal(null)}
-        style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.65)' }}
+        style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.72)' }}
       />
       <div style={{
         position: 'fixed', zIndex: 51,
         left: '50%', top: '50%',
         transform: 'translate(-50%, -50%)',
-        maxWidth: 'min(340px, calc(100vw - 32px))',
+        maxWidth: 'min(360px, calc(100vw - 32px))',
         width: '100%',
-        background: 'linear-gradient(180deg, #2a1810 0%, #1a0f0a 100%)',
-        border: '2px solid var(--sb-gold)',
-        borderRadius: 6,
-        padding: '14px 16px',
-        boxShadow: '0 12px 40px rgba(0,0,0,0.85)',
-        color: 'var(--sb-gold-light)',
+        background: 'linear-gradient(160deg, #111c13 0%, #0c1310 100%)',
+        border: `1.5px solid ${infoModal.kind === 'enemy' ? (infoModal.enemy.archetype === 'boss' ? '#fbbf24' : ({ easy: '#4ade80', medium: '#fb923c', hard: '#f87171' } as Record<string,string>)[getEnemy(infoModal.enemy.defId)?.difficulty ?? 'medium'] ?? '#fb923c') : 'var(--sb-gold)'}`,
+        borderRadius: 14,
+        overflow: 'hidden',
+        boxShadow: '0 16px 50px rgba(0,0,0,0.9)',
+        color: '#e2e8f0',
       }}>
         {infoModal.kind === 'enemy' ? (() => {
           const en = infoModal.enemy;
-          const rows: [string, string][] = [
-            ['HP', `${en.currentHp} / ${en.maxHp}`],
-            ['DEF', String(en.def ?? 0)],
-            ['Intent', intentDisplay(en.intent)],
-            ...Object.entries(en.resistances ?? {})
-              .filter(([, v]) => v !== 0)
-              .map(([k, v]): [string, string] => [k.toUpperCase(), v > 0 ? `+${Math.round(v * 100)}%` : `${Math.round(v * 100)}%`]),
+          const def = getEnemy(en.defId);
+          const difficulty = def?.difficulty ?? 'medium';
+          const accentColor = ({ easy: '#4ade80', medium: '#fb923c', hard: '#f87171' } as Record<string,string>)[difficulty] ?? '#fb923c';
+          const accent = en.archetype === 'boss' ? '#fbbf24' : accentColor;
+          const DMG_COLORS: Record<string,string> = { physical: '#fbbf24', fire: '#f97316', ice: '#67e8f9', thunder: '#facc15', lightning: '#facc15', nature: '#86efac', holy: '#fde68a', dark: '#818cf8', steel: '#94a3b8', pierce: '#cbd5e1', pyre: '#f97316', frost: '#67e8f9', arcane: '#c084fc', void: '#a78bfa' };
+          const dmgColor = DMG_COLORS[en.damageType] ?? '#cbd5e1';
+          const statRows: Array<[string, string, string]> = [
+            ['❤  HP',      `${en.currentHp} / ${en.maxHp}`, '#f87171'],
+            ['🛡  DEF',     String(en.def ?? 0),              '#60a5fa'],
+            ['⚡  Intent',  intentDisplay(en.intent),         '#fcd34d'],
           ];
+          const resistRows = Object.entries(en.resistances ?? {})
+            .filter(([, v]) => (v as number) !== 0)
+            .map(([k, v]): [string, string, string] => [
+              k.toUpperCase(),
+              (v as number) > 0 ? `+${Math.round((v as number) * 100)}%` : `${Math.round((v as number) * 100)}%`,
+              (v as number) > 0 ? '#f87171' : '#86efac',
+            ]);
           return (
-            <>
-              <div className="sb-display" style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, letterSpacing: '0.1em' }}>
-                {en.archetype === 'boss' ? '👑' : '👹'} {en.defId.replace(/_/g, ' ').toUpperCase()}
-              </div>
-              {rows.map(([label, val]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <span className="sb-mono" style={{ fontSize: 11, opacity: 0.7 }}>{label}</span>
-                  <span className="sb-mono" style={{ fontSize: 11, fontWeight: 700 }}>{val}</span>
+            <div>
+              {/* Header */}
+              <div style={{
+                padding: '14px 16px 12px',
+                background: `linear-gradient(160deg, ${accent}12 0%, transparent 70%)`,
+                borderBottom: `1px solid ${accent}22`,
+                display: 'flex',
+                gap: 12,
+                alignItems: 'center',
+              }}>
+                {def && (
+                  <div style={{ flexShrink: 0 }}>
+                    <EnemyCardDisplay enemy={def} size="sm" />
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: '1rem', color: '#f1f5f9', lineHeight: 1.2 }}>
+                    {def?.name ?? en.defId.replace(/_/g, ' ')}
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{
+                      fontSize: '0.58rem', fontWeight: 800, letterSpacing: '0.08em',
+                      padding: '2px 7px', borderRadius: 99,
+                      background: accent, color: '#0f172a',
+                    }}>
+                      {en.archetype === 'boss' ? 'BOSS' : difficulty.toUpperCase()}
+                    </span>
+                    <span style={{ fontSize: '0.6rem', fontWeight: 800, color: dmgColor, letterSpacing: '0.06em' }}>
+                      {(en.damageType ?? 'physical').toUpperCase()}
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </>
+              </div>
+              {/* Stat block */}
+              <div style={{ padding: '10px 16px' }}>
+                <div style={{ background: 'rgba(0,0,0,0.28)', borderRadius: 8, padding: '8px 12px', marginBottom: 10 }}>
+                  {statRows.map(([label, val, color]) => (
+                    <div key={label} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{label}</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color }}>{val}</span>
+                    </div>
+                  ))}
+                </div>
+                {resistRows.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.12em', color: '#475569', marginBottom: 5 }}>
+                      RESISTANCES
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {resistRows.map(([label, val, color]) => (
+                        <div key={label} style={{
+                          padding: '3px 8px', borderRadius: 6,
+                          background: 'rgba(0,0,0,0.25)', border: `1px solid ${color}30`,
+                          display: 'flex', gap: 5, alignItems: 'center',
+                        }}>
+                          <span style={{ fontSize: '0.62rem', color: '#64748b' }}>{label}</span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 800, color }}>{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {def?.lore && (
+                  <div style={{
+                    marginTop: 10, padding: '8px 10px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderLeft: `2px solid ${accent}40`,
+                    borderRadius: '0 6px 6px 0',
+                  }}>
+                    <div style={{ fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.12em', color: '#475569', marginBottom: 3 }}>LORE</div>
+                    <p style={{ fontSize: '0.68rem', lineHeight: 1.5, color: '#94a3b8', fontStyle: 'italic', margin: 0 }}>
+                      {def.lore}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           );
         })() : (() => {
           const stats = p.stats;
-          const rows: [string, string][] = [
-            ['HP', `${p.currentHp} / ${stats.maxHp}`],
-            ['ATK', String(stats.atk)],
-            ['DEF', String(stats.def)],
-            ['BLOCK', String(p.block)],
-            ['CRIT', `${Math.round(stats.critChance * 100)}%`],
-            ['DECK', String(runner.state.deck.length)],
-            ['DISCARD', String(runner.state.discard.length)],
+          const rows: Array<[string, string, string]> = [
+            ['❤  HP',      `${p.currentHp} / ${stats.maxHp}`, '#f87171'],
+            ['⚔  ATK',     String(stats.atk),                  '#fbbf24'],
+            ['🛡  DEF',     String(stats.def),                  '#60a5fa'],
+            ['🔰  BLOCK',   String(p.block),                    '#93c5fd'],
+            ['✦  CRIT',    `${Math.round(stats.critChance * 100)}%`, '#c084fc'],
+            ['🃏  DECK',    String(runner.state.deck.length),   '#94a3b8'],
+            ['♻  DISCARD', String(runner.state.discard.length), '#64748b'],
           ];
           return (
-            <>
-              <div className="sb-display" style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, letterSpacing: '0.1em' }}>
-                {playerAvatar} {playerName.toUpperCase()}
-              </div>
-              {rows.map(([label, val]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <span className="sb-mono" style={{ fontSize: 11, opacity: 0.7 }}>{label}</span>
-                  <span className="sb-mono" style={{ fontSize: 11, fontWeight: 700 }}>{val}</span>
+            <div>
+              <div style={{
+                padding: '14px 16px 12px',
+                background: 'linear-gradient(160deg, rgba(196,146,42,0.1) 0%, transparent 70%)',
+                borderBottom: '1px solid rgba(196,146,42,0.15)',
+              }}>
+                <div style={{ fontFamily: "'Fredoka One', cursive", fontSize: '1rem', color: '#f1f5f9' }}>
+                  {playerAvatar} {playerName}
                 </div>
-              ))}
-            </>
+                <div style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.1em', color: 'var(--sb-gold)', marginTop: 4 }}>
+                  PLAYER STATS
+                </div>
+              </div>
+              <div style={{ padding: '10px 16px' }}>
+                <div style={{ background: 'rgba(0,0,0,0.28)', borderRadius: 8, padding: '8px 12px' }}>
+                  {rows.map(([label, val, color]) => (
+                    <div key={label} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{label}</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color }}>{val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           );
         })()}
-        <button
-          onClick={() => setInfoModal(null)}
-          style={{
-            marginTop: 10, width: '100%', padding: '6px',
-            background: 'var(--sb-leather)', border: '1.5px solid var(--sb-bronze)',
-            color: 'var(--sb-gold)', fontFamily: 'var(--sb-font-display)',
-            fontSize: 11, letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 3,
-          }}
-        >
-          CLOSE
-        </button>
+        <div style={{ padding: '0 16px 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <button
+            onClick={() => setInfoModal(null)}
+            style={{
+              width: '100%', padding: '8px 0', borderRadius: 8, marginTop: 10,
+              background: 'rgba(196,146,42,0.12)',
+              border: '1.5px solid rgba(196,146,42,0.35)',
+              color: 'var(--sb-gold-light)', cursor: 'pointer',
+              fontFamily: "'Nunito', sans-serif", fontSize: '0.78rem', fontWeight: 800,
+              letterSpacing: '0.06em',
+            }}
+          >
+            CLOSE
+          </button>
+        </div>
       </div>
     </>
   );
@@ -3134,11 +3752,11 @@ export default function CombatView({
   //                       MOBILE LAYOUT
   // ============================================================
   if (isMobile) {
-    // Mobile-friendly hand sizing — adapt to actual card count.
+    // Mobile-friendly hand sizing — adapt to actual card count (+30% from base).
     const total = actionsInHand.length;
-    const cardW = total >= 6 ? 68 : total >= 5 ? 73 : 82;
+    const cardW = total >= 6 ? 88 : total >= 5 ? 95 : 107;
     const cardH = Math.round(cardW * 1.4);
-    const spacing = total >= 6 ? 40 : total >= 5 ? 48 : 56;
+    const spacing = total >= 6 ? 52 : total >= 5 ? 62 : 73;
 
     // Adaptive enemy card sizing — fit all cards on screen with overlap if needed.
     // Available width: screen width minus padding (16px total)
@@ -3147,9 +3765,9 @@ export default function CombatView({
     const availableWidth = screenWidth - paddingX;
     const enemyCount = runner.state.enemies.length;
 
-    // Start with target card width (scale of hand card)
-    let enemyCardW = Math.round(cardW * 2.4);
-    let enemyCardH = Math.round(cardH * 2.4);
+    // Start with target card width (-30% from previous 2.4× scale → 1.68×)
+    let enemyCardW = Math.round(cardW * 1.68);
+    let enemyCardH = Math.round(cardH * 1.68);
     let enemyGap = 12;
 
     // Calculate if cards fit without scrolling
@@ -3177,7 +3795,7 @@ export default function CombatView({
 
     return (
       <div
-        className={`relative w-full h-full overflow-hidden flex flex-col safe-top safe-bottom ${screenShake === 'heavy' ? 'sb-shake-heavy' : screenShake === 'light' ? 'sb-shake-light' : ''}`}
+        className={`relative w-full h-full overflow-hidden flex flex-col safe-top safe-bottom ${screenShake === 'heavy' ? 'sb-shake-heavy' : screenShake === 'light' ? 'sb-shake-light' : ''}${introShaking ? ' sb-intro-shake' : ''}`}
         style={containerStyle}
       >
         {Background}
@@ -3215,6 +3833,26 @@ export default function CombatView({
                 letterSpacing: '0.18em', borderRadius: 4,
               }}>HC</span>
             )}
+            {/* Card info popup toggle */}
+            <button
+              onClick={toggleCardInfo}
+              title={cardInfoEnabled ? 'Card info ON — tap to turn off' : 'Card info OFF — tap to turn on'}
+              style={{
+                flexShrink: 0,
+                width: 36, height: 36,
+                borderRadius: 4,
+                background: cardInfoEnabled
+                  ? 'linear-gradient(180deg, #1a3a1a 0%, #0e2010 100%)'
+                  : 'rgba(0,0,0,0.4)',
+                border: `1.5px solid ${cardInfoEnabled ? '#4ade80' : 'rgba(255,255,255,0.15)'}`,
+                color: cardInfoEnabled ? '#4ade80' : '#475569',
+                fontSize: 14, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 200ms, border-color 200ms, color 200ms',
+              }}
+              aria-pressed={cardInfoEnabled}
+              aria-label="Toggle card info popup"
+            >📖</button>
           </div>
           {/* Row 2: resource chips — stamina / deck / discard */}
           <div className="flex items-center justify-end gap-1.5">
@@ -3235,11 +3873,11 @@ export default function CombatView({
           className="relative z-10 flex-shrink-0 flex justify-center items-end px-2 py-1"
           style={{ gap: `${Math.max(enemyGap, 4)}px`, overflow: 'hidden' }}
         >
-          {runner.state.enemies.map(e => {
+          {runner.state.enemies.map((e, ei) => {
             const isBossEnemy = getEnemy(e.defId)?.archetype === 'boss';
             const w = isBossEnemy ? Math.round(enemyCardW * 1.45) : enemyCardW;
             const h = isBossEnemy ? Math.round(enemyCardH * 1.45) : enemyCardH;
-            return EnemyCard({ e, cardW: w, cardH: h, isBossEnemy });
+            return EnemyCard({ e, cardW: w, cardH: h, isBossEnemy, enemyIdx: ei });
           })}
         </div>
 
@@ -3414,8 +4052,11 @@ export default function CombatView({
         {ParticleLayer}
         {FloaterLayer}
         {InfoModal}
+        {HandCardPopupLayer}
         {OutcomeAnnounceLayer}
         {ConfirmDialogLayer}
+        {BattleIntroOverlay}
+        {SmashVfxLayer}
       </div>
     );
   }
@@ -3425,15 +4066,20 @@ export default function CombatView({
   // ============================================================
   return (
     <div
-      className={`relative w-full h-full overflow-hidden ${screenShake === 'heavy' ? 'sb-shake-heavy' : screenShake === 'light' ? 'sb-shake-light' : ''}`}
+      className={`relative w-full h-full overflow-hidden ${screenShake === 'heavy' ? 'sb-shake-heavy' : screenShake === 'light' ? 'sb-shake-light' : ''}${introShaking ? ' sb-intro-shake' : ''}`}
       style={containerStyle}
     >
       <style>{`
+        @keyframes sb-pop-up {
+          from { opacity: 0; transform: scale(0.88) translateY(10px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0px); }
+        }
         @keyframes breathe {
-          0%, 100% { transform: scale(1) translateY(0px) translateX(0px); }
-          25% { transform: scale(1.03) translateY(-4px) translateX(-1px); }
-          50% { transform: scale(1.04) translateY(-6px) translateX(1px); }
-          75% { transform: scale(1.03) translateY(-4px) translateX(-1px); }
+          0%   { transform: scale(1)     translateY(0px)  translateX(0px); }
+          30%  { transform: scale(1.013) translateY(-2px) translateX(-0.5px); }
+          65%  { transform: scale(1.016) translateY(-3px) translateX(0.8px); }
+          85%  { transform: scale(1.011) translateY(-2px) translateX(-0.3px); }
+          100% { transform: scale(1)     translateY(0px)  translateX(0px); }
         }
       `}</style>
       {Background}
@@ -3460,13 +4106,33 @@ export default function CombatView({
         )}
       </div>
 
-      <button
-        onClick={() => setConfirmDialog('exit')}
-        className="absolute top-4 left-2 z-20 sb-chip"
-        style={{ cursor: 'pointer', padding: '5px 11px', fontSize: '11px' }}
-      >
-        ← FLEE
-      </button>
+      <div className="absolute top-4 left-2 z-20 flex items-center gap-1.5">
+        <button
+          onClick={() => setConfirmDialog('exit')}
+          className="sb-chip"
+          style={{ cursor: 'pointer', padding: '5px 11px', fontSize: '11px' }}
+        >
+          ← FLEE
+        </button>
+        <button
+          onClick={toggleCardInfo}
+          title={cardInfoEnabled ? 'Card info ON — click to turn off' : 'Card info OFF — click to turn on'}
+          style={{
+            width: 32, height: 28,
+            borderRadius: 4,
+            background: cardInfoEnabled
+              ? 'linear-gradient(180deg, #1a3a1a 0%, #0e2010 100%)'
+              : 'rgba(0,0,0,0.4)',
+            border: `1.5px solid ${cardInfoEnabled ? '#4ade80' : 'rgba(255,255,255,0.15)'}`,
+            color: cardInfoEnabled ? '#4ade80' : '#475569',
+            fontSize: 13, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 200ms, border-color 200ms, color 200ms',
+          }}
+          aria-pressed={cardInfoEnabled}
+          aria-label="Toggle card info popup"
+        >📖</button>
+      </div>
 
       <div className="absolute top-4 right-2 z-20 flex flex-col items-end gap-1.5 pointer-events-none">
         <span className="sb-chip sb-chip-gold" style={{ fontSize: '12px' }}>⚡ {runner.state.staminaThisTurn} STAMINA</span>
@@ -3476,11 +4142,11 @@ export default function CombatView({
 
       {/* Enemy row — boss appears larger and centered, flanked by minions. */}
       <div className="absolute z-10 left-0 right-0 flex justify-center items-end gap-3 px-4" style={{ top: 56 }}>
-        {runner.state.enemies.map(e => {
+        {runner.state.enemies.map((e, ei) => {
           const isBossEnemy = getEnemy(e.defId)?.archetype === 'boss';
-          const w = isBossEnemy ? 270 : 194;
-          const h = isBossEnemy ? 378 : 270;
-          return EnemyCard({ e, cardW: w, cardH: h, isBossEnemy });
+          const w = isBossEnemy ? 189 : 136;
+          const h = isBossEnemy ? 265 : 190;
+          return EnemyCard({ e, cardW: w, cardH: h, isBossEnemy, enemyIdx: ei });
         })}
       </div>
 
@@ -3504,18 +4170,18 @@ export default function CombatView({
           bottom), with arc + lift up to ~216, leaving the full hand fan
           comfortably above the END TURN row. */}
       <div className="absolute left-0 right-0 z-10 flex justify-center items-end" style={{
-        bottom: 170, height: 220, pointerEvents: 'none',
+        bottom: 170, height: 280, pointerEvents: 'none',
       }}>
         <div style={{
           position: 'relative',
-          width: Math.max(actionsInHand.length, 1) * 100,
+          width: Math.max(actionsInHand.length, 1) * 130,
           height: '100%', pointerEvents: 'none',
         }}>
           {actionsInHand.map(({ def, realIndex }, i) =>
             ActionCard({
               def, realIndex, i, total: actionsInHand.length,
-              cardW: 114, cardH: 159,
-              fan: { spacing: 91, arcMul: 1.8, rotMax: 6 },
+              cardW: 148, cardH: 207,
+              fan: { spacing: 118, arcMul: 1.8, rotMax: 6 },
             }))}
         </div>
       </div>
@@ -3616,8 +4282,11 @@ export default function CombatView({
       {ParticleLayer}
       {FloaterLayer}
       {InfoModal}
+      {HandCardPopupLayer}
       {OutcomeAnnounceLayer}
       {ConfirmDialogLayer}
+      {BattleIntroOverlay}
+      {SmashVfxLayer}
     </div>
   );
 }

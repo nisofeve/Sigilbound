@@ -27,12 +27,21 @@ interface Props {
   selected?: boolean;
 }
 
+function nameAlts(name: string): string[] {
+  const under = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const dash  = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return [under, dash];
+}
+
 export function TalentCard({ talent, size = 'md', customWidth, onClick, selected }: Props) {
   const accent = RARITY_COLOR[talent.rarity] ?? RARITY_COLOR.common;
 
   return (
     <GameCard
       name={talent.name}
+      imageId={talent.id}
+      imageIdAlternates={nameAlts(talent.name)}
+      imageBase="talents"
       placeholderEmoji={talent.icon}
       size={size}
       customWidth={customWidth}

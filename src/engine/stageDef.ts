@@ -68,20 +68,17 @@ interface BandSpec {
 
 function specForStage(stage: number, isBoss: boolean): BandSpec {
   void isBoss; // reserved for future per-band boss scaling
-  if (stage === 200) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'final' };
-  if (stage === 100) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'final' };
-  if (stage <= 5)   return { enemyCount: 1, difficulties: ['easy'], band: 'tutorial' };
-  if (stage <= 15)  return { enemyCount: 2, difficulties: ['easy', 'easy'], band: 'easy' };
-  if (stage <= 30)  return { enemyCount: 2, difficulties: ['easy', 'medium'], band: 'easy' };
-  if (stage <= 45)  return { enemyCount: 3, difficulties: ['easy', 'medium', 'medium'], band: 'medium' };
-  if (stage <= 60)  return { enemyCount: 3, difficulties: ['medium', 'medium', 'hard'], band: 'medium' };
-  if (stage <= 75)  return { enemyCount: 4, difficulties: ['medium', 'medium', 'hard', 'hard'], band: 'hard' };
-  if (stage <= 90)  return { enemyCount: 4, difficulties: ['medium', 'hard', 'hard', 'hard'], band: 'hard' };
-  if (stage <= 110) return { enemyCount: 5, difficulties: ['medium', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
-  if (stage <= 130) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
-  if (stage <= 150) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
-  if (stage <= 170) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
-  if (stage <= 199) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
+  // Every 100th stage is a final encounter.
+  if (stage % 100 === 0) return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'final' };
+  // Normalise into the 1-100 difficulty curve for repeating cycles.
+  const s = stage <= 100 ? stage : ((stage - 1) % 100) + 1;
+  if (s <= 5)   return { enemyCount: 1, difficulties: ['easy'], band: 'tutorial' };
+  if (s <= 15)  return { enemyCount: 2, difficulties: ['easy', 'easy'], band: 'easy' };
+  if (s <= 30)  return { enemyCount: 2, difficulties: ['easy', 'medium'], band: 'easy' };
+  if (s <= 45)  return { enemyCount: 3, difficulties: ['easy', 'medium', 'medium'], band: 'medium' };
+  if (s <= 60)  return { enemyCount: 3, difficulties: ['medium', 'medium', 'hard'], band: 'medium' };
+  if (s <= 75)  return { enemyCount: 4, difficulties: ['medium', 'medium', 'hard', 'hard'], band: 'hard' };
+  if (s <= 90)  return { enemyCount: 4, difficulties: ['medium', 'hard', 'hard', 'hard'], band: 'hard' };
   return { enemyCount: 5, difficulties: ['hard', 'hard', 'hard', 'hard', 'hard'], band: 'hard' };
 }
 
@@ -135,6 +132,63 @@ const STAGE_OVERRIDES: Partial<Record<number, StageOverride>> = {
   185: { title: 'The Void Threshold',          flavor: 'Beyond the Ashen Citadel, where the sigils unravel into nothing.' },
   190: { title: 'Sigilbreaker Reborn',         flavor: 'He shed his ashen form. The true Sigilbreaker is woven from your own power.', bossEnemyId: 'boss_sigilbreaker' },
   200: { title: 'The Last Sigil',              flavor: 'There is no binding left. Only you, and the thing you summoned by surviving this far.', bossEnemyId: 'boss_sigilbreaker' },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CYCLE 3 (201–300) — The Sigil Wars: corrupted versions of each biome
+  // ══════════════════════════════════════════════════════════════════════════
+  201: { title: 'Shattered Groves',            flavor: 'The forest burned in the Sigil War. Twisted creatures prowl what remains.' },
+  210: { title: 'The Hungering Thicket',       flavor: 'A spirit-bound warlord reclaimed the forest ruins as his own domain.', bossEnemyId: 'boss_antlered_king' },
+  220: { title: 'Crown of Thorns',             flavor: 'The Antlered King wears a crown forged from broken sigil-shards.', bossEnemyId: 'boss_antlered_king' },
+  225: { title: 'Catacombs Below',             flavor: 'The crypt floor cracked during the Sigil War. Something old climbed out.' },
+  230: { title: 'Bone Tyrant — Unshackled',    flavor: 'Freed from the binding, the Bone Tyrant remembers every wound you gave him.', bossEnemyId: 'boss_bone_tyrant' },
+  240: { title: 'Legion of the Fallen',        flavor: 'The Bone Tyrant raised an army from the Sigil War dead. All of them.', bossEnemyId: 'boss_bone_tyrant' },
+  245: { title: 'The Shattered Peak',          flavor: 'Ymir\'s mountain collapsed in the War. The cold intensified, impossibly.' },
+  250: { title: 'Ymir Reforged',               flavor: 'The glacier rebuilt itself around Ymir. He is the mountain now.', bossEnemyId: 'boss_ymir' },
+  260: { title: 'Avalanche Eternal',           flavor: 'Ymir calls the storm with a thought. The peak shudders at his name.', bossEnemyId: 'boss_ymir' },
+  265: { title: 'The Superheated Forge',       flavor: 'Sigil-energy flooded the volcano. The forge burns with two fires now.' },
+  270: { title: 'Vulkar Ascendant',            flavor: 'Vulkar absorbed the forge\'s sigil-fire. He is larger than before.', bossEnemyId: 'boss_vulkar' },
+  280: { title: 'The Eternal Pyre — Relit',    flavor: 'The forge erupts in both fire and void-light. Vulkar stands at the center.', bossEnemyId: 'boss_vulkar' },
+  285: { title: 'Ashen Void',                  flavor: 'The Citadel dissolved during the War. Only the Sigilbreaker remained.' },
+  290: { title: 'Void-Touched Sigilbreaker',   flavor: 'He absorbed what the War left behind. The Sigilbreaker is stronger than ever.', bossEnemyId: 'boss_sigilbreaker' },
+  300: { title: 'End of the War',              flavor: 'The last battle of the Sigil War. Whatever you are now — this is the test.', bossEnemyId: 'boss_sigilbreaker' },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CYCLE 4 (301–400) — The Void Cycle: sigil-corruption consumes all biomes
+  // ══════════════════════════════════════════════════════════════════════════
+  301: { title: 'Forest of Void',              flavor: 'The trees grow in silence here. Their leaves are made of old sigil-smoke.' },
+  310: { title: 'The Void Monarch',            flavor: 'The Antlered King absorbed void-energy in the War. He is crown and storm.', bossEnemyId: 'boss_antlered_king' },
+  320: { title: 'Roots of Ruin',              flavor: 'The Antlered King\'s roots extend to every corner of the void-forest.', bossEnemyId: 'boss_antlered_king' },
+  325: { title: 'Crypt of Void',               flavor: 'The crypts are void-saturated. The dead walk without intent, without memory.' },
+  330: { title: 'Eternal Bone Tyrant',         flavor: 'Death itself bent to the Bone Tyrant. He cannot be killed here.', bossEnemyId: 'boss_bone_tyrant' },
+  340: { title: 'The Infinite Dead',           flavor: 'Every enemy you killed in the crypts stands before you again.', bossEnemyId: 'boss_bone_tyrant' },
+  345: { title: 'Void-Peak',                   flavor: 'The Frostpeak hollows filled with void-light. The cold is alive.' },
+  350: { title: 'Ymir the Undying',            flavor: 'Void-ice reinforces every wound. Ymir cannot fall here.', bossEnemyId: 'boss_ymir' },
+  360: { title: 'The Frozen Void',             flavor: 'Ymir merged with the void-peak. Cold and nothing, combined.', bossEnemyId: 'boss_ymir' },
+  365: { title: 'Void-Forge',                  flavor: 'The forge burns void-fire. It creates enemies now, not steel.' },
+  370: { title: 'Vulkar the Void-Drake',       flavor: 'Vulkar breathes void-fire. What it touches becomes nothing.', bossEnemyId: 'boss_vulkar' },
+  380: { title: 'The Undying Flame',           flavor: 'Vulkar\'s fire cannot be extinguished. The void feeds it.', bossEnemyId: 'boss_vulkar' },
+  385: { title: 'The Hollow Citadel',          flavor: 'The Citadel exists outside of time now. The Sigilbreaker waits at the center.' },
+  390: { title: 'Sigilbreaker — Void Form',    flavor: 'The Sigilbreaker shed everything. Only power remains.', bossEnemyId: 'boss_sigilbreaker' },
+  400: { title: 'The Void Convergence',        flavor: 'All five biomes collapsed into one point. The Sigilbreaker stands at the origin.', bossEnemyId: 'boss_sigilbreaker' },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CYCLE 5 (401–500) — The Ascendant Cycle: beyond mortal comprehension
+  // ══════════════════════════════════════════════════════════════════════════
+  401: { title: 'The Verdant Abyss',           flavor: 'Beyond the void-forest lies something older. The trees here remember the world before sigils.' },
+  410: { title: 'The Dreaming King',           flavor: 'The Antlered King exists in dream and waking at once. Defeating him wakes something worse.', bossEnemyId: 'boss_antlered_king' },
+  420: { title: 'Forest Without End',          flavor: 'The Antlered King became the forest itself. Every root, every branch — his limbs.', bossEnemyId: 'boss_antlered_king' },
+  425: { title: 'The Eternal Crypt',           flavor: 'Time does not pass here. The dead have been dying for ten thousand years.' },
+  430: { title: 'Bone Tyrant — True Form',     flavor: 'The true shape of the Bone Tyrant: a god of endings wearing a dead king\'s face.', bossEnemyId: 'boss_bone_tyrant' },
+  440: { title: 'Kingdom of the Dead',         flavor: 'The Bone Tyrant built a kingdom here. Every soul you ever took serves him.', bossEnemyId: 'boss_bone_tyrant' },
+  445: { title: 'The Summit of Endings',       flavor: 'Higher than the mountain goes. The air here is older than the world.' },
+  450: { title: 'Ymir the World-Breaker',      flavor: 'Ymir grew into the sky. The frostpeak is his smallest finger now.', bossEnemyId: 'boss_ymir' },
+  460: { title: 'The Last Winter',             flavor: 'Ymir ends warmth itself. His cold does not stop at skin.', bossEnemyId: 'boss_ymir' },
+  465: { title: 'The Ascendant Forge',         flavor: 'The forge burns with light that predates fire. Vulkar was born from it.' },
+  470: { title: 'Vulkar — Origin Form',        flavor: 'The first dragon, before names. Before the world was named. Before you.', bossEnemyId: 'boss_vulkar' },
+  480: { title: 'The Primal Flame',            flavor: 'Vulkar burns with the first fire. The heat erases thought.', bossEnemyId: 'boss_vulkar' },
+  485: { title: 'The Throne of Ash',           flavor: 'The Sigilbreaker sits at the beginning and end of all things.' },
+  490: { title: 'Sigilbreaker — Absolute',     flavor: 'Not a being. A principle. The idea that power unmakes what it cannot hold.', bossEnemyId: 'boss_sigilbreaker' },
+  500: { title: 'The Final Sigil',             flavor: 'There are no more stages after this. No more cycles. Only you, and the choice of what the power was for.', bossEnemyId: 'boss_sigilbreaker' },
 };
 
 // === Generation ===
@@ -185,10 +239,12 @@ export function getStage(stage: number): CombatStageDef {
   };
 }
 
-// Generate all 200 stages eagerly. Useful for tests + the StageSelect screen.
+export const MAX_STAGES = 500;
+
+// Generate all stages eagerly. Useful for tests + the StageSelect screen.
 export function allStages(): CombatStageDef[] {
   const out: CombatStageDef[] = [];
-  for (let i = 1; i <= 200; i++) out.push(getStage(i));
+  for (let i = 1; i <= MAX_STAGES; i++) out.push(getStage(i));
   return out;
 }
 
