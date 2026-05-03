@@ -36,6 +36,38 @@ const KIND_HINTS: Record<Quest['kind'], { headline: string; how: string[] }> = {
       'Variety and Loyal are mutually exclusive within a single round, so you must hit them on different rounds.',
     ],
   },
+  damage_type: {
+    headline: 'Elemental damage dealt',
+    how: [
+      'Counts damage of the specified element across all your actions and effects.',
+      'All damage sources count — action cards, tactics, talents, and anything else that deals that element.',
+      'Progress accumulates across multiple combats — complete the goal in one or spread it across the day.',
+    ],
+  },
+  combo_count: {
+    headline: 'Combos triggered in a single combat',
+    how: [
+      'Counts the total number of combo reactions fired during one battle.',
+      'Each element_chain combo reaction counts as 1.',
+      'Must all be triggered within the same combat run.',
+    ],
+  },
+  defeat_boss: {
+    headline: 'Boss stages defeated',
+    how: [
+      'Counts each boss stage (10, 20, 30, ..., 100) that you clear with at least 1 star.',
+      'Progress is tracked — defeat multiple bosses across different combats to complete this quest.',
+      'Non-boss stages do not count toward this quest.',
+    ],
+  },
+  no_damage_turns: {
+    headline: 'Consecutive turns without damage',
+    how: [
+      'Tracks the longest streak of consecutive turns where you take no damage.',
+      'Progress is the longest streak recorded in a single combat.',
+      'Complete the quest once you achieve the required streak in any combat.',
+    ],
+  },
 };
 
 export default function QuestDetailModal({ quest, state, onClose }: Props) {

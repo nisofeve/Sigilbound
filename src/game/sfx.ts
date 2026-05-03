@@ -270,4 +270,24 @@ export const sfx = {
     tone({ freq: 110, endFreq: 220, duration: 0.50, type: 'sawtooth', gain: 0.12, delay: 0.04 });
     noise({ duration: 0.40, startFreq: 200, endFreq: 600, q: 1, gain: 0.10, delay: 0.10, filter: 'lowpass' });
   },
+
+  // Tactic card shatter — bright crack burst as the card splinters at centre.
+  // Layered high-frequency noise shards + a sub-bass thud for impact weight.
+  tacticShatter() {
+    // Primary crack: ultra-fast hi-freq noise burst
+    noise({ duration: 0.08, startFreq: 8000, endFreq: 2000, q: 2, gain: 0.28, filter: 'highpass' });
+    // Glass shard spray: two mid-freq noise tails
+    noise({ duration: 0.22, startFreq: 3200, endFreq: 800,  q: 3, gain: 0.18, delay: 0.04 });
+    noise({ duration: 0.18, startFreq: 5000, endFreq: 1200, q: 4, gain: 0.14, delay: 0.06, filter: 'bandpass' });
+    // Weight thud underneath
+    tone({ freq: 120, endFreq: 40, duration: 0.18, type: 'sine', gain: 0.16, delay: 0.02 });
+    // Bright overtone ring-off
+    tone({ freq: 2400, endFreq: 1200, duration: 0.20, type: 'triangle', gain: 0.08, delay: 0.05 });
+  },
+
+  // Tactic announce chime — plays just after shatter as the effect text appears.
+  tacticAnnounce() {
+    tone({ freq: 440, endFreq: 660, duration: 0.18, type: 'triangle', gain: 0.14 });
+    tone({ freq: 660, endFreq: 880, duration: 0.18, type: 'triangle', gain: 0.10, delay: 0.08 });
+  },
 };

@@ -177,23 +177,23 @@ describe('BattleRunner — slot binding', () => {
     expect(ev.enemyHpAfter).toBeLessThanOrEqual(ev.enemyHpBefore);
   });
 
-  it('previewCombosForEndTurn flags Onslaught when 2+ same-type slots resolve', () => {
+  it('previewCombosForEndTurn returns element chain when 2+ adjacent same-type slots resolve', () => {
     const runner = new BattleRunner(defaultConfig());
     runner.bindToSlot(0, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 0 });
     runner.bindToSlot(1, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 0 });
     const preview = runner.previewCombosForEndTurn();
-    expect(preview.onslaught.sort()).toEqual([0, 1]);
-    expect(preview.triadic).toEqual([]);
+    expect(preview.chains).toHaveLength(1);
+    expect(preview.chains[0].indices.sort()).toEqual([0, 1]);
+    expect(preview.chains[0].type).toBe('steel');
   });
 
-  it('previewCombosForEndTurn flags Triadic when 3+ distinct types resolve', () => {
+  it('previewCombosForEndTurn returns no chain when types differ (no adjacent match)', () => {
     const runner = new BattleRunner(defaultConfig());
     runner.bindToSlot(0, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 0 });
     runner.bindToSlot(1, { cardId: 'act_006', damage: 5, damageType: 'pierce', charge: 0 });
     runner.bindToSlot(2, { cardId: 'act_x', damage: 5, damageType: 'pyre', charge: 0 });
     const preview = runner.previewCombosForEndTurn();
-    expect(preview.triadic.sort()).toEqual([0, 1, 2]);
-    expect(preview.onslaught).toEqual([]);
+    expect(preview.chains).toHaveLength(0);
   });
 
   it('previewCombosForEndTurn ignores still-charging slots', () => {
@@ -201,7 +201,7 @@ describe('BattleRunner — slot binding', () => {
     runner.bindToSlot(0, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 0 });
     runner.bindToSlot(1, { cardId: 'act_001', damage: 5, damageType: 'steel', charge: 3 });
     const preview = runner.previewCombosForEndTurn();
-    expect(preview.onslaught).toEqual([]); // only one will resolve this turn
+    expect(preview.chains).toHaveLength(0); // slot 1 is still charging — no chain
   });
 
   it('endTurn emits enemy_attack event when an enemy strikes', () => {
@@ -274,7 +274,7 @@ describe('BattleRunner — turn resolution', () => {
 });
 
 describe('BattleRunner — combos', () => {
-  it('Onslaught fires when 3 same-type actions resolve together', () => {
+  it('Element chain fires when 3 adjacent same-type actions resolve together', () => {
     const runner = new BattleRunner(defaultConfig({ enemyDefs: [tank] }));
     // Use damage values that land cleanly through tank's resistance + def.
     // Tank has steel resist 0.5 and def 4, so per-strike: raw × 1.2 × 0.5 - 4.
@@ -284,41 +284,38 @@ describe('BattleRunner — combos', () => {
     runner.bindToSlot(2, strike(20, 'steel'));
     const before = runner.state.enemies[0].currentHp;
     runner.endTurn();
-    expect(runner.state.combosTriggeredThisStage.onslaught).toBeGreaterThan(0);
-    // 3 same-type → +20% bonus on each. With tank's resist + def the math is
-    // implementation-detail, but at minimum it should land more damage than
-    // 3 unbuffed strikes would. Sanity: tank HP went down.
+    expect(runner.state.combosTriggeredThisStage.element_chain).toBeGreaterThan(0);
+    // 3 adjacent same-type → +50% bonus on each. Sanity: tank HP went down.
     expect(runner.state.enemies[0].currentHp).toBeLessThan(before);
   });
 
-  it('Triadic Strike fires on 3 distinct types', () => {
+  it('No element chain fires on 3 distinct types', () => {
     const runner = new BattleRunner(defaultConfig({ enemyDefs: [{ ...goblin, baseHp: 200 }] }));
     runner.bindToSlot(0, strike(5, 'steel'));
     runner.bindToSlot(1, strike(5, 'pyre'));
     runner.bindToSlot(2, strike(5, 'frost'));
     runner.endTurn();
-    expect(runner.state.combosTriggeredThisStage.triadic).toBe(1);
+    expect(runner.state.combosTriggeredThisStage.element_chain).toBe(0);
   });
 
-  it('Relentless streak builds across single-type turns', () => {
+  it('Element chain does not build cross-turn state', () => {
     const runner = new BattleRunner(defaultConfig({ enemyDefs: [{ ...goblin, baseHp: 999, atk: 0 }] }));
     runner.bindToSlot(0, strike(3, 'pyre'));
     runner.endTurn();
-    expect(runner.state.relentlessStreak).toBe(1);
+    // No relentlessStreak field — element chain has no cross-turn state.
     runner.bindToSlot(0, strike(3, 'pyre'));
     runner.endTurn();
-    expect(runner.state.relentlessStreak).toBe(2);
+    expect(runner.state.combosTriggeredThisStage.element_chain).toBe(0); // single slot = no chain
   });
 
-  it('Mixing types breaks Relentless streak', () => {
+  it('Mixed type between two same-type breaks the element chain', () => {
     const runner = new BattleRunner(defaultConfig({ enemyDefs: [{ ...goblin, baseHp: 999, atk: 0 }] }));
-    runner.bindToSlot(0, strike(3, 'pyre'));
-    runner.endTurn();
-    expect(runner.state.relentlessStreak).toBe(1);
+    // [fire, ice, fire] — fire at [0] and [2] are NOT adjacent, so no chain.
     runner.bindToSlot(0, strike(3, 'pyre'));
     runner.bindToSlot(1, strike(3, 'frost'));
+    runner.bindToSlot(2, strike(3, 'pyre'));
     runner.endTurn();
-    expect(runner.state.relentlessStreak).toBe(0);
+    expect(runner.state.combosTriggeredThisStage.element_chain).toBe(0);
   });
 });
 
@@ -501,7 +498,7 @@ describe('BattleRunner — equipment integration', () => {
     runner.bindToSlot(0, strike(3, 'steel'));
     runner.bindToSlot(1, strike(3, 'steel'));
     runner.endTurn();
-    expect(runner.state.combosTriggeredThisStage.onslaught).toBe(1);
+    expect(runner.state.combosTriggeredThisStage.element_chain).toBe(1);
     expect(runner.state.player.currentHp).toBeGreaterThanOrEqual(before + 5);
   });
 

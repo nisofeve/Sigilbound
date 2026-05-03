@@ -64,9 +64,7 @@ describe('CombatView interaction patterns', () => {
     const before = { ...runner.state.combosTriggeredThisStage };
     runner.endTurn();
     const after = runner.state.combosTriggeredThisStage;
-    expect(after.onslaught).toBeGreaterThanOrEqual(before.onslaught);
-    expect(after.triadic).toBeGreaterThanOrEqual(before.triadic);
-    expect(after.relentless).toBeGreaterThanOrEqual(before.relentless);
+    expect(after.element_chain).toBeGreaterThanOrEqual(before.element_chain);
   });
 
   it('binding to an occupied slot fails without mutating hand', () => {

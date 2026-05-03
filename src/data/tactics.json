@@ -18,5 +18,7 @@
   { "id": "tac_017", "type": "tactic", "name": "Time Warp",     "rarity": "epic",      "cost": 4, "emoji": "⏳", "description": "Take an extra turn.",                            "effect": { "kind": "extra_turn" } },
   { "id": "tac_018", "type": "tactic", "name": "Mass Heal",     "rarity": "epic",      "cost": 3, "emoji": "✨", "description": "Heal 30 HP.",                                    "effect": { "kind": "heal",   "amount": 30 } },
   { "id": "tac_019", "type": "tactic", "name": "Damage Mirror", "rarity": "epic",      "cost": 2, "emoji": "🪞", "description": "Reflect 100% next attack.",                      "effect": { "kind": "reflect_next_attack", "pct": 1 } },
-  { "id": "tac_020", "type": "tactic", "name": "Astral Pact",   "rarity": "legendary", "cost": 5, "emoji": "🌌", "description": "This turn: every card +50% damage and costs 0.", "persistent": false, "effect": { "kind": "all_cards_buffed_zero_cost", "pct": 0.5 } }
+  { "id": "tac_020", "type": "tactic", "name": "Astral Pact",      "rarity": "legendary", "cost": 5, "emoji": "🌌", "description": "This turn: every card +50% damage and costs 0.", "persistent": false, "effect": { "kind": "all_cards_buffed_zero_cost", "pct": 0.5 } },
+  { "id": "tac_021", "type": "tactic", "name": "Quick Study",      "rarity": "common",    "cost": 1, "emoji": "📖", "description": "Draw 2 cards immediately.",                       "effect": { "kind": "draw", "cards": 2 } },
+  { "id": "tac_022", "type": "tactic", "name": "Calculated Risk",  "rarity": "uncommon",  "cost": 0, "emoji": "🎲", "description": "Discard 2 cards, then draw 3.",                   "effect": { "kind": "discard_draw", "discard": 2, "draw": 3 } }
 ]

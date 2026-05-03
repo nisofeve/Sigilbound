@@ -47,6 +47,7 @@ export interface CombatStageDef {
   title: string;
   flavor: string;
   isBoss: boolean;
+  isHardmode?: boolean;  // true when this is a hardmode variant
   enemyIds: string[];    // ordered left-to-right; up to 5
   bonusObjectives: BonusObjective[];
   difficultyBand: 'tutorial' | 'easy' | 'medium' | 'hard' | 'final';
@@ -430,4 +431,40 @@ export function combatStarsFor(opts: {
   if (ratio > 0.5) return 3;
   if (ratio > 0.25) return 2;
   return 1;
+}
+
+// ============================================================================
+// Hardmode progression
+// ============================================================================
+
+export const HARDMODE_STAT_MULT = 1.35;
+export const HARDMODE_REWARD_MULT = 1.5;
+
+// Get the hardmode variant of a normal stage. Returns the same stage def
+// but with 1.5× reward multiplier and isHardmode flag set.
+export function getHardmodeStage(stage: number): CombatStageDef {
+  const normal = getStage(stage);
+  return {
+    ...normal,
+    isHardmode: true,
+    rewardChest: {
+      baseGold: Math.floor(normal.rewardChest.baseGold * HARDMODE_REWARD_MULT),
+      baseXp: Math.floor(normal.rewardChest.baseXp * HARDMODE_REWARD_MULT),
+      baseCrystals: Math.floor(normal.rewardChest.baseCrystals * HARDMODE_REWARD_MULT),
+    },
+  };
+}
+
+// Check if hardmode stages leading up to and including `stageNumber` are unlocked.
+// Stages unlock in sets of 10: beat stage 10 → stages 1-10 unlock; beat stage 20 → stages 11-20 unlock.
+// If stageNumber is 15, the gate is stage 10 (hardmodeUnlockedThrough must be >= 10).
+export function isHardmodeUnlocked(stageNumber: number, hardmodeUnlockedThrough: number): boolean {
+  const gateStage = Math.ceil(stageNumber / 10) * 10;
+  return hardmodeUnlockedThrough >= gateStage;
+}
+
+// Get the highest normal-mode boss stage that the player has beaten.
+// Returns 0 if no boss has been beaten yet. Used to derive hardmodeUnlockedThrough.
+export function bossGateForHardmode(stageNumber: number): number {
+  return Math.ceil(stageNumber / 10) * 10;
 }

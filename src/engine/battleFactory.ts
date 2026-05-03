@@ -42,6 +42,10 @@ export interface StageRunInput {
   ownedUpgradeIds?: ReadonlyArray<string>;
   // Phase 3: card tier multipliers (maps card id to tier 1..5).
   cardTierMultipliers?: Record<string, number>;
+  // F1: Hardmode flag — when true, enemies receive 1.35× stat multiplier.
+  hardmode?: boolean;
+  // F2: Enemy prestige level — +3% per level (cap 20), stack with hardmode.
+  enemyPrestigeLevel?: number;
 }
 
 export interface StageRunOutput {
@@ -98,6 +102,9 @@ export function buildStageRun(input: StageRunInput): StageRunOutput {
     hardcore: input.hardcore,
     ownedUpgradeIds: input.ownedUpgradeIds,
     cardTierMultipliers: input.cardTierMultipliers,
+    // F1-F2: Hardmode and prestige scaling.
+    hardmode: input.hardmode,
+    enemyPrestigeLevel: input.enemyPrestigeLevel,
   };
 
   return { runner: new BattleRunner(config), stage };

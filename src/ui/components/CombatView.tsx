@@ -24,12 +24,11 @@ import {
   type ResolveEvent,
   getAction,
   getTactic,
-  onslaughtMultiplier,
-  triadicStrikeBonus,
-  triadicStrikeMultiplier,
-  relentlessMultiplier,
+  elementChainMultiplier,
+  computeElementChains,
   getBattleIntro,
 } from '@engine/index';
+import type { DamageType } from '../../engine/damage';
 import { elementalHitLabel } from '../../engine/damage';
 import { sfx } from '@game/sfx';
 import { getEnemy } from '../../engine/bestiary';
@@ -153,13 +152,31 @@ export default function CombatView({
   const [, setTick] = useState(0);
   const repaint = useCallback(() => setTick(t => t + 1), []);
 
-  const [comboFlash, setComboFlash] = useState<null | 'onslaught' | 'triadic' | 'relentless'>(null);
+  type ComboFlashInfo = { type: DamageType; chainLength: number; slotIndices: number[] };
+  // Queue so multiple chains in one turn each get their own display window.
+  const [comboQueue, setComboQueue] = useState<ComboFlashInfo[]>([]);
+  const comboFlash = comboQueue[0] ?? null;
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const triggerCombo = (k: 'onslaught' | 'triadic' | 'relentless') => {
-    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-    setComboFlash(k);
-    // Banner lingers ~2s now to match the slower theatrical attack pacing.
-    flashTimerRef.current = setTimeout(() => setComboFlash(null), 2000);
+  const triggerCombo = (info: ComboFlashInfo) => {
+    setComboQueue(q => {
+      const next = [...q, info];
+      // If nothing is currently showing, start the drain timer immediately.
+      if (q.length === 0) {
+        if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = setTimeout(function drain() {
+          setComboQueue(prev => {
+            const remaining = prev.slice(1);
+            if (remaining.length > 0) {
+              flashTimerRef.current = setTimeout(drain, 1800);
+            } else {
+              flashTimerRef.current = null;
+            }
+            return remaining;
+          });
+        }, 1800);
+      }
+      return next;
+    });
   };
 
   const [draggingHandIdx, setDraggingHandIdx] = useState<number | null>(null);
@@ -182,8 +199,8 @@ export default function CombatView({
       return next;
     });
   }
-  // Mobile-only: tactics drawer open/closed.
-  const [tacticsOpen, setTacticsOpen] = useState(false);
+  // Discard-pick mode: set of hand indices the player has selected to discard.
+  const [discardPickSelected, setDiscardPickSelected] = useState<Set<number>>(new Set());
 
   // Which enemy the player has targeted for this round. All newly bound slots
   // and existing live slots point to this enemy.
@@ -261,15 +278,11 @@ export default function CombatView({
   const [outcomeAnnounce, setOutcomeAnnounce] = useState<null | 'cleared' | 'defeated'>(null);
 
   // ── Battle intro overlay state ──
-  // Phase sequence: 'text' → read intro text  → 'drop' → enemies drop in
-  // → 'done' → overlay dismissed, opening deal begins.
-  type IntroPhase = 'text' | 'drop' | 'done';
+  // Phase sequence: 'text' → player taps → 'done' (overlay gone, deal + drop begin).
+  type IntroPhase = 'text' | 'done';
   const [introPhase, setIntroPhase] = useState<IntroPhase>('text');
   // Which enemies have landed (indices into runner.state.enemies).
   const [droppedEnemies, setDroppedEnemies] = useState<Set<number>>(new Set());
-  // Smash VFX positions: index → { x, y } in viewport px, fired once on land.
-  const [smashVfx, setSmashVfx] = useState<Array<{ id: number; x: number; y: number }>>([]);
-  const smashVfxIdRef = useRef(0);
   // Whether the intro shake class is applied to the playfield.
   const [introShaking, setIntroShaking] = useState(false);
   const introShakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -302,12 +315,147 @@ export default function CombatView({
     };
   }, []);
 
-  function handlePlayTactic(realHandIndex: number): void {
-    if (isDealing || animating) return;
-    if (runner.playTactic(realHandIndex) === 'played') {
-      // Close the drawer after a play so the playfield re-asserts focus.
-      if (isMobile) setTacticsOpen(false);
-      repaint();
+  function tacticEffectLabel(def: NonNullable<ReturnType<typeof getTactic>>): string {
+    const e = def.effect;
+    switch (e.kind) {
+      case 'block':                      return `+${e.amount} BLOCK`;
+      case 'heal':                       return `HEAL ${e.amount} HP`;
+      case 'draw':                       return `DRAW ${e.cards} CARD${e.cards !== 1 ? 'S' : ''}`;
+      case 'gain_stamina':               return `+${e.amount} STAMINA`;
+      case 'damage_buff':                return `+${Math.round(e.pct * 100)}% DAMAGE`;
+      case 'enemy_damage_debuff':        return `−${Math.round(e.pct * 100)}% ENEMY DMG`;
+      case 'apply_status_self':          return `APPLY ${e.id.toUpperCase()} ×${e.stacks}`;
+      case 'apply_status_all_enemies':   return `INFLICT ${e.id.toUpperCase()} ALL`;
+      case 'sigil_advance':              return `ADVANCE SIGIL +${e.amount}`;
+      case 'sigil_clear_redraw':         return 'CLEAR SIGILS · REDRAW';
+      case 'extra_sigil_temp':           return `+1 SIGIL (${e.turns} TURNS)`;
+      case 'duplicate_top_discard_action': return 'ECHO TOP DISCARD';
+      case 'instant_resolve_one_sigil':  return 'INSTANT RESOLVE';
+      case 'reveal_intents_all':         return 'REVEAL ALL INTENTS';
+      case 'tutor_pick_one':             return 'TACTICAL PREP';
+      case 'extra_turn':                 return 'EXTRA TURN!';
+      case 'reflect_next_attack':        return `REFLECT ${Math.round(e.pct * 100)}% DMG`;
+      case 'all_cards_buffed_zero_cost': return 'ZERO-COST HAND';
+      case 'discard_draw':               return `DISCARD ${e.discard} · DRAW ${e.draw}`;
+      default:                           return def.description.toUpperCase();
+    }
+  }
+
+  async function handlePlayTactic(realHandIndex: number): Promise<void> {
+    if (isDealing || animating || tacticPlay !== null) return;
+    if (runner.state.pendingDiscardCount > 0) return;
+
+    const cardId = runner.state.hand[realHandIndex];
+    const def = getTactic(cardId ?? '');
+    if (!def) return;
+
+    // Check affordability before committing to animation.
+    const effectiveCost = Math.max(0, def.cost - runner.state.upgradeBuffs.tacticStaminaDiscount);
+    if (runner.state.staminaThisTurn < effectiveCost) return;
+
+    // Measure source card DOM rect.
+    const cardEl = cardRefs.current.get(realHandIndex);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const cardW = cardEl?.offsetWidth  ?? 82;
+    const cardH = cardEl?.offsetHeight ?? 115;
+    const cardRect = cardEl?.getBoundingClientRect();
+    const from = cardRect
+      ? { x: cardRect.left, y: cardRect.top }
+      : { x: vw / 2 - cardW / 2, y: vh - cardH - 80 };
+    const accentColor = RARITY_COLOR[def.rarity] ?? RARITY_COLOR.common;
+    const announceText = tacticEffectLabel(def);
+
+    // ── Phase 1: fly to screen centre ──────────────────────────────────────
+    setDrawingCards(prev => { const n = new Set(prev); n.add(realHandIndex); return n; });
+    setTacticPlay({ def, phase: 'flying', cardW, cardH, from, announceText, accentColor, hiddenHandIdx: realHandIndex });
+
+    const centreTo = { x: vw / 2 - cardW / 2, y: vh / 2 - cardH / 2 };
+    await new Promise<void>(resolve => {
+      const duration  = 320;
+      const startTime = performance.now();
+      const easeOut   = (t: number) => 1 - Math.pow(1 - t, 3);
+      const tick = (now: number) => {
+        const t     = Math.min(1, (now - startTime) / duration);
+        const e     = easeOut(t);
+        const dx    = from.x + (centreTo.x - from.x) * e;
+        const dy    = from.y + (centreTo.y - from.y) * e;
+        const travel = Math.hypot(centreTo.x - from.x, centreTo.y - from.y);
+        const arcOff = Math.sin(e * Math.PI) * Math.min(100, travel * 0.3);
+        const dirSign = Math.sign(centreTo.x - from.x) || -1;
+        const rot   = (1 - e) * 12 * dirSign;
+        const sc    = e < 0.5 ? 1 + 0.1 * (e / 0.5) : 1.1 + (1 - 1.1) * ((e - 0.5) / 0.5);
+        const el = tacticPlayOverlayRef.current;
+        if (el) {
+          el.style.transform = `translate3d(${dx}px, ${dy - arcOff}px, 0) rotate(${rot}deg) scale(${sc})`;
+          el.style.opacity   = '1';
+        }
+        if (t < 1) {
+          tacticPlayFrameRef.current = requestAnimationFrame(tick);
+        } else {
+          tacticPlayFrameRef.current = null;
+          resolve();
+        }
+      };
+      tacticPlayFrameRef.current = requestAnimationFrame(tick);
+    });
+
+    // ── Phase 2: pulse + shatter ───────────────────────────────────────────
+    setTacticPlay(prev => prev ? { ...prev, phase: 'shattering' } : prev);
+    sfx.tacticShatter();
+    await new Promise<void>(r => setTimeout(r, 520));
+
+    // ── Execute engine effect NOW (card is already "gone" visually) ─────────
+    const handBefore = [...runner.state.hand];
+    runner.playTactic(realHandIndex);
+    const handAfter = runner.state.hand;
+    const drawnIndices: number[] = [];
+    for (let i = 0; i < handAfter.length; i++) {
+      if (handBefore[i] !== handAfter[i]) drawnIndices.push(i);
+    }
+    if (drawnIndices.length > 0) {
+      setDrawingCards(prev => { const n = new Set(prev); for (const idx of drawnIndices) n.add(idx); return n; });
+    }
+    repaint();
+
+    // ── Phase 3: effect announcement ──────────────────────────────────────
+    setTacticPlay(prev => prev ? { ...prev, phase: 'announcing' } : prev);
+    sfx.tacticAnnounce();
+    await new Promise<void>(r => setTimeout(r, 900));
+
+    // Tear down.
+    setTacticPlay(null);
+    setDrawingCards(prev => { const n = new Set(prev); n.delete(realHandIndex); return n; });
+
+    if (drawnIndices.length > 0) {
+      await dealNewCards(drawnIndices);
+    }
+  }
+
+  function handleConfirmDiscard(): void {
+    const needed = runner.state.pendingDiscardCount;
+    if (discardPickSelected.size !== needed) return;
+    const indices = Array.from(discardPickSelected);
+    const handBefore = [...runner.state.hand];
+    if (runner.resolveDiscard(indices)) {
+      setDiscardPickSelected(new Set());
+      // Find cards drawn by pendingDiscardDrawCount (discard_draw tactics).
+      const handAfter = runner.state.hand;
+      const drawnIndices: number[] = [];
+      for (let i = 0; i < handAfter.length; i++) {
+        if (handBefore[i] !== handAfter[i]) drawnIndices.push(i);
+      }
+      if (drawnIndices.length > 0) {
+        setDrawingCards(prev => {
+          const next = new Set(prev);
+          for (const idx of drawnIndices) next.add(idx);
+          return next;
+        });
+        repaint();
+        void dealNewCards(drawnIndices);
+      } else {
+        repaint();
+      }
     }
   }
 
@@ -486,12 +634,9 @@ export default function CombatView({
           i++;
         }
       } else if (ev.kind === 'combo') {
-        triggerCombo(ev.combo);
-        if (ev.combo === 'onslaught') sfx.comboOnslaught();
-        else if (ev.combo === 'triadic') sfx.comboTriadic();
-        else if (ev.combo === 'relentless') sfx.comboRelentless();
-        // Hold on the banner so the player reads + savors the combo name
-        // before the next sequence starts.
+        // ev.combo is always 'element_chain' now
+        triggerCombo({ type: ev.damageType, chainLength: ev.chainLength, slotIndices: ev.slotIndices });
+        sfx.comboOnslaught();
         await wait(1100);
         i++;
       } else if (ev.kind === 'enemy_attack') {
@@ -930,6 +1075,7 @@ export default function CombatView({
 
   function handleEndTurn(force = false): void {
     if (animating || isDealing) return;
+    if (runner.state.pendingDiscardCount > 0) return;
     // If no cards are bound to any slot, confirm before ending the turn.
     if (!force) {
       const hasAnyBound = runner.state.slots.some(s => s.bound);
@@ -943,12 +1089,9 @@ export default function CombatView({
     // We pass the map down so the sequencer can group volleys correctly.
     const preview = runner.previewCombosForEndTurn();
     const comboSlotMap = new Map<number, string>();
-    for (const idx of preview.onslaught) comboSlotMap.set(idx, '#ff5757');
-    for (const idx of preview.relentless) {
-      if (!comboSlotMap.has(idx)) comboSlotMap.set(idx, '#c084fc');
-    }
-    for (const idx of preview.triadic) {
-      if (!comboSlotMap.has(idx)) comboSlotMap.set(idx, '#7ec4ff');
+    for (const chain of preview.chains) {
+      const col = elementTypeColor(chain.type);
+      for (const idx of chain.indices) comboSlotMap.set(idx, col);
     }
 
     // Snapshot the bound cards per slot — so SigilSlot can keep showing
@@ -1139,12 +1282,37 @@ export default function CombatView({
 
   function handleCardClick(realHandIndex: number, cardEl?: HTMLDivElement | null): void {
     if (isDealing || animating) return;
+    if (runner.state.pendingDiscardCount > 0) {
+      // In discard-picking mode — handled by the overlay, ignore normal clicks.
+      return;
+    }
+
+    const cardId = runner.state.hand[realHandIndex] ?? '';
+    // Tactic cards: first click shows info + confirm popup; second click plays.
+    const tacticDef = getTactic(cardId);
+    if (tacticDef) {
+      setSelectedHandIdx(prev => {
+        if (prev !== realHandIndex) {
+          // First click — show card detail popup with PLAY button.
+          const rect = cardEl?.getBoundingClientRect() ?? null;
+          if (rect && cardInfoEnabled) {
+            setHandCardPopup({ card: tacticDef, rect });
+          }
+          return realHandIndex;
+        }
+        // Second click on same tactic — play it directly.
+        setHandCardPopup(null);
+        setTimeout(() => handlePlayTactic(realHandIndex), 0);
+        return null;
+      });
+      return;
+    }
+
     setSelectedHandIdx(prev => {
       if (prev !== realHandIndex) {
         // First click — select the card and show detail popup.
         const rect = cardEl?.getBoundingClientRect() ?? null;
-        const cardId = runner.state.hand[realHandIndex] ?? '';
-        const cardDef = getAction(cardId) ?? getTactic(cardId);
+        const cardDef = getAction(cardId);
         if (cardDef && rect && cardInfoEnabled) {
           setHandCardPopup({ card: cardDef, rect });
         }
@@ -1207,22 +1375,34 @@ export default function CombatView({
           typeCounts.set(def.damageType, (typeCounts.get(def.damageType) ?? 0) + 1);
         }
       }
-      const distinctTypes = typeCounts.size;
-      const tMult = triadicStrikeMultiplier(distinctTypes);
-      const tBonus = triadicStrikeBonus(distinctTypes);
-      const triadicActive = distinctTypes >= 3;
-      const allOneType = distinctTypes === 1;
-      const streakType = state.relentlessType;
-      const firstType = typeCounts.keys().next().value as string | undefined;
-      const carriedRelentless = allOneType && (streakType === null || streakType === firstType);
-      const rMult = carriedRelentless ? relentlessMultiplier(state.relentlessStreak) : 1;
+      // Score using element chain multipliers for this slot arrangement.
+      // pairs is ordered by slot index; build a slot-type map for chain calc.
+      const maxSlot = Math.max(...pairs.map(p => p.slotIdx), state.slots.length - 1);
+      const slotTypeArr: Array<DamageType | null> = Array(maxSlot + 1).fill(null);
+      // Include already-bound slots that will resolve this turn.
+      for (let si = 0; si < state.slots.length; si++) {
+        const sb = state.slots[si]?.bound;
+        if (sb && sb.charge <= 1) slotTypeArr[si] = sb.damageType as DamageType;
+      }
+      for (const { handIdx, slotIdx } of pairs) {
+        const cardId = state.hand[handIdx] ?? '';
+        const d = getAction(cardId);
+        if (d && d.charge <= 0) slotTypeArr[slotIdx] = d.damageType as DamageType;
+      }
+      const chains = computeElementChains(slotTypeArr);
+      const chainMultMap = new Map<number, number>();
+      for (const ch of chains) {
+        const m = elementChainMultiplier(ch.indices.length);
+        for (const idx of ch.indices) chainMultMap.set(idx, m);
+      }
       let total = 0;
-      for (const c of candidateDefs) {
-        if (c.charge > 0) { total += c.damage * 0.15; continue; }
-        const sameCount = typeCounts.get(c.damageType) ?? 1;
-        const onMult = onslaughtMultiplier(sameCount);
-        const base = c.damage * c.hits;
-        total += Math.round(base * onMult * rMult * tMult) + (triadicActive ? tBonus : 0);
+      for (const { handIdx, slotIdx } of pairs) {
+        const cardId = state.hand[handIdx] ?? '';
+        const d = getAction(cardId);
+        if (!d) continue;
+        if (d.charge > 0) { total += d.damage * 0.15; continue; }
+        const chainMult = chainMultMap.get(slotIdx) ?? 1;
+        total += Math.round(d.damage * (d.hits ?? 1) * chainMult);
       }
       return total;
     }
@@ -1289,63 +1469,50 @@ export default function CombatView({
     }
   }
 
-  const actionsInHand = runner.state.hand
-    .map((id, i) => ({ id, def: getAction(id), realIndex: i }))
-    .filter((x): x is { id: string; def: NonNullable<ReturnType<typeof getAction>>; realIndex: number } => !!x.def);
+  // Unified hand — all cards (actions + tactics) in the order they sit in hand[].
+  type HandEntry =
+    | { kind: 'action'; def: NonNullable<ReturnType<typeof getAction>>; realIndex: number }
+    | { kind: 'tactic'; def: NonNullable<ReturnType<typeof getTactic>>; realIndex: number };
+  const allCardsInHand: HandEntry[] = runner.state.hand.map((id, i) => {
+    const act = getAction(id);
+    if (act) return { kind: 'action' as const, def: act, realIndex: i };
+    const tac = getTactic(id);
+    if (tac) return { kind: 'tactic' as const, def: tac, realIndex: i };
+    return null;
+  }).filter((x): x is HandEntry => x !== null);
 
-  const tacticsInHand = runner.state.hand
-    .map((id, i) => ({ def: getTactic(id), realIndex: i }))
-    .filter((t): t is { def: NonNullable<ReturnType<typeof getTactic>>; realIndex: number } => !!t.def);
+  const pendingDiscard = runner.state.pendingDiscardCount > 0;
 
-  // Combo preview — which slots will participate in which combos when
-  // END TURN fires? Computed each render so the highlight updates live as
-  // the player binds/unbinds cards. Skipped during animation so the
-  // highlights don't flicker mid-resolve.
+  // Combo preview — element chains for the current slot arrangement.
   const comboPreview = animating
-    ? { onslaught: [], triadic: [], relentless: [] }
+    ? { chains: [] as Array<{ type: DamageType; indices: number[]; multiplier: number }> }
     : runner.previewCombosForEndTurn();
-  const onslaughtSet = new Set(comboPreview.onslaught);
-  const triadicSet = new Set(comboPreview.triadic);
-  const relentlessSet = new Set(comboPreview.relentless);
 
-  // Per-slot damage preview — shows approximate effective damage above each
-  // slot. Uses the same multiplier functions as the battle engine so the
-  // numbers match what actually resolves on END TURN.
-  type SlotDmgInfo = { base: number; effective: number; willResolve: boolean; combo: 'onslaught' | 'triadic' | 'relentless' | null } | null;
+  // slot index → chain multiplier (1.0 if not in any chain)
+  const chainMultiMap = new Map<number, number>();
+  // slot index → element type for color (undefined if no chain)
+  const chainTypeMap = new Map<number, DamageType>();
+  for (const chain of comboPreview.chains) {
+    for (const idx of chain.indices) {
+      chainMultiMap.set(idx, chain.multiplier);
+      chainTypeMap.set(idx, chain.type);
+    }
+  }
+
+  // Per-slot damage preview — element chain multiplier applied.
+  type SlotDmgInfo = { base: number; effective: number; willResolve: boolean; chainMult: number } | null;
   const slotDamagePreview: SlotDmgInfo[] = (() => {
     if (animating) return runner.state.slots.map(() => null);
     const slots = runner.state.slots;
-    // Resolving slots: charge <= 1 (will tick to 0 on end turn).
-    const resolvingIdxs = slots
-      .map((s, i) => ({ s, i }))
-      .filter(({ s }) => s.bound && s.bound.charge <= 1);
-    const counts = new Map<string, number>();
-    for (const { s } of resolvingIdxs) counts.set(s.bound!.damageType, (counts.get(s.bound!.damageType) ?? 0) + 1);
-    const distinctCount = counts.size;
-    const allOneType = distinctCount === 1;
-    const carriedRelentless = allOneType && (
-      runner.state.relentlessType === null ||
-      runner.state.relentlessType === (resolvingIdxs[0]?.s.bound?.damageType ?? null)
-    );
-    const triadicActive = distinctCount >= 3;
-    const tMult = triadicStrikeMultiplier(distinctCount);
-    const tBonus = triadicStrikeBonus(distinctCount);
-    const rMult = carriedRelentless ? relentlessMultiplier(runner.state.relentlessStreak) : 1;
-
     return slots.map((slot, idx) => {
       if (!slot.bound) return null;
       const hits = slot.bound.hits ?? 1;
       const base = slot.bound.damage * hits;
       const willResolve = slot.bound.charge <= 1;
-      if (!willResolve) return { base, effective: base, willResolve: false, combo: null };
-      const sameCount = counts.get(slot.bound.damageType) ?? 1;
-      const onMult = onslaughtMultiplier(sameCount);
-      const effective = Math.round(base * onMult * rMult * tMult) + (triadicActive ? tBonus : 0);
-      const combo = onslaughtSet.has(idx) ? 'onslaught'
-                  : relentlessSet.has(idx) ? 'relentless'
-                  : triadicSet.has(idx)    ? 'triadic'
-                  : null;
-      return { base, effective, willResolve: true, combo } as SlotDmgInfo & object;
+      if (!willResolve) return { base, effective: base, willResolve: false, chainMult: 1 };
+      const chainMult = chainMultiMap.get(idx) ?? 1;
+      const effective = Math.round(base * chainMult);
+      return { base, effective, willResolve: true, chainMult };
     });
   })();
   // Per-slot combo "winding up" state during resolve animation. Set true
@@ -1388,6 +1555,28 @@ export default function CombatView({
 
   useEffect(() => {
     return () => { if (dealFrameRef.current) cancelAnimationFrame(dealFrameRef.current); };
+  }, []);
+
+  // ── Tactic play animation ─────────────────────────────────────────────────
+  // Three-phase overlay: 1) card flies to screen centre, 2) pulse + shatter
+  // particles, 3) effect announcement banner. The engine effect executes
+  // AFTER the announce so the player reads it before seeing the outcome.
+  type TacticPlayPhase = 'flying' | 'shattering' | 'announcing';
+  const [tacticPlay, setTacticPlay] = useState<null | {
+    def: NonNullable<ReturnType<typeof getTactic>>;
+    phase: TacticPlayPhase;
+    // card position during flight (rAF-driven, same as FlyingCardOverlay)
+    cardW: number; cardH: number;
+    from: { x: number; y: number };
+    announceText: string;
+    accentColor: string;
+    // hidden hand index so the source card disappears during the animation
+    hiddenHandIdx: number;
+  }>(null);
+  const tacticPlayOverlayRef = useRef<HTMLDivElement | null>(null);
+  const tacticPlayFrameRef   = useRef<number | null>(null);
+  useEffect(() => {
+    return () => { if (tacticPlayFrameRef.current) cancelAnimationFrame(tacticPlayFrameRef.current); };
   }, []);
 
   // Animate one card from `from` (deck origin) to `to` (fan slot rect).
@@ -1514,55 +1703,52 @@ export default function CombatView({
     setIsDealing(false);
   }
 
-  // ── Enemy drop-in sequence (called when intro text is dismissed) ──────────
+  // ── Enemy drop-in sequence ────────────────────────────────────────────────
+  // Called when the player taps "TAP TO ENTER". Immediately dismisses the
+  // intro overlay, fires the opening card deal, then stagger-drops each enemy
+  // card into its real position in the battle layout.
   function startEnemyDropIn() {
-    setIntroPhase('drop');
+    // Close the overlay right away so the battle screen is visible.
+    setIntroPhase('done');
+
+    // Kick off the opening deal immediately.
+    if (!openingDealFiredRef.current) {
+      openingDealFiredRef.current = true;
+      const indices: number[] = [];
+      for (let i = 0; i < runner.state.hand.length; i++) indices.push(i);
+      setTimeout(() => { void dealNewCards(indices); }, 150);
+    }
+
+    // Drop each enemy into the battle layout, staggered. One rAF delay so
+    // the battle layout has been painted before we read enemy DOM rects.
     const enemies = runner.state.enemies;
-    // Stagger each enemy dropping in 220ms apart.
-    enemies.forEach((_, i) => {
-      setTimeout(() => {
-        setDroppedEnemies(prev => new Set([...prev, i]));
-        // Play drop SFX.
-        sfx.enemyKill();
-        // After a short delay, spawn smash VFX at the enemy card's position.
+    requestAnimationFrame(() => {
+      enemies.forEach((_, i) => {
         setTimeout(() => {
-          const enemyEl = enemyRefs.current.get(enemies[i]?.id ?? '');
-          if (enemyEl) {
-            const r = enemyEl.getBoundingClientRect();
-            const cx = r.left + r.width / 2;
-            const cy = r.top + r.height * 0.65;
-            const id = ++smashVfxIdRef.current;
-            setSmashVfx(prev => [...prev, { id, x: cx, y: cy }]);
-            setTimeout(() => setSmashVfx(prev => prev.filter(v => v.id !== id)), 700);
-          }
-          // Apply heavy screen shake on first enemy, lighter for others.
-          if (introShakeTimerRef.current) clearTimeout(introShakeTimerRef.current);
-          setIntroShaking(true);
-          introShakeTimerRef.current = setTimeout(() => setIntroShaking(false), 560);
-        }, 80);
-      }, 180 + i * 220);
+          setDroppedEnemies(prev => new Set([...prev, i]));
+          sfx.enemyKill();
+          // Enemy card shakes strongly after drop starts.
+          setTimeout(() => {
+            const enemyEl = enemyRefs.current.get(enemies[i]?.id ?? '');
+            if (enemyEl) {
+              enemyEl.classList.add('sb-enemy-land-shake');
+              setTimeout(() => enemyEl.classList.remove('sb-enemy-land-shake'), 700);
+            }
+            if (introShakeTimerRef.current) clearTimeout(introShakeTimerRef.current);
+            setIntroShaking(true);
+            introShakeTimerRef.current = setTimeout(() => setIntroShaking(false), 560);
+          }, 80);
+        }, i * 220);
+      });
     });
-    // After all enemies have dropped, wait then end intro.
-    const totalDelay = 180 + enemies.length * 220 + 600;
-    setTimeout(() => {
-      setIntroPhase('done');
-      // Kick off the opening deal.
-      if (!openingDealFiredRef.current) {
-        openingDealFiredRef.current = true;
-        const indices: number[] = [];
-        for (let i = 0; i < runner.state.hand.length; i++) indices.push(i);
-        setTimeout(() => { void dealNewCards(indices); }, 150);
-      }
-    }, totalDelay);
   }
 
-  // Opening deal — fires once, after intro completes.
+  // Opening deal — fires once via startEnemyDropIn. This effect handles the
+  // hot-reload edge case where introPhase is already 'done' on mount.
   const openingDealFiredRef = useRef(false);
   useEffect(() => {
     if (introFiredRef.current) return;
     introFiredRef.current = true;
-    // The intro is handled by startEnemyDropIn → which fires the deal.
-    // If intro is already 'done' (e.g., hot-reload), go straight to deal.
     if (introPhase === 'done' && !openingDealFiredRef.current) {
       openingDealFiredRef.current = true;
       const indices: number[] = [];
@@ -1585,14 +1771,30 @@ export default function CombatView({
   // "card consumed" feedback. Null = not in animation.
   const [resolvedGhostSlots, setResolvedGhostSlots] = useState<Set<number>>(new Set());
 
-  // Highest-priority combo for a slot, used for color picking. Order chosen
-  // so the most "felt" combo wins when slots overlap (Onslaught is the
-  // damage-mover; Relentless rewards commitment; Triadic is a side-bonus).
+  // Element-type color palette — used for chain VFX, borders, connectors.
+  function elementTypeColor(type: DamageType | string): string {
+    switch (type) {
+      case 'fire':     return '#ff6b35';
+      case 'ice':      return '#7ec4ff';
+      case 'thunder':  return '#facc15';
+      case 'nature':   return '#4ade80';
+      case 'holy':     return '#fde68a';
+      case 'dark':     return '#a78bfa';
+      case 'physical': return '#e2e8f0';
+      // legacy
+      case 'pyre':     return '#f97316';
+      case 'frost':    return '#93c5fd';
+      case 'arcane':   return '#c084fc';
+      case 'pierce':   return '#fde68a';
+      case 'steel':    return '#cbd5e1';
+      default:         return '#cbd5e1';
+    }
+  }
+
+  // Combo color for a slot: element chain color if in a chain, else null.
   function comboColorFor(slotIdx: number): string | null {
-    if (onslaughtSet.has(slotIdx)) return '#ff5757';   // crimson
-    if (relentlessSet.has(slotIdx)) return '#c084fc';  // arcane purple
-    if (triadicSet.has(slotIdx)) return '#7ec4ff';     // frost cyan
-    return null;
+    const t = chainTypeMap.get(slotIdx);
+    return t ? elementTypeColor(t) : null;
   }
 
   const p = runner.state.player;
@@ -1770,6 +1972,9 @@ export default function CombatView({
     // image id, name, archetype, etc.
     const def = getEnemy(e.defId);
 
+    const hasDropped = droppedEnemies.has(enemyIdx);
+    const isDropping = !hasDropped && introPhase === 'done';
+
     return (
       <div
         key={e.id}
@@ -1786,15 +1991,18 @@ export default function CombatView({
           alignItems: 'center',
           gap: isBossEnemy ? 6 : 4,
           flexShrink: 0,
-          opacity: dead ? 0.4 : 1,
+          // Hidden before the drop fires, then animates in.
+          opacity: isDropping ? 0 : (dead ? 0.4 : 1),
           filter: dead ? 'grayscale(1)' : flashing ? 'brightness(1.4) saturate(1.4)' : 'none',
           transition: 'opacity 200ms ease, filter 160ms ease',
           cursor: dead ? 'default' : (multipleEnemies ? 'pointer' : 'default'),
-          // Staggered breathe: each enemy gets a unique duration (2.4–3.1s) and
-          // a phase offset so they never move in sync.
-          animation: dead ? 'none' : `breathe ${2.4 + enemyIdx * 0.37}s ${enemyIdx * 0.71}s ease-in-out infinite`,
-          // Boss card sits slightly lower so its top aligns with minion tops
-          // despite being taller — gives it a "rising from the earth" feel.
+          animation: dead
+            ? 'none'
+            : hasDropped
+              ? `sb-enemy-drop 0.55s cubic-bezier(0.22,1,0.36,1) both, breathe ${2.4 + enemyIdx * 0.37}s ${enemyIdx * 0.71}s ease-in-out 0.6s infinite`
+              : introPhase === 'text'
+                ? 'none'
+                : 'none',
           alignSelf: isBossEnemy ? 'flex-end' : undefined,
         }}
       >
@@ -1882,20 +2090,7 @@ export default function CombatView({
   }
 
   // Damage-type accent colors for slot card tinting.
-  const dmgTypeColor = (t: string): string => {
-    switch (t) {
-      case 'pyre':   return '#f97316';
-      case 'frost':  return '#7ec4ff';
-      case 'arcane': return '#c084fc';
-      case 'pierce': return '#fde68a';
-      case 'dark':   return '#a78bfa';
-      case 'nature': return '#4ade80';
-      case 'holy':   return '#fde68a';
-      case 'thunder':return '#facc15';
-      case 'steel':
-      default:       return '#cbd5e1';
-    }
-  };
+  const dmgTypeColor = (t: string): string => elementTypeColor(t as DamageType);
 
   // Slot card — redesigned rectangular card replacing the hexagon.
   // Shows: card emoji + name, damage preview, charge pips, damage-type color.
@@ -2116,19 +2311,33 @@ export default function CombatView({
                 gap: 2,
                 flexShrink: 0,
               }}>
-                {/* Damage preview */}
+                {/* Damage preview — glows in element color when chained */}
                 <div style={{
                   fontFamily: 'var(--sb-font-mono)',
                   fontSize: cardH < 80 ? 9 : 11,
                   fontWeight: 800,
-                  color: dmgInfo?.combo ? (comboColor ?? typeColor) : (ready ? 'var(--sb-crimson-light)' : typeColor),
-                  textShadow: dmgInfo?.combo ? `0 0 8px ${comboColor ?? typeColor}` : 'none',
+                  color: comboColor ?? (ready ? 'var(--sb-crimson-light)' : typeColor),
+                  textShadow: comboColor ? `0 0 10px ${comboColor}, 0 0 20px ${comboColor}60` : 'none',
                   letterSpacing: '0.02em',
                   lineHeight: 1,
                   flexShrink: 0,
                 }}>
                   {dmgInfo ? `⚔${dmgInfo.effective}` : (slot.bound ? `⚔${slot.bound.damage}` : '')}
                 </div>
+                {/* Chain bonus badge */}
+                {dmgInfo?.chainMult && dmgInfo.chainMult > 1 && dmgInfo.willResolve && (
+                  <div style={{
+                    fontFamily: 'var(--sb-font-mono)',
+                    fontSize: 7,
+                    fontWeight: 800,
+                    color: comboColor ?? typeColor,
+                    textShadow: `0 0 6px ${comboColor ?? typeColor}`,
+                    letterSpacing: '0.02em',
+                    flexShrink: 0,
+                  }}>
+                    ×{dmgInfo.chainMult.toFixed(2).replace(/\.?0+$/, '')}
+                  </div>
+                )}
 
                 {/* Charge pips */}
                 <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexShrink: 0 }}>
@@ -2193,27 +2402,20 @@ export default function CombatView({
     );
   };
 
-  // Note: ActionCard is intentionally a plain function (not a React
-  // component) and is INVOKED at the JSX call site rather than rendered
-  // as <ActionCard />. If it were declared as a component inside the
-  // parent's body, every render of CombatView would create a brand-new
-  // function reference, which React reconciles as a different component
-  // type — unmounting + remounting the DOM nodes on every render. That
-  // remount restarts the sb-card-pop-in opacity keyframe and resets the
-  // CSS transition baseline, causing a flash on every hover/mouse move.
-  // Calling it as a plain function inlines its returned JSX directly.
-  function ActionCard({ def, realIndex, i, total, cardW, cardH, fan }: {
-    def: NonNullable<ReturnType<typeof getAction>>;
-    realIndex: number; i: number; total: number;
+  // Unified hand card renderer — action cards behave exactly as before
+  // (drag/select/bind); tactic cards show a green tint and play on click.
+  function HandCard({ entry, i, total, cardW, cardH, fan, isDiscardPicking, selectedForDiscard }: {
+    entry: HandEntry; i: number; total: number;
     cardW: number; cardH: number;
     fan: { spacing: number; arcMul: number; rotMax: number };
+    isDiscardPicking: boolean;
+    selectedForDiscard: boolean;
   }) {
+    const { realIndex } = entry;
     const dragging = draggingHandIdx === realIndex;
     const selected = selectedHandIdx === realIndex;
     const hovered = hoveredHandIdx === realIndex;
     const lifted = hovered || selected;
-    // Hide the source card while it's flying to its slot — the overlay
-    // replaces it visually so the hand looks like the card has left.
     const isFlyingSource = flying?.handIndex === realIndex;
     const drawing = drawingCards.has(realIndex);
 
@@ -2226,36 +2428,68 @@ export default function CombatView({
     const lift = selected ? 28 : (hovered ? 18 : 0);
     const scale = selected ? 1.08 : (hovered ? 1.06 : (dragging ? 0.95 : 1.0));
 
+    const isTactic = entry.kind === 'tactic';
+    const canAffordTactic = isTactic
+      ? runner.state.staminaThisTurn >= (entry.def as NonNullable<ReturnType<typeof getTactic>>).cost
+      : true;
+
     return (
       <div
-        // Key on the root so React reconciles the card across hover state
-        // changes — without it, the function-call invocation produces an
-        // unkeyed list and React can't track identity across renders.
-        key={`${def.id}-${realIndex}`}
+        key={`${entry.def.id}-${realIndex}`}
         ref={(el) => {
           if (el) cardRefs.current.set(realIndex, el);
           else cardRefs.current.delete(realIndex);
         }}
-        draggable
-        onClick={(ev) => handleCardClick(realIndex, ev.currentTarget as HTMLDivElement)}
+        draggable={!isTactic && !isDiscardPicking}
+        onClick={(ev) => {
+          if (isDiscardPicking) {
+            setDiscardPickSelected(prev => {
+              const next = new Set(prev);
+              if (next.has(realIndex)) next.delete(realIndex);
+              else next.add(realIndex);
+              return next;
+            });
+          } else {
+            handleCardClick(realIndex, ev.currentTarget as HTMLDivElement);
+          }
+        }}
+        onPointerDown={(ev) => {
+          // Long press (550ms) always shows detail popup regardless of cardInfoEnabled.
+          const el = ev.currentTarget;
+          startLongPress(() => {
+            cancelLongPress();
+            const rect = el.getBoundingClientRect();
+            const cardId = runner.state.hand[realIndex] ?? '';
+            const def = getAction(cardId) ?? getTactic(cardId);
+            if (def) {
+              setHandCardPopup({ card: def, rect });
+              setSelectedHandIdx(realIndex);
+            }
+          });
+        }}
+        onPointerUp={cancelLongPress}
+        onPointerLeave={cancelLongPress}
+        onPointerCancel={cancelLongPress}
         onMouseEnter={() => setHoveredHandIdx(realIndex)}
         onMouseLeave={() => setHoveredHandIdx(prev => (prev === realIndex ? null : prev))}
-        onDragStart={(ev) => {
+        onDragStart={!isTactic ? (ev) => {
           ev.dataTransfer.setData('text/plain', String(realIndex));
           ev.dataTransfer.effectAllowed = 'move';
           setDraggingHandIdx(realIndex);
           setSelectedHandIdx(null);
           setHandCardPopup(null);
-        }}
-        onDragEnd={() => { setDraggingHandIdx(null); setHoverSlotIdx(null); }}
-        title={`${def.name} — tap a slot to bind`}
+        } : undefined}
+        onDragEnd={!isTactic ? () => { setDraggingHandIdx(null); setHoverSlotIdx(null); } : undefined}
+        title={isTactic
+          ? `${entry.def.name} — click to play`
+          : `${entry.def.name} — tap a slot to bind`}
         style={{
           position: 'absolute',
           left: '50%', bottom: 18,
           marginLeft: -cardW / 2,
           width: cardW, height: cardH,
-          cursor: 'grab',
-          opacity: isFlyingSource ? 0 : drawing ? 0 : (dragging ? 0.4 : 1),
+          cursor: isDiscardPicking ? 'pointer' : (isTactic ? (canAffordTactic ? 'pointer' : 'not-allowed') : 'grab'),
+          opacity: isFlyingSource ? 0 : drawing ? 0 : (dragging ? 0.4 : (isTactic && !canAffordTactic ? 0.55 : 1)),
           visibility: isFlyingSource ? 'hidden' : 'visible',
           transformOrigin: 'center center',
           transform: drawing
@@ -2263,84 +2497,33 @@ export default function CombatView({
             : `translateX(${baseX}px) translateY(${arcY - lift}px) rotate(${rot}deg) scale(${scale})`,
           transition: drawing
             ? `transform 0ms, opacity 0ms`
-            : `transform 480ms cubic-bezier(0.34, 1.45, 0.64, 1), ` +
-              `opacity 320ms ease-out`,
+            : `transform 480ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 320ms ease-out`,
           willChange: 'transform',
           userSelect: 'none',
           pointerEvents: 'auto',
           zIndex: selected ? 200 : (hovered ? 150 : 10 + i),
+          outline: selectedForDiscard ? '3px solid #ef4444' : undefined,
+          borderRadius: selectedForDiscard ? 8 : undefined,
+          filter: selectedForDiscard ? 'brightness(1.3)' : undefined,
         }}
       >
-        <ActionCardDisplay
-          card={def}
-          customWidth={cardW}
-          selected={selected || hovered}
-        />
-      </div>
-    );
-  };
-
-  function TacticButton({ def, realIndex }: {
-    def: NonNullable<ReturnType<typeof getTactic>>; realIndex: number;
-  }) {
-    const canAfford = runner.state.staminaThisTurn >= def.cost;
-    return (
-      <div
-        key={`${def.id}-${realIndex}`}
-        className="flex items-center gap-3 p-2"
-        style={{
-          background: 'rgba(15,10,7,0.55)',
-          border: '1px solid rgba(255,235,180,0.12)',
-          borderRadius: 6,
-          width: '100%',
-          opacity: canAfford ? 1 : 0.55,
-        }}
-      >
-        <div style={{ flexShrink: 0 }}>
-          <TacticCardDisplay
-            card={def}
-            customWidth={70}
-            disabled={!canAfford}
-            onClick={canAfford ? () => handlePlayTactic(realIndex) : undefined}
-          />
-        </div>
-        <div style={{ flex: 1, minWidth: 0, color: '#e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 4 }}>
-            <div className="sb-display" style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-              {def.name}
-            </div>
-            {cardInfoEnabled && (
-              <button
-                onClick={(ev) => {
-                  ev.stopPropagation();
-                  const rect = ev.currentTarget.getBoundingClientRect();
-                  setHandCardPopup({ card: def, rect });
-                }}
-                style={{
-                  flexShrink: 0,
-                  width: 20, height: 20,
-                  borderRadius: '50%',
-                  background: 'rgba(148,163,184,0.15)',
-                  border: '1px solid rgba(148,163,184,0.3)',
-                  color: '#94a3b8',
-                  fontSize: 11, fontWeight: 800,
-                  cursor: 'pointer', lineHeight: 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-                aria-label={`Info: ${def.name}`}
-              >ℹ</button>
-            )}
-          </div>
-          <div className="sb-mono" style={{ fontSize: 10, opacity: 0.85, lineHeight: 1.3, marginTop: 2 }}>
-            {def.description}
-          </div>
-          <div style={{ fontSize: 10, marginTop: 4, color: canAfford ? '#86efac' : '#94a3b8', fontWeight: 700, letterSpacing: '0.05em' }}>
-            ◆ {def.cost} STAMINA {!canAfford && '· INSUFFICIENT'}
-          </div>
+        <div className={isDiscardPicking && !selectedForDiscard ? 'sb-hand-discard-shake' : ''} style={{ width: '100%', height: '100%' }}>
+          {isTactic
+            ? <TacticCardDisplay
+                card={entry.def as NonNullable<ReturnType<typeof getTactic>>}
+                customWidth={cardW}
+                disabled={!canAffordTactic && !isDiscardPicking}
+              />
+            : <ActionCardDisplay
+                card={entry.def as NonNullable<ReturnType<typeof getAction>>}
+                customWidth={cardW}
+                selected={selected || hovered}
+              />
+          }
         </div>
       </div>
     );
-  };
+  }
 
   // === Background + flash overlay (shared) ===
   const Background = (
@@ -2430,26 +2613,43 @@ export default function CombatView({
   // backdrop, tapping the card again, or when the card is bound to a slot.
   const HandCardPopupLayer = handCardPopup && (() => {
     const { card, rect } = handCardPopup;
+    const isTacticPopup = card.type === 'tactic';
+    const tacticHandIdx = isTacticPopup ? selectedHandIdx : null;
+    const canAfford = isTacticPopup
+      ? runner.state.staminaThisTurn >= (card as NonNullable<ReturnType<typeof getTactic>>).cost
+      : true;
+
     const accent = RARITY_COLOR[card.rarity] ?? RARITY_COLOR.common;
     const popW = Math.min(300, window.innerWidth - 24);
-    const popH = 340; // approximate max height
+    const popH = isTacticPopup ? 380 : 340;
     const margin = 12;
 
     // Position above the card, centred on it, clamped to viewport.
     let left = rect.left + rect.width / 2 - popW / 2;
     left = Math.max(margin, Math.min(window.innerWidth - popW - margin, left));
-    // Try above the card first, fall back to below if not enough room.
     const spaceAbove = rect.top - margin;
     const top = spaceAbove >= popH
       ? rect.top - popH - 10
       : rect.bottom + 10;
 
+    function dismiss() {
+      setHandCardPopup(null);
+      setSelectedHandIdx(null);
+    }
+
+    function playTacticFromPopup() {
+      if (tacticHandIdx === null) return;
+      setHandCardPopup(null);
+      setSelectedHandIdx(null);
+      handlePlayTactic(tacticHandIdx);
+    }
+
     return (
       <>
-        {/* Dimming backdrop — tap to dismiss without deselecting the card */}
+        {/* Dimming backdrop */}
         <div
           aria-hidden
-          onClick={() => setHandCardPopup(null)}
+          onClick={dismiss}
           style={{ position: 'fixed', inset: 0, zIndex: 502, background: 'rgba(0,0,0,0.45)' }}
         />
         <div
@@ -2473,28 +2673,72 @@ export default function CombatView({
           <div style={{ padding: 14 }}>
             <BattleCardDetail card={card} />
           </div>
-          {/* "Tap outside to dismiss" hint + close button */}
-          <div style={{
-            padding: '6px 14px 10px',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span style={{ fontSize: '0.5rem', color: '#475569', fontStyle: 'italic' }}>
-              Tap card again to place · tap outside to close
-            </span>
-            <button
-              onClick={() => setHandCardPopup(null)}
-              style={{
-                padding: '4px 10px', borderRadius: 6,
-                background: 'rgba(196,146,42,0.12)',
-                border: '1px solid rgba(196,146,42,0.3)',
-                color: 'var(--sb-gold-light)', cursor: 'pointer',
-                fontSize: '0.65rem', fontWeight: 800,
-              }}
-            >✕</button>
-          </div>
+
+          {isTacticPopup ? (
+            /* Tactic popup footer — PLAY button + cancel */
+            <div style={{
+              padding: '8px 14px 12px',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              gap: 8,
+              alignItems: 'center',
+            }}>
+              <button
+                onClick={playTacticFromPopup}
+                disabled={!canAfford}
+                style={{
+                  flex: 1,
+                  padding: '8px 0',
+                  borderRadius: 7,
+                  background: canAfford
+                    ? `linear-gradient(180deg, ${accent} 0%, color-mix(in srgb, ${accent} 70%, #000) 100%)`
+                    : 'rgba(60,40,20,0.5)',
+                  border: `1.5px solid ${canAfford ? accent : 'rgba(255,235,180,0.12)'}`,
+                  color: canAfford ? '#fff' : '#64748b',
+                  fontFamily: 'var(--sb-font-display)',
+                  fontSize: 13, fontWeight: 800, letterSpacing: '0.14em',
+                  cursor: canAfford ? 'pointer' : 'not-allowed',
+                  textShadow: canAfford ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
+                  boxShadow: canAfford ? `0 0 12px ${accent}50` : 'none',
+                }}
+              >
+                {canAfford ? '▶ PLAY' : '✕ NOT ENOUGH STAMINA'}
+              </button>
+              <button
+                onClick={dismiss}
+                style={{
+                  padding: '8px 12px', borderRadius: 7,
+                  background: 'rgba(196,146,42,0.1)',
+                  border: '1px solid rgba(196,146,42,0.25)',
+                  color: 'var(--sb-gold-light)', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 700,
+                }}
+              >✕</button>
+            </div>
+          ) : (
+            /* Action card popup footer */
+            <div style={{
+              padding: '6px 14px 10px',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span style={{ fontSize: '0.5rem', color: '#475569', fontStyle: 'italic' }}>
+                Tap card again to place · tap outside to close
+              </span>
+              <button
+                onClick={dismiss}
+                style={{
+                  padding: '4px 10px', borderRadius: 6,
+                  background: 'rgba(196,146,42,0.12)',
+                  border: '1px solid rgba(196,146,42,0.3)',
+                  color: 'var(--sb-gold-light)', cursor: 'pointer',
+                  fontSize: '0.65rem', fontWeight: 800,
+                }}
+              >✕</button>
+            </div>
+          )}
         </div>
       </>
     );
@@ -2641,134 +2885,30 @@ export default function CombatView({
         {introEntry.encounter}
       </div>
 
-      {/* Tap to continue — only shown in text phase */}
-      {introPhase === 'text' && (
-        <button
-          onClick={() => {
-            try { sfx.cardDraw?.(); } catch (_) { /* optional */ }
-            startEnemyDropIn();
-          }}
-          style={{
-            fontFamily: "'Fredoka One', cursive",
-            fontSize: '0.82rem',
-            letterSpacing: '0.25em',
-            color: biomePal.accent,
-            background: 'transparent',
-            border: `1.5px solid ${biomePal.accent}`,
-            borderRadius: 8,
-            padding: '10px 28px',
-            cursor: 'pointer',
-            animation: 'sb-intro-dismiss 2s 1.5s ease infinite',
-            boxShadow: `0 0 16px ${biomePal.glow}`,
-          }}
-        >
-          TAP TO ENTER ▶
-        </button>
-      )}
-
-      {/* Drop phase: show "enemies approaching" message */}
-      {introPhase === 'drop' && (
-        <div style={{
+      {/* Tap to continue */}
+      <button
+        onClick={() => {
+          try { sfx.cardDraw?.(); } catch (_) { /* optional */ }
+          startEnemyDropIn();
+        }}
+        style={{
           fontFamily: "'Fredoka One', cursive",
-          fontSize: '0.78rem',
-          letterSpacing: '0.3em',
+          fontSize: '0.82rem',
+          letterSpacing: '0.25em',
           color: biomePal.accent,
-          opacity: 0.7,
-          animation: 'sb-intro-text-in 0.3s ease both',
-        }}>
-          ENEMIES INCOMING…
-        </div>
-      )}
-
-      {/* Enemy cards in drop phase — positioned in a row */}
-      {introPhase === 'drop' && (
-        <div style={{
-          position: 'absolute',
-          bottom: '8%',
-          left: 0, right: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 12,
-          padding: '0 16px',
-        }}>
-          {runner.state.enemies.map((enemy, i) => {
-            const dropped = droppedEnemies.has(i);
-            return (
-              <div
-                key={enemy.id}
-                ref={el => { if (el) enemyRefs.current.set(enemy.id, el); }}
-                style={{
-                  animation: dropped ? `sb-enemy-drop 0.55s cubic-bezier(0.22,1,0.36,1) both` : 'none',
-                  opacity: dropped ? 1 : 0,
-                  transformOrigin: 'bottom center',
-                }}
-              >
-                <EnemyCardDisplay enemy={getEnemy(enemy.id) ?? { ...enemy, name: enemy.defId, biome: stage.biome, sprite: '👹', baseHp: enemy.maxHp, atk: 0, def: 0, speed: 1, damageType: 'physical', archetype: 'brute', difficulty: 'medium' } as Parameters<typeof EnemyCardDisplay>[0]['enemy']} size="md" />
-              </div>
-            );
-          })}
-        </div>
-      )}
+          background: 'transparent',
+          border: `1.5px solid ${biomePal.accent}`,
+          borderRadius: 8,
+          padding: '10px 28px',
+          cursor: 'pointer',
+          animation: 'sb-intro-dismiss 2s 1.5s ease infinite',
+          boxShadow: `0 0 16px ${biomePal.glow}`,
+        }}
+      >
+        TAP TO ENTER ▶
+      </button>
     </div>
   );
-
-  // Smash VFX layer — comic-book impact bursts when enemies land.
-  const SmashVfxLayer = smashVfx.length > 0 && smashVfx.map(vfx => (
-    <div key={vfx.id} aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 601, pointerEvents: 'none' }}>
-      {/* Star burst */}
-      <div style={{
-        position: 'absolute',
-        left: vfx.x, top: vfx.y,
-        width: 120, height: 120,
-        animation: 'sb-intro-star 0.6s ease-out both',
-        fontSize: 80,
-        lineHeight: 1,
-        textAlign: 'center',
-        verticalAlign: 'middle',
-        pointerEvents: 'none',
-        transform: 'translate(-50%, -50%)',
-      }}>
-        💥
-      </div>
-      {/* Shockwave ring 1 */}
-      <div style={{
-        position: 'absolute',
-        left: vfx.x, top: vfx.y,
-        width: 80, height: 80,
-        borderRadius: '50%',
-        border: '4px solid rgba(255,200,80,0.8)',
-        animation: 'sb-intro-ring 0.5s ease-out both',
-        pointerEvents: 'none',
-      }} />
-      {/* Shockwave ring 2 — delayed */}
-      <div style={{
-        position: 'absolute',
-        left: vfx.x, top: vfx.y,
-        width: 60, height: 60,
-        borderRadius: '50%',
-        border: '3px solid rgba(255,120,40,0.65)',
-        animation: 'sb-intro-ring 0.5s 0.08s ease-out both',
-        pointerEvents: 'none',
-      }} />
-      {/* SMASH text */}
-      <div style={{
-        position: 'absolute',
-        left: vfx.x - 60, top: vfx.y - 80,
-        width: 120,
-        fontFamily: "'Fredoka One', cursive",
-        fontSize: '1.6rem',
-        fontWeight: 900,
-        color: '#fbbf24',
-        textShadow: '2px 2px 0 #1a0f00, 0 0 12px rgba(251,191,36,0.7)',
-        textAlign: 'center',
-        letterSpacing: '0.05em',
-        animation: 'sb-intro-smash 0.65s ease-out both',
-        pointerEvents: 'none',
-      }}>
-        {stage.isBoss ? 'BOSS!' : 'SMASH!'}
-      </div>
-    </div>
-  ));
 
   // Deal card overlay — same pattern as FlyingCardOverlay but uses
   // dealOverlayRef and shows a card-back → face flip during flight.
@@ -2795,6 +2935,183 @@ export default function CombatView({
       }
     </div>
   );
+
+  // ── Tactic play overlay ──────────────────────────────────────────────────
+  // Three phases rendered on a single fixed-pos layer (zIndex 215).
+  // 'flying'    — card body driven by rAF via tacticPlayOverlayRef.
+  // 'shattering'— card hidden; shard particles + screen flash spread out.
+  // 'announcing'— semi-transparent backdrop + large effect text banner.
+  const TacticPlayOverlay = tacticPlay && (() => {
+    const { def, phase, cardW, cardH, from, announceText, accentColor } = tacticPlay;
+
+    // Shard seeds — deterministic per card id so they're stable across renders.
+    const shardSeeds = Array.from({ length: 14 }, (_, i) => {
+      const angle = (i / 14) * Math.PI * 2 + i * 0.42;
+      const dist  = 38 + (i % 4) * 22;
+      const size  = 6 + (i % 5) * 5;
+      return {
+        sx: `${Math.cos(angle) * dist}px`,
+        sy: `${Math.sin(angle) * dist}px`,
+        sr: `${(i * 37) % 360}deg`,
+        size,
+        delay: `${(i * 0.028).toFixed(3)}s`,
+        color: i % 3 === 0 ? accentColor : i % 3 === 1 ? '#fff' : accentColor + 'aa',
+        shape: i % 4 === 0 ? 'triangle' : i % 4 === 1 ? 'square' : i % 4 === 2 ? 'long' : 'dot',
+      };
+    });
+
+    return (
+      <>
+        {/* Dim backdrop for shattering and announcing phases */}
+        {(phase === 'shattering' || phase === 'announcing') && (
+          <div
+            aria-hidden
+            style={{
+              position: 'fixed', inset: 0,
+              background: phase === 'announcing'
+                ? 'rgba(0,0,0,0.62)'
+                : 'rgba(0,0,0,0.30)',
+              zIndex: 214,
+              transition: 'background 0.2s',
+              pointerEvents: 'none',
+            }}
+          />
+        )}
+
+        {/* Flying card — visible only during 'flying' phase, rAF-driven */}
+        {phase === 'flying' && (
+          <div
+            ref={tacticPlayOverlayRef}
+            aria-hidden
+            style={{
+              position: 'fixed', left: 0, top: 0,
+              width: cardW, height: cardH,
+              transform: `translate3d(${from.x}px, ${from.y}px, 0)`,
+              transformOrigin: 'center center',
+              willChange: 'transform, opacity',
+              pointerEvents: 'none',
+              userSelect: 'none',
+              filter: `drop-shadow(0 0 22px ${accentColor}) drop-shadow(0 10px 24px rgba(0,0,0,0.8))`,
+              zIndex: 215,
+            }}
+          >
+            <TacticCardDisplay card={def} customWidth={cardW} selected />
+          </div>
+        )}
+
+        {/* Shatter phase — card face frozen at centre + shard burst */}
+        {phase === 'shattering' && (() => {
+          const cx = window.innerWidth  / 2;
+          const cy = window.innerHeight / 2;
+          return (
+            <div
+              aria-hidden
+              style={{
+                position: 'fixed', left: 0, top: 0,
+                width: '100%', height: '100%',
+                pointerEvents: 'none',
+                zIndex: 215,
+              }}
+            >
+              {/* Screen flash ring */}
+              <div style={{
+                position: 'absolute',
+                left: cx - 80, top: cy - 80,
+                width: 160, height: 160,
+                borderRadius: '50%',
+                background: `radial-gradient(circle, ${accentColor}88 0%, transparent 70%)`,
+                animation: 'sb-impact-ring 0.45s ease-out both',
+                pointerEvents: 'none',
+              }} />
+
+              {/* Card ghost — pulses then shatters */}
+              <div style={{
+                position: 'absolute',
+                left: cx - cardW / 2, top: cy - cardH / 2,
+                width: cardW, height: cardH,
+                animation: 'sb-tactic-pulse 0.28s ease-in both',
+                color: accentColor,
+                pointerEvents: 'none',
+              }}>
+                <TacticCardDisplay card={def} customWidth={cardW} />
+              </div>
+
+              {/* Shards */}
+              {shardSeeds.map((s, i) => (
+                <div
+                  key={i}
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    left: cx, top: cy,
+                    width: s.shape === 'long' ? s.size * 0.4 : s.shape === 'dot' ? s.size * 0.6 : s.size,
+                    height: s.shape === 'long' ? s.size * 2.5 : s.size,
+                    borderRadius: s.shape === 'dot' ? '50%' : s.shape === 'triangle' ? '2px' : '1px',
+                    background: s.color,
+                    boxShadow: `0 0 6px ${s.color}`,
+                    pointerEvents: 'none',
+                    // CSS custom properties for the keyframe
+                    ['--sx' as string]: s.sx,
+                    ['--sy' as string]: s.sy,
+                    ['--sr' as string]: s.sr,
+                    animation: `sb-tactic-shard 0.50s cubic-bezier(0.2, 0.8, 0.4, 1) ${s.delay} both`,
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* Announce phase — effect text banner */}
+        {phase === 'announcing' && (() => {
+          const isGood = !['enemy_damage_debuff', 'apply_status_all_enemies'].includes(def.effect.kind);
+          return (
+            <div
+              aria-live="polite"
+              style={{
+                position: 'fixed',
+                left: '50%', top: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 216,
+                pointerEvents: 'none',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                animation: 'sb-tactic-announce-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both',
+              }}
+            >
+              {/* Card name strip */}
+              <div style={{
+                fontFamily: 'var(--sb-font-display)',
+                fontSize: 'clamp(11px, 2.5vw, 15px)',
+                letterSpacing: '0.18em',
+                color: accentColor,
+                opacity: 0.9,
+                textShadow: `0 0 12px ${accentColor}`,
+                textTransform: 'uppercase',
+              }}>
+                {def.emoji} {def.name}
+              </div>
+
+              {/* Effect text — large and dramatic */}
+              <div style={{
+                fontFamily: 'var(--sb-font-display)',
+                fontSize: 'clamp(22px, 7vw, 42px)',
+                fontWeight: 900,
+                letterSpacing: '0.08em',
+                color: isGood ? accentColor : '#fca5a5',
+                textShadow: `0 2px 0 rgba(0,0,0,0.8), 0 0 28px ${isGood ? accentColor : '#ef4444'}`,
+                textTransform: 'uppercase',
+                textAlign: 'center',
+                padding: '0 16px',
+                lineHeight: 1.15,
+              }}>
+                {announceText}
+              </div>
+            </div>
+          );
+        })()}
+      </>
+    );
+  })();
 
   // ── Battle outcome announcement ──────────────────────────────────────────
   // Shown for ~3.2 s after battle ends, before the result screen appears.
@@ -3591,8 +3908,8 @@ export default function CombatView({
     </>
   );
 
-  // SVG connector lines drawn between adjacent slots that share the same combo.
-  // Rendered as an absolutely-positioned overlay behind the slot cards.
+  // SVG connector lines between adjacent slots that share an element chain.
+  // Thick glowing elemental lines with animated flow particles.
   function AdjacentComboConnectors({ slots, slotCardW, slotCardH, slotGap }: {
     slots: typeof runner.state.slots; slotCardW: number; slotCardH: number; slotGap: number;
   }) {
@@ -3600,28 +3917,47 @@ export default function CombatView({
     const connectors: JSX.Element[] = [];
     for (let i = 0; i < slots.length - 1; i++) {
       const j = i + 1;
-      const leftHasCombo  = slots[i].bound && comboColorFor(i) !== null;
-      const rightHasCombo = slots[j].bound && comboColorFor(j) !== null;
-      const sameCombo = leftHasCombo && rightHasCombo && comboColorFor(i) === comboColorFor(j);
-      if (!sameCombo) continue;
-      const color = comboColorFor(i)!;
+      const ci = comboColorFor(i);
+      const cj = comboColorFor(j);
+      if (!ci || !cj || ci !== cj) continue;
+      const color = ci;
       const x1 = i * (slotCardW + slotGap) + slotCardW;
       const x2 = j * (slotCardW + slotGap);
       const y  = slotCardH / 2;
+      const gradId = `ecg-${i}-${j}`;
       connectors.push(
-        <line key={`${i}-${j}`}
-          x1={x1} y1={y} x2={x2} y2={y}
-          stroke={color} strokeWidth={2} strokeDasharray="4 3"
-          className="sb-connector-path"
-          style={{ ['--slot-combo-color' as string]: color } as React.CSSProperties}
-        />
+        <g key={`${i}-${j}`}>
+          <defs>
+            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={color} stopOpacity="0.4" />
+              <stop offset="50%" stopColor={color} stopOpacity="1" />
+              <stop offset="100%" stopColor={color} stopOpacity="0.4" />
+            </linearGradient>
+          </defs>
+          {/* Outer glow */}
+          <line x1={x1} y1={y} x2={x2} y2={y}
+            stroke={color} strokeWidth={10} opacity={0.18}
+            strokeLinecap="round"
+          />
+          {/* Main beam */}
+          <line x1={x1} y1={y} x2={x2} y2={y}
+            stroke={`url(#${gradId})`} strokeWidth={4}
+            strokeLinecap="round"
+          />
+          {/* Animated energy pulse */}
+          <line x1={x1} y1={y} x2={x2} y2={y}
+            stroke={color} strokeWidth={2}
+            strokeDasharray="8 12" strokeLinecap="round"
+            style={{ animation: 'sb-chain-flow 0.9s linear infinite' }}
+          />
+        </g>
       );
     }
     if (connectors.length === 0) return null;
     return (
       <svg
         width={totalW} height={slotCardH}
-        style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', overflow: 'visible', zIndex: 1 }}
+        style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none', overflow: 'visible', zIndex: 2 }}
         aria-hidden
       >
         {connectors}
@@ -3629,119 +3965,119 @@ export default function CombatView({
     );
   }
 
-  // Inline combo preview banner shown below the slot row.
-  // During active preview (before end-turn), shows which slots form a combo
-  // and the expected total damage. During animation it's hidden.
+  // Inline Element Chain preview banner shown below the slot row.
   function ComboPreviewBanner({ compact }: { compact: boolean }) {
     if (animating) return null;
-    // Collect active combos with their slot indices and totals.
-    type ComboBand = { kind: 'onslaught' | 'triadic' | 'relentless'; slots: number[]; total: number; color: string; icon: string; label: string };
-    const bands: ComboBand[] = [];
-    if (comboPreview.onslaught.length > 0) {
-      const total = comboPreview.onslaught.reduce((s, idx) => s + (slotDamagePreview[idx]?.effective ?? 0), 0);
-      bands.push({ kind: 'onslaught', slots: comboPreview.onslaught, total, color: '#ff5757', icon: '⚔', label: 'ONSLAUGHT' });
-    }
-    if (comboPreview.relentless.length > 0) {
-      const total = comboPreview.relentless.reduce((s, idx) => s + (slotDamagePreview[idx]?.effective ?? 0), 0);
-      bands.push({ kind: 'relentless', slots: comboPreview.relentless, total, color: '#c084fc', icon: '◈', label: 'RELENTLESS' });
-    }
-    if (comboPreview.triadic.length > 0) {
-      const total = comboPreview.triadic.reduce((s, idx) => s + (slotDamagePreview[idx]?.effective ?? 0), 0);
-      bands.push({ kind: 'triadic', slots: comboPreview.triadic, total, color: '#7ec4ff', icon: '✦', label: 'TRIADIC' });
-    }
-    if (bands.length === 0) return null;
+    const chains = comboPreview.chains;
+    if (chains.length === 0) return null;
+    const ELEMENT_ICONS: Partial<Record<string, string>> = {
+      fire: '🔥', ice: '❄', thunder: '⚡', nature: '🌿', holy: '✦', dark: '🌑', physical: '⚔',
+      pyre: '🔥', frost: '❄', arcane: '✦', pierce: '⚔', steel: '⚔',
+    };
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-        {bands.map(b => (
-          <div key={b.kind} style={{
-            display: 'flex', alignItems: 'center', gap: compact ? 5 : 8,
-            padding: compact ? '3px 10px' : '4px 14px',
-            background: `${b.color}18`,
-            border: `1px solid ${b.color}`,
-            borderRadius: 4,
-            boxShadow: `0 0 10px ${b.color}40`,
-          }}>
-            <span style={{
-              fontFamily: 'var(--sb-font-display)',
-              fontSize: compact ? 9 : 11,
-              fontWeight: 700,
-              color: b.color,
-              letterSpacing: '0.18em',
-              textShadow: `0 0 8px ${b.color}`,
+        {chains.map((chain, ci) => {
+          const color = elementTypeColor(chain.type);
+          const icon = ELEMENT_ICONS[chain.type] ?? '◆';
+          const total = chain.indices.reduce((s, idx) => s + (slotDamagePreview[idx]?.effective ?? 0), 0);
+          const pctBonus = Math.round((chain.multiplier - 1) * 100);
+          const label = (chain.type.charAt(0).toUpperCase() + chain.type.slice(1)).toUpperCase();
+          return (
+            <div key={ci} style={{
+              display: 'flex', alignItems: 'center', gap: compact ? 5 : 8,
+              padding: compact ? '3px 10px' : '4px 14px',
+              background: `${color}18`,
+              border: `1.5px solid ${color}`,
+              borderRadius: 4,
+              boxShadow: `0 0 12px ${color}50, inset 0 0 8px ${color}10`,
             }}>
-              {b.icon} {b.label}
-            </span>
-            <span style={{
-              fontFamily: 'var(--sb-font-mono)',
-              fontSize: compact ? 8 : 9,
-              color: 'rgba(255,235,180,0.5)',
-              letterSpacing: '0.06em',
-            }}>
-              SLOTS {b.slots.map(s => s + 1).join(' + ')}
-            </span>
-            <span style={{
-              fontFamily: 'var(--sb-font-mono)',
-              fontSize: compact ? 10 : 12,
-              fontWeight: 800,
-              color: b.color,
-              letterSpacing: '0.04em',
-              textShadow: `0 0 6px ${b.color}80`,
-            }}>
-              ⚔{b.total}
-            </span>
-          </div>
-        ))}
+              <span style={{
+                fontFamily: 'var(--sb-font-display)',
+                fontSize: compact ? 9 : 11,
+                fontWeight: 700, color,
+                letterSpacing: '0.16em',
+                textShadow: `0 0 10px ${color}`,
+              }}>
+                {icon} {label} CHAIN ×{chain.indices.length}
+              </span>
+              <span style={{
+                fontFamily: 'var(--sb-font-mono)',
+                fontSize: compact ? 8 : 9,
+                color: 'rgba(255,235,180,0.5)',
+                letterSpacing: '0.06em',
+              }}>
+                SLOTS {chain.indices.map(s => s + 1).join('+')}
+              </span>
+              <span style={{
+                fontFamily: 'var(--sb-font-mono)',
+                fontSize: compact ? 9 : 11,
+                fontWeight: 800, color,
+                letterSpacing: '0.04em',
+                textShadow: `0 0 8px ${color}80`,
+              }}>
+                +{pctBonus}% · ⚔{total}
+              </span>
+            </div>
+          );
+        })}
       </div>
     );
   }
 
-  // Triggered combo flash — fires when END TURN resolves a combo.
-  // Shows which slots participated and the combo name.
-  const comboFlashSlots = comboFlash === 'onslaught' ? comboPreview.onslaught
-                        : comboFlash === 'relentless' ? comboPreview.relentless
-                        : comboFlash === 'triadic'    ? comboPreview.triadic
-                        : [];
-  const comboFlashSlotLabel = comboFlashSlots.length > 0
-    ? ` · SLOTS ${comboFlashSlots.map(s => s + 1).join(' + ')}`
-    : '';
-
-  const ComboFlashLayer = comboFlash && (
-    <div
-      aria-live="polite"
-      className="sb-combo-flash"
-      style={{
-        position: 'absolute', zIndex: 30,
-        left: '50%', top: '50%',
-        transform: 'translate(-50%, -50%)',
-        maxWidth: 'calc(100% - 24px)',
-        textAlign: 'center',
-        padding: isMobile ? '10px 22px' : '14px 36px',
-        background: comboFlash === 'onslaught' ? 'rgba(185,28,28,0.92)'
-                 : comboFlash === 'triadic'    ? 'rgba(79,195,247,0.92)'
-                 :                                'rgba(167,139,250,0.92)',
-        border: '3px solid var(--sb-gold)',
-        color: 'var(--sb-gold-light)',
-        fontFamily: 'var(--sb-font-display)',
-        textShadow: '0 2px 4px rgba(0,0,0,0.85)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(253,230,138,0.5)',
-      }}
-    >
-      <div style={{ fontSize: isMobile ? 18 : 26, fontWeight: 700, letterSpacing: '0.18em' }}>
-        {comboFlash === 'onslaught' && '⚔  ONSLAUGHT  ⚔'}
-        {comboFlash === 'triadic'    && '✦  TRIADIC STRIKE  ✦'}
-        {comboFlash === 'relentless' && '◈  RELENTLESS  ◈'}
-      </div>
-      {comboFlashSlotLabel && (
-        <div style={{
-          fontSize: isMobile ? 9 : 11, fontWeight: 600, letterSpacing: '0.2em',
-          marginTop: 4, opacity: 0.75,
-          fontFamily: 'var(--sb-font-mono)',
-        }}>
-          {comboFlashSlotLabel}
+  // Element Chain combo flash — fires when a chain resolves during END TURN.
+  const ComboFlashLayer = comboFlash && (() => {
+    const color = elementTypeColor(comboFlash.type);
+    const ELEMENT_ICONS: Partial<Record<string, string>> = {
+      fire: '🔥', ice: '❄', thunder: '⚡', nature: '🌿', holy: '✦', dark: '🌑', physical: '⚔',
+      pyre: '🔥', frost: '❄', arcane: '✦', pierce: '⚔', steel: '⚔',
+    };
+    const icon = ELEMENT_ICONS[comboFlash.type] ?? '◆';
+    const label = (comboFlash.type.charAt(0).toUpperCase() + comboFlash.type.slice(1)).toUpperCase();
+    const pct = Math.round((elementChainMultiplier(comboFlash.chainLength) - 1) * 100);
+    const slotLabel = comboFlash.slotIndices.length > 0
+      ? `SLOTS ${comboFlash.slotIndices.map(s => s + 1).join(' + ')}`
+      : '';
+    return (
+      <div
+        aria-live="polite"
+        className="sb-combo-flash"
+        style={{
+          position: 'absolute', zIndex: 30,
+          left: '50%', top: '50%',
+          transform: 'translate(-50%, -50%)',
+          maxWidth: 'calc(100% - 24px)',
+          textAlign: 'center',
+          padding: isMobile ? '10px 22px' : '14px 36px',
+          background: `rgba(10,7,4,0.92)`,
+          border: `3px solid ${color}`,
+          color: color,
+          fontFamily: 'var(--sb-font-display)',
+          textShadow: `0 0 18px ${color}`,
+          boxShadow: `0 8px 32px rgba(0,0,0,0.7), 0 0 40px ${color}40, inset 0 0 0 1px ${color}30`,
+        }}
+      >
+        <div style={{ fontSize: isMobile ? 18 : 26, fontWeight: 700, letterSpacing: '0.18em' }}>
+          {icon}  {label} CHAIN  {icon}
         </div>
-      )}
-    </div>
-  );
+        <div style={{
+          fontSize: isMobile ? 12 : 16, fontWeight: 700, letterSpacing: '0.1em',
+          marginTop: 4, color,
+          textShadow: `0 0 12px ${color}`,
+        }}>
+          ×{comboFlash.chainLength} CARDS · +{pct}% DAMAGE
+        </div>
+        {slotLabel && (
+          <div style={{
+            fontSize: isMobile ? 9 : 11, fontWeight: 600, letterSpacing: '0.2em',
+            marginTop: 4, opacity: 0.65,
+            fontFamily: 'var(--sb-font-mono)',
+          }}>
+            {slotLabel}
+          </div>
+        )}
+      </div>
+    );
+  })();
 
   const containerStyle = {
     background: 'radial-gradient(ellipse at top, rgba(185,28,28,0.12) 0%, transparent 55%), linear-gradient(180deg, #0f0a07 0%, #18120e 50%, #0f0a07 100%)',
@@ -3752,46 +4088,87 @@ export default function CombatView({
   //                       MOBILE LAYOUT
   // ============================================================
   if (isMobile) {
-    // Mobile-friendly hand sizing — adapt to actual card count (+30% from base).
-    const total = actionsInHand.length;
-    const cardW = total >= 6 ? 88 : total >= 5 ? 95 : 107;
-    const cardH = Math.round(cardW * 1.4);
-    const spacing = total >= 6 ? 52 : total >= 5 ? 62 : 73;
+    const screenW = typeof window !== 'undefined' ? window.innerWidth  : 375;
+    const screenH = typeof window !== 'undefined' ? window.innerHeight : 667;
 
-    // Adaptive enemy card sizing — fit all cards on screen with overlap if needed.
-    // Available width: screen width minus padding (16px total)
-    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 360;
+    // ── Hand sizing ─────────────────────────────────────────────────────────
+    // Use allCardsInHand (actions + tactics) for correct count-based sizing.
+    const handTotal = allCardsInHand.length;
+    // Card width stays as large as possible for readability. We allow heavy
+    // overlap — spacing can be much smaller than cardW. Minimum cardW = 88px
+    // so the name + stats remain legible on a 375px phone.
+    const cardW = handTotal >= 7 ? 88 : handTotal >= 5 ? 96 : 108;
+    const cardH = Math.round(cardW * 1.42);
+    // Spacing controls the fan spread (centre-to-centre offset between cards).
+    // Fan total span = (handTotal-1) × spacing, must fit within screen - margin.
+    const maxFanSpan = screenW - 32;
+    const rawSpacing = handTotal >= 8 ? 38 : handTotal >= 6 ? 44 : handTotal >= 5 ? 52 : 62;
+    // Constrain spacing so (handTotal-1)*spacing ≤ maxFanSpan
+    const spacing = handTotal > 1
+      ? Math.min(rawSpacing, Math.floor(maxFanSpan / (handTotal - 1)))
+      : rawSpacing;
+
+    // Hand area height: tallest possible card position + lift + breathing room.
+    // Cards arc up by arcMul × offsetIdx², max arc for outermost card in large hands.
+    const arcMul = 0.8;
+    const maxOffsetIdx = (handTotal - 1) / 2;
+    const maxArcY = maxOffsetIdx * maxOffsetIdx * arcMul;
+    const maxLift = 28; // selected card lift
+    const handAreaHeight = cardH + Math.ceil(maxArcY) + maxLift + 24;
+
+    // ── Enemy row sizing ────────────────────────────────────────────────────
     const paddingX = 16;
-    const availableWidth = screenWidth - paddingX;
-    const enemyCount = runner.state.enemies.length;
+    const availableWidth = screenW - paddingX;
+    const enemies = runner.state.enemies;
+    const enemyCount = enemies.length;
+    // Account for boss cards being wider when computing fit.
+    const hasBoss = enemies.some(e => getEnemy(e.defId)?.archetype === 'boss');
+    // Effective "unit" width including the boss premium so our fit check is accurate.
+    // We solve for baseEnemyW such that total row width ≤ availableWidth.
+    // Start with 1.5× hand card as target.
+    let enemyCardW = Math.round(cardW * 1.5);
+    let enemyCardH = Math.round(enemyCardW * 1.4);
+    let enemyGap = 10;
 
-    // Start with target card width (-30% from previous 2.4× scale → 1.68×)
-    let enemyCardW = Math.round(cardW * 1.68);
-    let enemyCardH = Math.round(cardH * 1.68);
-    let enemyGap = 12;
+    const rowWidth = (count: number, w: number, g: number, boss: boolean) => {
+      // Boss card is 1.35× wide; a regular enemy count is (count - bossCount) regular + bossCount boss.
+      const bossW = Math.round(w * 1.35);
+      const bossCount = boss ? 1 : 0;
+      return (count - bossCount) * w + bossCount * bossW + Math.max(0, count - 1) * g;
+    };
 
-    // Calculate if cards fit without scrolling
-    const totalWidthNeeded = enemyCount * enemyCardW + (enemyCount - 1) * enemyGap;
-
-    if (totalWidthNeeded > availableWidth) {
-      // Cards don't fit — reduce gap, then shrink cards, then allow overlap
-      enemyGap = Math.max(-Math.round(enemyCardW * 0.15), 4); // Gap can go negative for overlap
-
-      const widthWithReducedGap = enemyCount * enemyCardW + (enemyCount - 1) * enemyGap;
-
-      if (widthWithReducedGap > availableWidth) {
-        // Still doesn't fit — shrink cards to fit
-        enemyCardW = Math.max(
-          Math.round((availableWidth - (enemyCount - 1) * enemyGap) / enemyCount),
-          60 // Minimum card width
-        );
+    if (rowWidth(enemyCount, enemyCardW, enemyGap, hasBoss) > availableWidth) {
+      // Reduce gap first.
+      enemyGap = 6;
+      if (rowWidth(enemyCount, enemyCardW, enemyGap, hasBoss) > availableWidth) {
+        // Solve for cardW: availableWidth = (count - bossCount)*w + bossCount*1.35w + (count-1)*gap
+        // = w*(count - bossCount + 1.35*bossCount) + (count-1)*gap
+        const bossCount = hasBoss ? 1 : 0;
+        const widthUnits = (enemyCount - bossCount) + 1.35 * bossCount;
+        const solved = (availableWidth - (enemyCount - 1) * enemyGap) / widthUnits;
+        enemyCardW = Math.max(52, Math.floor(solved));
         enemyCardH = Math.round(enemyCardW * 1.4);
       }
     }
 
-    // Hand area height: cards are `cardH` tall, drawn from bottom:18 inside
-    // the container. Add 24px top breathing room so lifted cards don't clip.
-    const handAreaHeight = cardH + 42;
+    // ── Vertical budget check ───────────────────────────────────────────────
+    // Reserve: topBar≈72 + bottomBar≈90 + slots≈110 + handArea + enemy row.
+    // If the enemy row + hand area would exceed available middle space, shrink
+    // enemy cards further so both sections fit without scrolling.
+    const topBarH   = 72;
+    const bottomBarH = 90;
+    const slotsH    = runner.state.slots.length >= 5 ? 106 : 118;
+    const middleH   = screenH - topBarH - bottomBarH - slotsH;
+    const enemyRowH = enemyCardH + 12; // +padding
+    if (enemyRowH + handAreaHeight > middleH) {
+      // Shrink enemy cards proportionally to reclaim space for hand.
+      const availH = Math.max(middleH - handAreaHeight, 40);
+      const targetH = availH - 12;
+      if (targetH < enemyCardH) {
+        enemyCardH = Math.max(40, targetH);
+        enemyCardW = Math.round(enemyCardH / 1.4);
+      }
+    }
 
     return (
       <div
@@ -3871,12 +4248,12 @@ export default function CombatView({
         {/* ── ENEMY ROW — clipped to row, adaptive card sizing ── */}
         <div
           className="relative z-10 flex-shrink-0 flex justify-center items-end px-2 py-1"
-          style={{ gap: `${Math.max(enemyGap, 4)}px`, overflow: 'hidden' }}
+          style={{ gap: `${enemyGap}px`, overflow: 'hidden', flexWrap: 'nowrap' }}
         >
           {runner.state.enemies.map((e, ei) => {
             const isBossEnemy = getEnemy(e.defId)?.archetype === 'boss';
-            const w = isBossEnemy ? Math.round(enemyCardW * 1.45) : enemyCardW;
-            const h = isBossEnemy ? Math.round(enemyCardH * 1.45) : enemyCardH;
+            const w = isBossEnemy ? Math.round(enemyCardW * 1.35) : enemyCardW;
+            const h = isBossEnemy ? Math.round(enemyCardH * 1.35) : enemyCardH;
             return EnemyCard({ e, cardW: w, cardH: h, isBossEnemy, enemyIdx: ei });
           })}
         </div>
@@ -3899,33 +4276,23 @@ export default function CombatView({
           );
         })()}
 
-        {/* ── TACTICS TOGGLE — above hand, left-aligned ── */}
-        {tacticsInHand.length > 0 && (
-          <div className="relative z-10 flex-shrink-0 px-2 pb-1">
-            <button
-              onClick={() => setTacticsOpen(o => !o)}
-              className="sb-chip"
-              style={{
-                padding: '6px 14px', fontSize: 11, minHeight: 34,
-                background: tacticsOpen ? 'var(--sb-leather)' : undefined,
-                color: tacticsOpen ? 'var(--sb-gold-light)' : undefined,
-              }}
-            >
-              ✦ TACTICS ({tacticsInHand.length})
-            </button>
-          </div>
-        )}
-
         {/* ── HAND FAN ── */}
+        {/* overflow-x hidden prevents fan edges escaping viewport;
+            overflow-y visible lets selected/lifted cards pop up above the row. */}
         <div className="relative flex-shrink-0 flex justify-center items-end" style={{
-          height: handAreaHeight, pointerEvents: 'none', overflow: 'visible',
+          height: handAreaHeight,
+          pointerEvents: 'none',
+          overflowX: 'hidden',
+          overflowY: 'visible',
         }}>
           <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
-            {actionsInHand.map(({ def, realIndex }, i) =>
-              ActionCard({
-                def, realIndex, i, total: actionsInHand.length,
+            {allCardsInHand.map((entry, i) =>
+              HandCard({
+                entry, i, total: handTotal,
                 cardW, cardH,
                 fan: { spacing, arcMul: 0.8, rotMax: 4 },
+                isDiscardPicking: pendingDiscard,
+                selectedForDiscard: discardPickSelected.has(entry.realIndex),
               }))}
           </div>
         </div>
@@ -3939,27 +4306,27 @@ export default function CombatView({
             {/* AUTO BATTLE button */}
             <button
               onClick={() => handleAutoBattle()}
-              disabled={animating || isDealing}
+              disabled={animating || isDealing || pendingDiscard}
               style={{
                 flexShrink: 0,
                 width: 64,
                 height: 52,
-                background: (animating || isDealing)
+                background: (animating || isDealing || pendingDiscard)
                   ? 'linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)'
                   : 'linear-gradient(180deg, #1e3a5f 0%, #0f1e33 100%)',
                 border: '2.5px solid #7ec4ff',
                 borderRadius: 6,
-                color: (animating || isDealing) ? '#4a6a8a' : '#7ec4ff',
+                color: (animating || isDealing || pendingDiscard) ? '#4a6a8a' : '#7ec4ff',
                 fontFamily: 'var(--sb-font-display)',
                 fontSize: 9,
                 fontWeight: 700,
                 letterSpacing: '0.1em',
-                cursor: (animating || isDealing) ? 'wait' : 'pointer',
-                textShadow: (animating || isDealing) ? 'none' : '0 0 8px #7ec4ff80',
-                boxShadow: (animating || isDealing)
+                cursor: (animating || isDealing || pendingDiscard) ? 'not-allowed' : 'pointer',
+                textShadow: (animating || isDealing || pendingDiscard) ? 'none' : '0 0 8px #7ec4ff80',
+                boxShadow: (animating || isDealing || pendingDiscard)
                   ? 'none'
                   : 'inset 0 1px 0 rgba(126,196,255,0.3), 0 0 12px rgba(126,196,255,0.2)',
-                opacity: (animating || isDealing) ? 0.5 : 1,
+                opacity: (animating || isDealing || pendingDiscard) ? 0.5 : 1,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -3974,28 +4341,28 @@ export default function CombatView({
             {/* END TURN button */}
             <button
               onClick={() => handleEndTurn()}
-              disabled={animating || isDealing}
+              disabled={animating || isDealing || pendingDiscard}
               style={{
                 flex: 1,
                 height: 52,
-                background: (animating || isDealing)
+                background: (animating || isDealing || pendingDiscard)
                   ? 'linear-gradient(180deg, #4a3530 0%, #2a1f15 100%)'
                   : 'linear-gradient(180deg, var(--sb-crimson) 0%, var(--sb-crimson-dark) 100%)',
                 border: '2.5px solid var(--sb-gold)',
                 borderRadius: 6,
-                color: (animating || isDealing) ? '#8b6238' : 'var(--sb-gold-light)',
+                color: (animating || isDealing || pendingDiscard) ? '#8b6238' : 'var(--sb-gold-light)',
                 fontFamily: 'var(--sb-font-display)',
                 fontSize: 16, fontWeight: 700, letterSpacing: '0.14em',
-                cursor: (animating || isDealing) ? 'wait' : 'pointer',
+                cursor: (animating || isDealing || pendingDiscard) ? 'not-allowed' : 'pointer',
                 textShadow: '0 1px 2px rgba(0,0,0,0.85)',
-                boxShadow: (animating || isDealing)
+                boxShadow: (animating || isDealing || pendingDiscard)
                   ? 'none'
                   : 'inset 0 1px 0 rgba(253,230,138,0.55), inset 0 -1px 0 rgba(0,0,0,0.45), 0 4px 14px rgba(0,0,0,0.5)',
-                opacity: (animating || isDealing) ? 0.7 : 1,
+                opacity: (animating || isDealing || pendingDiscard) ? 0.7 : 1,
                 flexShrink: 0,
               }}
             >
-              {animating ? '⚔ RESOLVING…' : isDealing ? '✦ DEALING…' : '▶ END TURN'}
+              {animating ? '⚔ RESOLVING…' : isDealing ? '✦ DEALING…' : pendingDiscard ? '✦ DISCARD…' : '▶ END TURN'}
             </button>
           </div>
 
@@ -4003,48 +4370,41 @@ export default function CombatView({
           {PlayerBar({ compact: true })}
         </div>
 
-        {/* ── TACTICS DRAWER — slides up from bottom bar ── */}
-        {tacticsOpen && tacticsInHand.length > 0 && (
-          <>
-            <div
-              onClick={() => setTacticsOpen(false)}
-              className="absolute inset-0 z-30"
-              style={{ background: 'rgba(0,0,0,0.55)' }}
-            />
-            <div className="absolute left-2 right-2 z-40 sb-fade-up" style={{
-              bottom: 'calc(52px + 54px + 12px)', // clears END TURN + player bar + gap
+        {/* ── DISCARD PICKER OVERLAY (mobile) ── */}
+        {pendingDiscard && (
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-end pb-32 px-4 pointer-events-none">
+            <div className="pointer-events-auto" style={{
               background: 'linear-gradient(180deg, #2a1810 0%, #1a0f0a 100%)',
-              border: '2px solid var(--sb-bronze)',
-              borderRadius: 6,
-              padding: 10,
-              maxHeight: '42vh',
-              overflowY: 'auto',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
+              border: '2px solid var(--sb-crimson)',
+              borderRadius: 8, padding: '10px 14px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
+              textAlign: 'center', width: '100%', maxWidth: 320,
             }}>
-              <div className="sb-display flex items-center justify-between mb-2" style={{
-                fontSize: 11, letterSpacing: '0.25em', color: 'var(--sb-gold-light)',
-              }}>
-                <span>✦ TACTICS ({tacticsInHand.length})</span>
-                <button
-                  onClick={() => setTacticsOpen(false)}
-                  style={{
-                    background: 'transparent', border: 'none', color: 'var(--sb-gold)',
-                    fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1,
-                  }}
-                  aria-label="Close tactics"
-                >×</button>
+              <div className="sb-display" style={{ fontSize: 12, color: 'var(--sb-gold-light)', letterSpacing: '0.2em', marginBottom: 6 }}>
+                CHOOSE {runner.state.pendingDiscardCount} CARD{runner.state.pendingDiscardCount > 1 ? 'S' : ''} TO DISCARD
               </div>
-              <div className="flex flex-col gap-1.5">
-                {tacticsInHand.map(({ def, realIndex }) => TacticButton({ def, realIndex }))}
+              <div className="sb-mono" style={{ fontSize: 10, color: '#94a3b8', marginBottom: 8 }}>
+                {discardPickSelected.size} / {runner.state.pendingDiscardCount} selected
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                <button
+                  onClick={handleConfirmDiscard}
+                  disabled={discardPickSelected.size !== runner.state.pendingDiscardCount}
+                  className="sb-btn-primary"
+                  style={{ padding: '6px 18px', fontSize: 11, opacity: discardPickSelected.size !== runner.state.pendingDiscardCount ? 0.45 : 1 }}
+                >
+                  CONFIRM
+                </button>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {ChargeAuraLayer}
         {ComboFlashLayer}
         {FlyingCardOverlay}
         {DealCardOverlay}
+        {TacticPlayOverlay}
         {ProjectileLayer}
         {ImpactRingLayer}
         {FireballExplosionLayer}
@@ -4056,7 +4416,6 @@ export default function CombatView({
         {OutcomeAnnounceLayer}
         {ConfirmDialogLayer}
         {BattleIntroOverlay}
-        {SmashVfxLayer}
       </div>
     );
   }
@@ -4080,6 +4439,10 @@ export default function CombatView({
           65%  { transform: scale(1.016) translateY(-3px) translateX(0.8px); }
           85%  { transform: scale(1.011) translateY(-2px) translateX(-0.3px); }
           100% { transform: scale(1)     translateY(0px)  translateX(0px); }
+        }
+        @keyframes sb-chain-flow {
+          from { stroke-dashoffset: 0; }
+          to   { stroke-dashoffset: -40; }
         }
       `}</style>
       {Background}
@@ -4174,14 +4537,16 @@ export default function CombatView({
       }}>
         <div style={{
           position: 'relative',
-          width: Math.max(actionsInHand.length, 1) * 130,
+          width: Math.max(allCardsInHand.length, 1) * 130,
           height: '100%', pointerEvents: 'none',
         }}>
-          {actionsInHand.map(({ def, realIndex }, i) =>
-            ActionCard({
-              def, realIndex, i, total: actionsInHand.length,
+          {allCardsInHand.map((entry, i) =>
+            HandCard({
+              entry, i, total: allCardsInHand.length,
               cardW: 148, cardH: 207,
               fan: { spacing: 118, arcMul: 1.8, rotMax: 6 },
+              isDiscardPicking: pendingDiscard,
+              selectedForDiscard: discardPickSelected.has(entry.realIndex),
             }))}
         </div>
       </div>
@@ -4195,23 +4560,23 @@ export default function CombatView({
         {/* AUTO BATTLE */}
         <button
           onClick={() => handleAutoBattle()}
-          disabled={animating || isDealing}
+          disabled={animating || isDealing || pendingDiscard}
           style={{
             width: 72, height: 52,
-            background: (animating || isDealing)
+            background: (animating || isDealing || pendingDiscard)
               ? 'linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)'
               : 'linear-gradient(180deg, #1e3a5f 0%, #0f1e33 100%)',
             border: '2.5px solid #7ec4ff',
             borderRadius: 4,
-            color: (animating || isDealing) ? '#4a6a8a' : '#7ec4ff',
+            color: (animating || isDealing || pendingDiscard) ? '#4a6a8a' : '#7ec4ff',
             fontFamily: 'var(--sb-font-display)',
             fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-            cursor: (animating || isDealing) ? 'wait' : 'pointer',
-            textShadow: (animating || isDealing) ? 'none' : '0 0 8px #7ec4ff80',
-            boxShadow: (animating || isDealing)
+            cursor: (animating || isDealing || pendingDiscard) ? 'not-allowed' : 'pointer',
+            textShadow: (animating || isDealing || pendingDiscard) ? 'none' : '0 0 8px #7ec4ff80',
+            boxShadow: (animating || isDealing || pendingDiscard)
               ? 'none'
               : 'inset 0 1px 0 rgba(126,196,255,0.3), 0 0 16px rgba(126,196,255,0.15)',
-            opacity: (animating || isDealing) ? 0.5 : 1,
+            opacity: (animating || isDealing || pendingDiscard) ? 0.5 : 1,
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 3,
           }}
@@ -4223,41 +4588,52 @@ export default function CombatView({
         {/* END TURN */}
         <button
           onClick={() => handleEndTurn()}
-          disabled={animating || isDealing}
+          disabled={animating || isDealing || pendingDiscard}
           style={{
             width: 220, height: 52,
-            background: (animating || isDealing)
+            background: (animating || isDealing || pendingDiscard)
               ? 'linear-gradient(180deg, #4a3530 0%, #2a1f15 100%)'
               : 'linear-gradient(180deg, var(--sb-crimson) 0%, var(--sb-crimson-dark) 100%)',
             border: '2.5px solid var(--sb-gold)',
             borderRadius: 4,
-            color: (animating || isDealing) ? '#8b6238' : 'var(--sb-gold-light)',
+            color: (animating || isDealing || pendingDiscard) ? '#8b6238' : 'var(--sb-gold-light)',
             fontFamily: 'var(--sb-font-display)',
             fontSize: 14, fontWeight: 700, letterSpacing: '0.12em',
-            cursor: (animating || isDealing) ? 'wait' : 'pointer',
+            cursor: (animating || isDealing || pendingDiscard) ? 'not-allowed' : 'pointer',
             textShadow: '0 1px 2px rgba(0,0,0,0.85)',
             boxShadow: 'inset 0 1px 0 rgba(253,230,138,0.55), inset 0 -1px 0 rgba(0,0,0,0.45), 0 6px 18px rgba(0,0,0,0.6)',
-            opacity: (animating || isDealing) ? 0.7 : 1,
+            opacity: (animating || isDealing || pendingDiscard) ? 0.7 : 1,
           }}
         >
-          {animating ? '⚔ RESOLVING…' : isDealing ? '✦ DEALING…' : '▶ END TURN'}
+          {animating ? '⚔ RESOLVING…' : isDealing ? '✦ DEALING…' : pendingDiscard ? '✦ DISCARD…' : '▶ END TURN'}
         </button>
       </div>
 
-      {/* Tactics rail — anchored to the LEFT EDGE of the screen, vertically
-          positioned in the gap between the slot row (upper third) and the
-          hand fan (lower third). The hand fan starts ~390px above the
-          screen bottom; placing the rail at bottom:400 puts it at that
-          natural edge between the two play zones. */}
-      {tacticsInHand.length > 0 && (
-        <div className="absolute z-10 flex flex-col gap-1.5 max-w-[240px] sb-fade-up" style={{
-          left: 0, bottom: 400,
-          paddingLeft: 10,
+      {/* Discard picker overlay (desktop) */}
+      {pendingDiscard && (
+        <div className="absolute z-40 sb-fade-up" style={{
+          left: '50%', bottom: 420,
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(180deg, #2a1810 0%, #1a0f0a 100%)',
+          border: '2px solid var(--sb-crimson)',
+          borderRadius: 8, padding: '12px 20px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
+          textAlign: 'center', minWidth: 280,
         }}>
-          <div className="sb-display" style={{ fontSize: 10, letterSpacing: '0.25em', opacity: 0.75, color: 'var(--sb-gold-light)' }}>
-            ✦ TACTICS ({tacticsInHand.length})
+          <div className="sb-display" style={{ fontSize: 13, color: 'var(--sb-gold-light)', letterSpacing: '0.2em', marginBottom: 6 }}>
+            CHOOSE {runner.state.pendingDiscardCount} CARD{runner.state.pendingDiscardCount > 1 ? 'S' : ''} TO DISCARD
           </div>
-          {tacticsInHand.map(({ def, realIndex }) => TacticButton({ def, realIndex }))}
+          <div className="sb-mono" style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>
+            {discardPickSelected.size} / {runner.state.pendingDiscardCount} selected — tap cards in hand
+          </div>
+          <button
+            onClick={handleConfirmDiscard}
+            disabled={discardPickSelected.size !== runner.state.pendingDiscardCount}
+            className="sb-btn-primary"
+            style={{ padding: '7px 24px', fontSize: 12, opacity: discardPickSelected.size !== runner.state.pendingDiscardCount ? 0.45 : 1 }}
+          >
+            CONFIRM DISCARD
+          </button>
         </div>
       )}
 
@@ -4275,6 +4651,7 @@ export default function CombatView({
       {ComboFlashLayer}
       {FlyingCardOverlay}
       {DealCardOverlay}
+      {TacticPlayOverlay}
       {ProjectileLayer}
       {ImpactRingLayer}
       {FireballExplosionLayer}
@@ -4286,7 +4663,6 @@ export default function CombatView({
       {OutcomeAnnounceLayer}
       {ConfirmDialogLayer}
       {BattleIntroOverlay}
-      {SmashVfxLayer}
     </div>
   );
 }

@@ -22,5 +22,6 @@
   { "id": "talent.lucky_streak",         "name": "Lucky Streak",       "rarity": "epic",      "kind": "passive",   "icon": "🎲", "description": "+15% Crit chance baseline. Crits restore 2 HP.",                 "modifier": { "type": "crit_chance_bonus", "pct": 0.15 } },
 
   { "id": "talent.sigilbound_master",    "name": "Sigilbound Master",  "rarity": "legendary", "kind": "combo_mod", "icon": "⚔",  "description": "All combo damage bonuses doubled.",                              "modifier": { "type": "all_combo_damage_mult", "mult": 2.0 } },
-  { "id": "talent.astral_convergence",   "name": "Astral Convergence", "rarity": "legendary", "kind": "passive",   "icon": "🌌", "description": "Every card you play has 10% chance to fully replicate itself.",  "modifier": { "type": "card_replicate_chance", "pct": 0.10 } }
+  { "id": "talent.astral_convergence",   "name": "Astral Convergence", "rarity": "legendary", "kind": "passive",   "icon": "🌌", "description": "Every card you play has 10% chance to fully replicate itself.",  "modifier": { "type": "card_replicate_chance", "pct": 0.10 } },
+  { "id": "talent.spacious_mind",        "name": "Spacious Mind",      "rarity": "uncommon",  "kind": "passive",   "icon": "🧠", "description": "Increase your hand cap by 2 (max 9 cards).",                     "modifier": { "type": "hand_cap_delta", "value": 2 } }
 ]

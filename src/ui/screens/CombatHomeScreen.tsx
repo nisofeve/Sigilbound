@@ -19,6 +19,8 @@ import {
 import { EnemyCard } from '@ui/components/EnemyCard';
 import { TalentCard } from '@ui/components/TalentCard';
 import { EquipmentCard } from '@ui/components/EquipmentCard';
+import { CardDetailModal } from '@ui/components/CardDetailBody';
+import { perkChargesAvailable, isStarterPerk } from '@storage/index';
 import type { Profile } from '@storage/index';
 
 interface Props {
@@ -64,6 +66,37 @@ function slotEmoji(slot: EquipmentSlot): string {
   }
 }
 
+// Charge count badge overlaid on a talent card.
+// Starter (permanent) perks show "★ ∞"; consumables show "×N".
+function TalentChargeBadge({ profile, talentId }: { profile: Profile; talentId: string }) {
+  const starter = isStarterPerk(talentId);
+  const charges = perkChargesAvailable(profile, talentId);
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
+        background: starter ? '#3a7d44' : charges > 0 ? '#1565c0' : 'rgba(120,80,30,0.7)',
+        color: '#fff',
+        border: '1.5px solid rgba(255,255,255,0.55)',
+        borderRadius: 999,
+        fontSize: '0.55rem',
+        fontWeight: 800,
+        fontFamily: "'Nunito', sans-serif",
+        letterSpacing: '0.08em',
+        padding: '1px 5px',
+        lineHeight: 1.5,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
+        pointerEvents: 'none',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {starter ? '★ ∞' : `×${charges}`}
+    </div>
+  );
+}
+
 function SectionHeader({ title, count }: { title: string; count: string }) {
   return (
     <div className="flex items-center justify-between">
@@ -77,49 +110,36 @@ function SectionHeader({ title, count }: { title: string; count: string }) {
   );
 }
 
-function SlotChip({
-  icon, label, filled, placeholder, accent, onClick,
+// Empty-slot placeholder — same portrait shape as GameCard xs, dashed border.
+function EmptySlotCard({
+  icon, label, onClick,
 }: {
   icon: string;
-  label?: string;
-  filled: boolean;
-  placeholder?: boolean;
-  accent: string;
+  label: string;
   onClick: () => void;
 }) {
+  const CARD_W = 68;
+  const CARD_H = Math.round(CARD_W * 1.42);
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center justify-center"
+      title={`Equip ${label}`}
       style={{
-        flex: 1, minWidth: 0, maxWidth: 64,
-        aspectRatio: '1',
-        padding: 2,
-        background: filled
-          ? 'linear-gradient(180deg, #2c1810 0%, var(--sb-leather-dark) 100%)'
-          : 'rgba(0,0,0,0.25)',
-        border: filled
-          ? `2px solid ${accent}`
-          : '1.5px dashed rgba(255,235,180,0.18)',
-        borderRadius: 6,
-        boxShadow: filled
-          ? `inset 0 1px 0 rgba(255,235,180,0.18), 0 0 8px ${accent}33, var(--sb-shadow-sm)`
-          : 'inset 0 1px 0 rgba(0,0,0,0.4)',
+        width: CARD_W, height: CARD_H, flexShrink: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 4,
+        background: 'rgba(0,0,0,0.35)',
+        border: '1.5px dashed rgba(255,235,180,0.2)',
+        borderRadius: 8,
         cursor: 'pointer',
-        transition: 'all 150ms ease',
+        transition: 'border-color 150ms ease, background 150ms ease',
       }}
-      title={label}
     >
-      <span
-        style={{
-          fontSize: 22,
-          lineHeight: 1,
-          opacity: placeholder ? 0.35 : 1,
-          filter: filled ? 'drop-shadow(0 1px 2px rgba(0,0,0,0.7))' : undefined,
-        }}
-      >
-        {icon}
-      </span>
+      <span style={{ fontSize: 20, opacity: 0.35, lineHeight: 1 }}>{icon}</span>
+      <span style={{
+        fontSize: '0.5rem', fontFamily: "'Nunito', sans-serif", fontWeight: 800,
+        letterSpacing: '0.12em', color: 'rgba(255,235,180,0.25)', textTransform: 'uppercase',
+      }}>{label}</span>
     </button>
   );
 }
@@ -131,6 +151,22 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
   const [hardcore, setHardcore] = useState<boolean>(false);
   const [pickerSlot, setPickerSlot] = useState<EquipmentSlot | null>(null);
   const [talentPickerSlot, setTalentPickerSlot] = useState<number | null>(null);
+  const [detailTarget, setDetailTarget] = useState<
+    | { kind: 'equipment'; eq: EquipmentDef }
+    | { kind: 'talent'; perk: Perk }
+    | null
+  >(null);
+  const detailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function startDetailLongPress(target: { kind: 'equipment'; eq: EquipmentDef } | { kind: 'talent'; perk: Perk }) {
+    detailTimerRef.current = setTimeout(() => {
+      detailTimerRef.current = null;
+      setDetailTarget(target);
+    }, 500);
+  }
+  function cancelDetailLongPress() {
+    if (detailTimerRef.current) { clearTimeout(detailTimerRef.current); detailTimerRef.current = null; }
+  }
 
   const talentSlotCount = Math.min(4, maxPerkSlots(Array.from(ownedUpgradeIds)));
 
@@ -201,42 +237,72 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
         />
       </div>
 
-      {/* ── LOADOUT (talents + equipment) — compact horizontal slot rails ── */}
-      <div className="relative z-10 flex-1 min-h-0 px-3 flex flex-col gap-1.5 justify-center">
+      {/* ── LOADOUT (talents + equipment) — card rails ── */}
+      <div className="relative z-10 flex-1 min-h-0 px-3 flex flex-col gap-2 justify-center">
 
-        {/* Talents row — single line of N small slots */}
+        {/* Talents row */}
         <SectionHeader title="✦ TALENTS" count={`${equippedTalentCount}/${talentSlotCount}`} />
-        <div className="flex gap-1.5 justify-center">
+        <div
+          style={{
+            display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2,
+            scrollbarWidth: 'none',
+          }}
+        >
           {Array.from({ length: talentSlotCount }).map((_, slotIdx) => {
             const talentId = equippedTalents[slotIdx];
             const talent = talentId ? talents.find(t => t.id === talentId) : null;
-            return (
-              <SlotChip
+            return talent ? (
+              <div
                 key={slotIdx}
+                style={{ flexShrink: 0, cursor: 'pointer', position: 'relative' }}
                 onClick={() => setTalentPickerSlot(slotIdx)}
-                icon={talent?.icon ?? '◇'}
-                label={talent?.name}
-                filled={!!talent}
-                accent="var(--sb-gold)"
+                onPointerDown={() => startDetailLongPress({ kind: 'talent', perk: talent })}
+                onPointerUp={cancelDetailLongPress}
+                onPointerLeave={cancelDetailLongPress}
+                onPointerCancel={cancelDetailLongPress}
+              >
+                <TalentCard talent={talent} customWidth={68} />
+                <TalentChargeBadge profile={profile} talentId={talent.id} />
+              </div>
+            ) : (
+              <EmptySlotCard
+                key={slotIdx}
+                icon="◇"
+                label={`SLOT ${slotIdx + 1}`}
+                onClick={() => setTalentPickerSlot(slotIdx)}
               />
             );
           })}
         </div>
 
-        {/* Equipment row — 6 small slots, label = slot icon */}
+        {/* Equipment row */}
         <SectionHeader title="✦ EQUIPMENT" count={`${equippedSlots.length}/6`} />
-        <div className="flex gap-1.5 justify-center">
+        <div
+          style={{
+            display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2,
+            scrollbarWidth: 'none',
+          }}
+        >
           {(EQUIPMENT_SLOTS as EquipmentSlot[]).map(slot => {
             const equipped = equippedGear[slot];
-            return (
-              <SlotChip
+            return equipped ? (
+              <div
                 key={slot}
+                style={{ flexShrink: 0, cursor: 'pointer' }}
                 onClick={() => setPickerSlot(slot)}
-                icon={equipped?.icon ?? slotEmoji(slot)}
-                label={equipped?.name ?? slotLabel(slot).replace(/^[^\s]+\s/, '')}
-                filled={!!equipped}
-                placeholder={!equipped}
-                accent="#cbd5e1"
+                onPointerDown={() => startDetailLongPress({ kind: 'equipment', eq: equipped })}
+                onPointerUp={cancelDetailLongPress}
+                onPointerLeave={cancelDetailLongPress}
+                onPointerCancel={cancelDetailLongPress}
+              >
+                <EquipmentCard equipment={equipped} customWidth={68} />
+              </div>
+            ) : (
+              <EmptySlotCard
+                key={slot}
+                icon={slotEmoji(slot)}
+                label={slotLabel(slot).replace(/^[^\s]+\s/, '')}
+                onClick={() => setPickerSlot(slot)}
               />
             );
           })}
@@ -312,6 +378,8 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
             setPickerSlot(null);
           }}
           onClose={() => setPickerSlot(null)}
+          onLongPress={(eq) => startDetailLongPress({ kind: 'equipment', eq })}
+          onLongPressCancel={cancelDetailLongPress}
         />
       )}
 
@@ -323,6 +391,7 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
           availableTalents={talents.filter(t => (profile.perksInventory[t.id] ?? 0) > 0 || profile.perksOwned.includes(t.id))}
           equippedTalentIds={equippedTalents.filter((id): id is string => id !== null && id !== undefined)}
           maxSlots={talentSlotCount}
+          profile={profile}
           onSelect={(talentId) => {
             setEquippedTalents(prev => {
               const next = [...prev];
@@ -343,6 +412,16 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
             setTalentPickerSlot(null);
           }}
           onClose={() => setTalentPickerSlot(null)}
+          onLongPress={(perk) => startDetailLongPress({ kind: 'talent', perk })}
+          onLongPressCancel={cancelDetailLongPress}
+        />
+      )}
+
+      {/* Card detail modal — long-press on equipment or talent cards */}
+      {detailTarget && (
+        <CardDetailModal
+          target={detailTarget}
+          onClose={() => setDetailTarget(null)}
         />
       )}
     </div>
@@ -593,6 +672,8 @@ function EquipmentPickerModal({
   onSelect,
   onUnequip,
   onClose,
+  onLongPress,
+  onLongPressCancel,
 }: {
   slot: EquipmentSlot;
   currentlyEquipped: EquipmentDef | null;
@@ -600,6 +681,8 @@ function EquipmentPickerModal({
   onSelect: (eq: EquipmentDef) => void;
   onUnequip: () => void;
   onClose: () => void;
+  onLongPress: (eq: EquipmentDef) => void;
+  onLongPressCancel: () => void;
 }) {
   return (
     <div
@@ -642,7 +725,11 @@ function EquipmentPickerModal({
             <button
               key={eq.id}
               onClick={() => onSelect(eq)}
-              style={{ cursor: 'pointer' }}
+              onPointerDown={() => onLongPress(eq)}
+              onPointerUp={onLongPressCancel}
+              onPointerLeave={onLongPressCancel}
+              onPointerCancel={onLongPressCancel}
+              style={{ cursor: 'pointer', touchAction: 'none', userSelect: 'none' }}
             >
               <EquipmentCard equipment={eq} />
             </button>
@@ -661,18 +748,24 @@ function TalentPickerModal({
   availableTalents,
   equippedTalentIds,
   maxSlots: _,
+  profile,
   onSelect,
   onUnequip,
   onClose,
+  onLongPress,
+  onLongPressCancel,
 }: {
   slotNumber: number;
   currentlyEquipped: string | null;
   availableTalents: Perk[];
   equippedTalentIds: string[];
   maxSlots: number;
+  profile: Profile;
   onSelect: (talentId: string) => void;
   onUnequip: () => void;
   onClose: () => void;
+  onLongPress: (perk: Perk) => void;
+  onLongPressCancel: () => void;
 }) {
   return (
     <div
@@ -719,9 +812,16 @@ function TalentPickerModal({
                 key={talent.id}
                 onClick={() => onSelect(talent.id)}
                 disabled={isOtherSlot}
+                onPointerDown={() => onLongPress(talent)}
+                onPointerUp={onLongPressCancel}
+                onPointerLeave={onLongPressCancel}
+                onPointerCancel={onLongPressCancel}
                 style={{
                   cursor: isOtherSlot ? 'not-allowed' : 'pointer',
                   opacity: isOtherSlot ? 0.5 : 1,
+                  touchAction: 'none',
+                  userSelect: 'none',
+                  position: 'relative',
                 }}
                 title={isOtherSlot ? 'Already equipped in another slot' : ''}
               >
@@ -730,6 +830,7 @@ function TalentPickerModal({
                   size="sm"
                   selected={isEquipped}
                 />
+                <TalentChargeBadge profile={profile} talentId={talent.id} />
               </button>
             );
           })}

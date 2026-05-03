@@ -112,6 +112,32 @@ export interface Profile {
   combatShopBoughtIds: string[];          // legacy: used before copies existed
   combatShopBoughtCounts: Record<string, number>; // tracks copies purchased per cardId
   combatShopRerolls: number;
+
+  // === Retention Features (F1–F6) ===
+  // F1: Hardmode Stages
+  hardmodeUnlockedThrough: number;        // highest boss stage beaten on normal (stages 1..N unlock in hard)
+  hardmodeStageStars: Record<number, 1 | 2 | 3>;
+  hardmodeRewardsClaimed: Record<number, 1 | 2 | 3>;
+
+  // F2: Boss-Gated Upgrade Progression
+  bossesDefeated: number;                 // lifetime first-clears of boss stages
+  bossesDefeatedByStage: Record<number, boolean>;
+  cardTierCap: number;                    // starts 3, +1 per new boss, max 10
+  enemyPrestigeLevel: number;             // +3% per boss to enemy stats, cap 20
+
+  // F3: Leaderboard (local-only for now)
+  allTimeHighScore: number;
+  weeklyHighScore: number;
+  weeklyScoreISO: string | null;          // ISO week key "YYYY-WNN"
+
+  // F4: Lore Unlocks
+  loreMilestonesUnlocked: number[];       // stage numbers of unlocked boss milestones
+  cosmeticsUnlocked: string[];            // cosmetic ids the player owns
+  activeCardBack: string | null;          // active card back cosmetic id
+
+  // F6: Battle Pass Season Cycle
+  bpSeasonISO: string | null;             // season start date (YYYY-MM-DD)
+  bpSeasonNumber: number;                 // which season (1, 2, 3...)
 }
 
 export interface CombatDeckSet {

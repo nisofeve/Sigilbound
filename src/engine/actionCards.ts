@@ -68,7 +68,8 @@ export type TacticEffect =
   | { kind: 'tutor_pick_one' }                                        // Tactical Prep
   | { kind: 'extra_turn' }                                            // Time Warp
   | { kind: 'reflect_next_attack'; pct: number }                      // Damage Mirror
-  | { kind: 'all_cards_buffed_zero_cost'; pct: number };              // Astral Pact
+  | { kind: 'all_cards_buffed_zero_cost'; pct: number }               // Astral Pact
+  | { kind: 'discard_draw'; discard: number; draw: number };          // Calculated Risk
 
 export interface TacticCardDef {
   id: string;

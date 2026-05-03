@@ -1,0 +1,308 @@
+[
+  {
+    "tier": 1,
+    "freeRewardType": "coins",
+    "freeRewardValue": 100,
+    "premiumRewardType": "coins",
+    "premiumRewardValue": 250
+  },
+  {
+    "tier": 2,
+    "freeRewardType": "shards",
+    "freeRewardValue": 25,
+    "premiumRewardType": "shards",
+    "premiumRewardValue": 50
+  },
+  {
+    "tier": 3,
+    "freeRewardType": "gems",
+    "freeRewardValue": 10,
+    "premiumRewardType": "gems",
+    "premiumRewardValue": 30
+  },
+  {
+    "tier": 4,
+    "freeRewardType": "coins",
+    "freeRewardValue": 150,
+    "premiumRewardType": "coins",
+    "premiumRewardValue": 350
+  },
+  {
+    "tier": 5,
+    "freeRewardType": "shards",
+    "freeRewardValue": 50,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "act_001",
+    "premiumRewardValue": 3
+  },
+  {
+    "tier": 6,
+    "freeRewardType": "gems",
+    "freeRewardValue": 15,
+    "premiumRewardType": "gems",
+    "premiumRewardValue": 50
+  },
+  {
+    "tier": 7,
+    "freeRewardType": "coins",
+    "freeRewardValue": 200,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "act_002",
+    "premiumRewardValue": 3
+  },
+  {
+    "tier": 8,
+    "freeRewardType": "shards",
+    "freeRewardValue": 75,
+    "premiumRewardType": "shards",
+    "premiumRewardValue": 100
+  },
+  {
+    "tier": 9,
+    "freeRewardType": "gems",
+    "freeRewardValue": 20,
+    "premiumRewardType": "gems",
+    "premiumRewardValue": 75
+  },
+  {
+    "tier": 10,
+    "freeRewardType": "coins",
+    "freeRewardValue": 250,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "tac_001",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 11,
+    "freeRewardType": "shards",
+    "freeRewardValue": 100,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "act_003",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 12,
+    "freeRewardType": "gems",
+    "freeRewardValue": 25,
+    "premiumRewardType": "gems",
+    "premiumRewardValue": 100
+  },
+  {
+    "tier": 13,
+    "freeRewardType": "coins",
+    "freeRewardValue": 300,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "act_004",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 14,
+    "freeRewardType": "shards",
+    "freeRewardValue": 125,
+    "premiumRewardType": "shards",
+    "premiumRewardValue": 150
+  },
+  {
+    "tier": 15,
+    "freeRewardType": "gems",
+    "freeRewardValue": 30,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.battlecry",
+    "premiumRewardValue": 1
+  },
+  {
+    "tier": 16,
+    "freeRewardType": "coins",
+    "freeRewardValue": 350,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "act_005",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 17,
+    "freeRewardType": "shards",
+    "freeRewardValue": 150,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "tac_002",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 18,
+    "freeRewardType": "gems",
+    "freeRewardValue": 35,
+    "premiumRewardType": "gems",
+    "premiumRewardValue": 150
+  },
+  {
+    "tier": 19,
+    "freeRewardType": "coins",
+    "freeRewardValue": 400,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.bloodlust",
+    "premiumRewardValue": 1
+  },
+  {
+    "tier": 20,
+    "freeRewardType": "shards",
+    "freeRewardValue": 175,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "act_006",
+    "premiumRewardValue": 3
+  },
+  {
+    "tier": 21,
+    "freeRewardType": "gems",
+    "freeRewardValue": 40,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.aegis",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 22,
+    "freeRewardType": "coins",
+    "freeRewardValue": 450,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.battlecry",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 23,
+    "freeRewardType": "shards",
+    "freeRewardValue": 200,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "act_007",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 24,
+    "freeRewardType": "gems",
+    "freeRewardValue": 45,
+    "premiumRewardType": "gems",
+    "premiumRewardValue": 200
+  },
+  {
+    "tier": 25,
+    "freeRewardType": "coins",
+    "freeRewardValue": 500,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.bloodlust",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 26,
+    "freeRewardType": "shards",
+    "freeRewardValue": 225,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.lucky_streak",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 27,
+    "freeRewardType": "gems",
+    "freeRewardValue": 50,
+    "premiumRewardType": "combat_card_copies",
+    "premiumRewardCard": "tac_003",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 28,
+    "freeRewardType": "coins",
+    "freeRewardValue": 550,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.aegis",
+    "premiumRewardValue": 2
+  },
+  {
+    "tier": 29,
+    "freeRewardType": "shards",
+    "freeRewardValue": 250,
+    "premiumRewardType": "gems",
+    "premiumRewardValue": 250
+  },
+  {
+    "tier": 30,
+    "freeRewardType": "gems",
+    "freeRewardValue": 60,
+    "premiumRewardType": "cosmetic",
+    "premiumRewardCosmetic": "card_back.royal",
+    "premiumRewardLabel": "Royal Card Back"
+  },
+  {
+    "tier": 31,
+    "freeRewardType": "coins",
+    "freeRewardValue": 600,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.bloodlust",
+    "premiumRewardValue": 3
+  },
+  {
+    "tier": 32,
+    "freeRewardType": "shards",
+    "freeRewardValue": 275,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.lucky_streak",
+    "premiumRewardValue": 3
+  },
+  {
+    "tier": 33,
+    "freeRewardType": "gems",
+    "freeRewardValue": 65,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.aegis",
+    "premiumRewardValue": 3
+  },
+  {
+    "tier": 34,
+    "freeRewardType": "coins",
+    "freeRewardValue": 650,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.battlecry",
+    "premiumRewardValue": 3
+  },
+  {
+    "tier": 35,
+    "freeRewardType": "shards",
+    "freeRewardValue": 300,
+    "premiumRewardType": "cosmetic",
+    "premiumRewardCosmetic": "card_back.arcane",
+    "premiumRewardLabel": "Arcane Card Back"
+  },
+  {
+    "tier": 36,
+    "freeRewardType": "gems",
+    "freeRewardValue": 70,
+    "premiumRewardType": "gems",
+    "premiumRewardValue": 300
+  },
+  {
+    "tier": 37,
+    "freeRewardType": "coins",
+    "freeRewardValue": 700,
+    "premiumRewardType": "talent_charge",
+    "premiumRewardTalent": "talent.lucky_streak",
+    "premiumRewardValue": 3
+  },
+  {
+    "tier": 38,
+    "freeRewardType": "shards",
+    "freeRewardValue": 325,
+    "premiumRewardType": "cosmetic",
+    "premiumRewardCosmetic": "card_back.inferno",
+    "premiumRewardLabel": "Inferno Card Back"
+  },
+  {
+    "tier": 39,
+    "freeRewardType": "gems",
+    "freeRewardValue": 75,
+    "premiumRewardType": "gems",
+    "premiumRewardValue": 500
+  },
+  {
+    "tier": 40,
+    "freeRewardType": "coins",
+    "freeRewardValue": 800,
+    "premiumRewardType": "cosmetic",
+    "premiumRewardCosmetic": "card_back.celestial",
+    "premiumRewardLabel": "Celestial Card Back"
+  }
+]

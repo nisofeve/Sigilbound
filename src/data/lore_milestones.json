@@ -1,0 +1,72 @@
+[
+  {
+    "stage": 10,
+    "title": "The Antlered King Falls",
+    "text": "You have proven your strength against the Verdant realm's ancient guardian. The Antlered King, once feared by all who dared trespass in the deep forest, has fallen before your might. In his dying breath, he whispered secrets of the ages—knowledge of sigils far older than anyone had known.",
+    "rewardCosmetic": "card_back.forest_rune",
+    "rewardCosmeticLabel": "Forest Rune Card Back"
+  },
+  {
+    "stage": 20,
+    "title": "Glacial Dominion Shattered",
+    "text": "The frozen peaks of the Glacial realm tremble no more beneath the footsteps of the Frost Colossus. This ancient entity, sculpted from eternal winter itself, has been cast down by your unwavering resolve. The eternal blizzard begins to recede, and whispers of a warmer age echo across the tundra.",
+    "rewardCosmetic": "card_back.frost_crystal",
+    "rewardCosmeticLabel": "Frost Crystal Card Back"
+  },
+  {
+    "stage": 30,
+    "title": "Volcanic Cataclysm Averted",
+    "text": "The Magma Sovereign, keeper of the Pyrelands' burning core, has been vanquished. Its molten form disperses into the volcanic winds, and the constant tremors that shook the realm for millennia finally cease. The balance of fire and ash has shifted—and you were the catalyst.",
+    "rewardCosmetic": "card_back.lava_flow",
+    "rewardCosmeticLabel": "Lava Flow Card Back"
+  },
+  {
+    "stage": 40,
+    "title": "The Celestial Vigil Broken",
+    "text": "High above the mortal realm, the Stellar Sentinel has maintained its eternal watch for eons. Now, as your power reaches its zenith, even this cosmic guardian falls before you. The stars themselves seem to shift in the sky, as if acknowledging your ascension.",
+    "rewardCosmetic": "card_back.starlight",
+    "rewardCosmeticLabel": "Starlight Card Back"
+  },
+  {
+    "stage": 50,
+    "title": "Shadow's Dominion Eclipsed",
+    "text": "In the deepest darkness of the Shadow realm, the Void Leviathan held dominion over all. This creature, born from the spaces between stars, has fallen to your light. As it dissolves into nothingness, you glimpse the truth—there are forces in this world far greater than any single entity.",
+    "rewardCosmetic": "card_back.void_whisper",
+    "rewardCosmeticLabel": "Void Whisper Card Back"
+  },
+  {
+    "stage": 60,
+    "title": "Sanctum of Light Reclaimed",
+    "text": "The Holy Sanctum, once pure and untainted, had been corrupted by forces seeking dominion. The Divine Guardian, ancient protector of all sacred things, has been restored to power through your victory. Holy light floods the realm once more, and balance is gradually returning.",
+    "rewardCosmetic": "card_back.radiant_aura",
+    "rewardCosmeticLabel": "Radiant Aura Card Back"
+  },
+  {
+    "stage": 70,
+    "title": "Nature's Wrath Tamed",
+    "text": "The Primal Essence, embodiment of nature's unbridled fury, had driven the world toward chaos. Your conquest of this force marks a turning point in history. The wilds begin to heal, and a new harmony blooms between civilization and the natural world.",
+    "rewardCosmetic": "card_back.thornvine",
+    "rewardCosmeticLabel": "Thornvine Card Back"
+  },
+  {
+    "stage": 80,
+    "title": "The Arcane Convergence Resolved",
+    "text": "At the nexus of all magic, the Mystic Archon wove reality itself according to its will. Now, defeated by your hand, the arcane energies stabilize. The barriers between planes solidify, and magic flows in harmony rather than chaos.",
+    "rewardCosmetic": "card_back.spellweaver",
+    "rewardCosmeticLabel": "Spellweaver Card Back"
+  },
+  {
+    "stage": 90,
+    "title": "The Eternal Crown Seized",
+    "text": "The Sovereign of All, immortal ruler of this realm since time immemorial, has finally faced a challenge it could not overcome. As the crown of eternal power passes from its grasp, you realize the true scope of what you have accomplished. You are no longer merely a warrior—you are a legend.",
+    "rewardCosmetic": "card_back.sovereign",
+    "rewardCosmeticLabel": "Sovereign Card Back"
+  },
+  {
+    "stage": 100,
+    "title": "The Apex Ascended",
+    "text": "You stand at the pinnacle of power. Every challenge overcome, every foe vanquished, every realm conquered—all has led to this moment. The world trembles before your might, and even the gods take notice. Your name will echo through the ages as the one who achieved the impossible. The sigils sing in recognition of your ascension.",
+    "rewardCosmetic": "card_back.apex",
+    "rewardCosmeticLabel": "Apex Card Back"
+  }
+]
