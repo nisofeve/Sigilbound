@@ -22,6 +22,13 @@ function makeProfile(over: Partial<Profile> = {}): Profile {
     currentStage: 1,
     stageStars: {},
     stageRewardsClaimed: {},
+    upgradesOwned: [],
+    combatCardInventory: {},
+    combatCardTiers: {},
+    equipmentInventory: {},
+    bossesDefeatedByStage: {},
+    loreMilestonesUnlocked: [],
+    cosmeticsUnlocked: [],
     // Catch-all for everything else — cast through unknown so TS doesn't
     // demand the full schema for tests that only touch a slice.
     ...(over as Partial<Profile>),
@@ -110,8 +117,8 @@ describe('applyCombatClearToProfile', () => {
   });
 
   it('boss clear pays gems', () => {
-    const boss = getStage(5);
-    const before = makeProfile({ gems: 0, currentStage: 5 });
+    const boss = getStage(10);
+    const before = makeProfile({ gems: 0, currentStage: 10 });
     const { profile, outcome } = applyCombatClearToProfile(before, boss, {
       cleared: true, currentHp: 50, maxHp: 50,
     });
