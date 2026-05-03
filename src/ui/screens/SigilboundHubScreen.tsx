@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { Profile } from '@storage/index';
 import { setActiveCombatDeckSet } from '@storage/index';
-import { allActions, allTactics } from '@engine/index';
+import { allActions, allTactics, bpTierFromXp } from '@engine/index';
+import DailyChallengesPanel from '@ui/components/DailyChallengesPanel';
 
 interface Props {
   profile: Profile;
@@ -135,6 +136,18 @@ export default function SigilboundHubScreen({
           </div>
         </div>
 
+        {/* Battle Pass Progress */}
+        {profile.bpXp !== undefined && (
+          <div className="w-full max-w-sm pointer-events-auto">
+            <BpProgressBar profile={profile} />
+          </div>
+        )}
+
+        {/* Daily Challenges */}
+        <div className="w-full max-w-sm pointer-events-auto">
+          <DailyChallengesPanel profile={profile} />
+        </div>
+
         {/* Active deck HUD */}
         <div className="w-full max-w-sm pointer-events-auto">
           <DeckHud profile={profile} onProfileChange={onProfileChange} onDeckPress={onDeck} />
@@ -185,6 +198,41 @@ export default function SigilboundHubScreen({
         style={{ fontSize: '9px', opacity: 0.4, color: 'var(--sb-gold-light)' }}
       >
         v0.6.0 SIGILBOUND
+      </div>
+    </div>
+  );
+}
+
+// ─── Battle Pass Progress ──────────────────────────────────────────────────
+
+function BpProgressBar({ profile }: { profile: Profile }) {
+  const currentXp = profile.bpXp ?? 0;
+  const currentTier = bpTierFromXp(currentXp);
+  const seasonNum = profile.bpSeasonNumber ?? 1;
+
+  return (
+    <div
+      className="rounded-lg p-3"
+      style={{
+        background: 'linear-gradient(135deg, rgba(255,193,7,0.08) 0%, rgba(255,152,0,0.04) 100%)',
+        border: '1.5px solid rgba(255,193,7,0.2)',
+      }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-base">🎖️</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[11px] font-extrabold">Battle Pass S{seasonNum}</div>
+          <div className="text-[10px] opacity-60">Tier {currentTier} / 40</div>
+        </div>
+      </div>
+      <div className="w-full bg-gray-700 rounded-full h-2">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{
+            width: `${(currentTier / 40) * 100}%`,
+            background: 'linear-gradient(90deg, #ffd54f 0%, #ff9800 100%)',
+          }}
+        />
       </div>
     </div>
   );
