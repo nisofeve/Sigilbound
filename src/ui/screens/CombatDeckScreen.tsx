@@ -426,18 +426,23 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-2 sm:gap-2.5 justify-start">
-                    {inventoryItems.map(({ card, available, inDeck }) => (
-                      <InventoryCard
-                        key={card.id}
-                        card={card}
-                        available={available}
-                        inDeck={inDeck}
-                        deckFull={deckCount >= limits.max}
-                        onEquip={() => equip(card.id)}
-                        onPreview={(t) => setPreview(t)}
-                        onClosePreview={() => setPreview(null)}
-                      />
-                    ))}
+                    {inventoryItems.map(({ card, available, inDeck }) => {
+                      const upv = combatCardUpgradePreview(profile, card.id);
+                      const upgradeable = !!upv && !upv.isMax && (profile.combatCardInventory[card.id] ?? 0) >= upv.copies && profile.bankCoins >= upv.gold;
+                      return (
+                        <InventoryCard
+                          key={card.id}
+                          card={card}
+                          available={available}
+                          inDeck={inDeck}
+                          deckFull={deckCount >= limits.max}
+                          upgradeable={upgradeable}
+                          onEquip={() => equip(card.id)}
+                          onPreview={(t) => setPreview(t)}
+                          onClosePreview={() => setPreview(null)}
+                        />
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -460,22 +465,52 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
                   {inventoryItems.map(({ card, owned }) => {
                     const lv = profile.combatCardTiers[card.id] ?? 1;
+                    const upv = combatCardUpgradePreview(profile, card.id);
+                    const upgradeable = !!upv && !upv.isMax && owned >= upv.copies && profile.bankCoins >= upv.gold;
                     return (
                       <div key={card.id} className="relative flex flex-col items-center">
-                        <CombatCard card={card} size="sm" />
-                        <div className="absolute top-1 left-1 bg-black bg-opacity-70 text-white text-[10px] px-1.5 rounded-full border border-gray-600">
-                          x{owned}
-                        </div>
-                        <div
-                          className="absolute top-1 right-1 text-[10px] px-1.5 rounded-full"
-                          style={{
-                            background: 'rgba(0,0,0,0.8)',
-                            border: '1px solid var(--sb-gold)',
-                            color: 'var(--sb-gold-light)',
-                            fontWeight: 800,
-                          }}
-                        >
-                          Lv {lv}
+                        <div className="relative">
+                          <CombatCard card={card} size="sm" />
+                          <div className="absolute top-1 left-1 bg-black bg-opacity-70 text-white text-[10px] px-1.5 rounded-full border border-gray-600">
+                            x{owned}
+                          </div>
+                          <div
+                            className="absolute top-1 right-1 text-[10px] px-1.5 rounded-full"
+                            style={{
+                              background: 'rgba(0,0,0,0.8)',
+                              border: '1px solid var(--sb-gold)',
+                              color: 'var(--sb-gold-light)',
+                              fontWeight: 800,
+                            }}
+                          >
+                            Lv {lv}
+                          </div>
+                          {upgradeable && (
+                            <div
+                              className="absolute bottom-1.5 left-1.5"
+                              style={{ pointerEvents: 'none' }}
+                            >
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2,
+                                background: 'rgba(0,0,0,0.72)',
+                                border: '1px solid #f59e0b',
+                                borderRadius: 4,
+                                padding: '2px 5px',
+                                color: '#fbbf24',
+                                fontFamily: "'Nunito', sans-serif",
+                                fontWeight: 900,
+                                fontSize: '0.5rem',
+                                letterSpacing: '0.07em',
+                                lineHeight: 1,
+                                boxShadow: '0 0 6px #f59e0b60',
+                                animation: 'sb-upgrade-pulse 2s ease-in-out infinite',
+                              }}>
+                                ▲ UPGRADE
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <button
                           className="mt-2 sb-btn sb-btn-gold text-[10px] w-full"
@@ -751,11 +786,12 @@ function DeckSlot({ index, card, cardId, onUnequip, onPreview, onClosePreview }:
 // Inventory card — tap to equip one copy into the deck.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function InventoryCard({ card, available, inDeck, deckFull, onEquip, onPreview, onClosePreview }: {
+function InventoryCard({ card, available, inDeck, deckFull, upgradeable, onEquip, onPreview, onClosePreview }: {
   card: CombatCard;
   available: number;
   inDeck: number;
   deckFull: boolean;
+  upgradeable: boolean;
   onEquip: () => void;
   onPreview: (t: PreviewTarget) => void;
   onClosePreview: () => void;
@@ -798,29 +834,60 @@ function InventoryCard({ card, available, inDeck, deckFull, onEquip, onPreview, 
           {inDeck > 0 && <span style={{ opacity: 0.55, marginLeft: 3 }}>· {inDeck}d</span>}
         </div>
       }
-      fullOverlay={disabled ? (
-        <div
-          className="absolute inset-0 flex items-end justify-center"
-          style={{ pointerEvents: 'none' }}
-        >
-          <div
-            style={{
-              marginBottom: 6,
-              fontFamily: "'Nunito', sans-serif",
-              fontSize: '0.62rem',
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              padding: '3px 8px',
-              borderRadius: 5,
-              background: 'rgba(0,0,0,0.7)',
-              color: deckFull ? '#fbbf24' : '#94a3b8',
-              border: `1px solid ${deckFull ? '#fbbf24' : '#475569'}55`,
-            }}
-          >
-            {deckFull ? 'DECK FULL' : 'ALL EQUIPPED'}
-          </div>
-        </div>
-      ) : null}
+      fullOverlay={
+        <>
+          {upgradeable && (
+            <div
+              className="absolute bottom-1.5 left-1.5"
+              style={{ pointerEvents: 'none' }}
+              aria-label="Can be upgraded"
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                background: 'rgba(0,0,0,0.72)',
+                border: '1px solid #f59e0b',
+                borderRadius: 4,
+                padding: '2px 5px',
+                color: '#fbbf24',
+                fontFamily: "'Nunito', sans-serif",
+                fontWeight: 900,
+                fontSize: '0.5rem',
+                letterSpacing: '0.07em',
+                lineHeight: 1,
+                boxShadow: '0 0 6px #f59e0b60',
+                animation: 'sb-upgrade-pulse 2s ease-in-out infinite',
+              }}>
+                ▲ UPGRADE
+              </div>
+            </div>
+          )}
+          {disabled && (
+            <div
+              className="absolute inset-0 flex items-end justify-center"
+              style={{ pointerEvents: 'none' }}
+            >
+              <div
+                style={{
+                  marginBottom: 6,
+                  fontFamily: "'Nunito', sans-serif",
+                  fontSize: '0.62rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  padding: '3px 8px',
+                  borderRadius: 5,
+                  background: 'rgba(0,0,0,0.7)',
+                  color: deckFull ? '#fbbf24' : '#94a3b8',
+                  border: `1px solid ${deckFull ? '#fbbf24' : '#475569'}55`,
+                }}
+              >
+                {deckFull ? 'DECK FULL' : 'ALL EQUIPPED'}
+              </div>
+            </div>
+          )}
+        </>
+      }
     />
   );
 }

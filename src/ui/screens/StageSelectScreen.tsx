@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { Profile } from '@storage/index';
 import { setActiveCombatDeckSet } from '@storage/index';
 import { getStageDef, allActions, allTactics, MAX_STAGES } from '@engine/index';
+import type { ActionCardDef, TacticCardDef } from '@engine/index';
+import { CardDetailModal } from '../components/CardDetailBody';
 
 interface Props {
   profile: Profile;
@@ -35,12 +37,34 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
   }, [startStage, endStage]);
 
   const [deckExpanded, setDeckExpanded] = useState(false);
+  const [cardDetail, setCardDetail] = useState<ActionCardDef | TacticCardDef | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function startCardLongPress(def: ActionCardDef | TacticCardDef) {
+    longPressTimer.current = setTimeout(() => {
+      longPressTimer.current = null;
+      setCardDetail(def);
+    }, 500);
+  }
+  function cancelCardLongPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
 
   const allCardDefs = useMemo(() => {
     const actions = allActions();
     const tactics = allTactics();
     return new Map([...actions, ...tactics].map(c => [c.id, c]));
   }, []);
+
+  // Name → def lookup for long-press detail (cardNameCounts uses name, not id).
+  const cardDefByName = useMemo(() => {
+    const m = new Map<string, ActionCardDef | TacticCardDef>();
+    for (const [, def] of allCardDefs) m.set(def.name, def as ActionCardDef | TacticCardDef);
+    return m;
+  }, [allCardDefs]);
 
   const activeSetIdx = profile.activeCombatDeckSet ?? 0;
   const deckCards = (profile.combatDeck ?? [])
@@ -179,24 +203,34 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
               </span>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 160, overflowY: 'auto' }}>
-                {cardNameCounts.map((entry, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{
-                      width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                      background: RARITY_COLOR_SS[entry.rarity] ?? '#94a3b8',
-                      boxShadow: `0 0 4px ${RARITY_COLOR_SS[entry.rarity] ?? '#94a3b8'}80`,
-                    }} />
-                    <span className="sb-mono" style={{ fontSize: 9, color: '#e2d5b0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {entry.name}
-                    </span>
-                    <span style={{ fontSize: 8, color: entry.type === 'action' ? '#94a3b8' : '#c084fc', flexShrink: 0 }}>
-                      {entry.type === 'action' ? '⚔' : '✦'}
-                    </span>
-                    <span className="sb-mono" style={{ fontSize: 9, color: '#c4922a', flexShrink: 0, minWidth: 16, textAlign: 'right' }}>
-                      ×{entry.count}
-                    </span>
-                  </div>
-                ))}
+                {cardNameCounts.map((entry, i) => {
+                  const def = cardDefByName.get(entry.name);
+                  return (
+                    <div
+                      key={i}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, touchAction: 'none', userSelect: 'none' }}
+                      onPointerDown={() => def && startCardLongPress(def)}
+                      onPointerUp={cancelCardLongPress}
+                      onPointerLeave={cancelCardLongPress}
+                      onPointerCancel={cancelCardLongPress}
+                    >
+                      <div style={{
+                        width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                        background: RARITY_COLOR_SS[entry.rarity] ?? '#94a3b8',
+                        boxShadow: `0 0 4px ${RARITY_COLOR_SS[entry.rarity] ?? '#94a3b8'}80`,
+                      }} />
+                      <span className="sb-mono" style={{ fontSize: 9, color: '#e2d5b0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {entry.name}
+                      </span>
+                      <span style={{ fontSize: 8, color: entry.type === 'action' ? '#94a3b8' : '#c084fc', flexShrink: 0 }}>
+                        {entry.type === 'action' ? '⚔' : '✦'}
+                      </span>
+                      <span className="sb-mono" style={{ fontSize: 9, color: '#c4922a', flexShrink: 0, minWidth: 16, textAlign: 'right' }}>
+                        ×{entry.count}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -236,6 +270,14 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
           ))}
         </div>
       </div>
+
+      {/* ── Card detail modal (long-press on deck card rows) ── */}
+      {cardDetail && (
+        <CardDetailModal
+          target={{ kind: 'battle', card: cardDetail }}
+          onClose={() => setCardDetail(null)}
+        />
+      )}
 
       {/* ── Pagination ── */}
       <div style={{

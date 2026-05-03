@@ -1,80 +1,123 @@
-// Phase 5 — Battle Pass math + perk pricing.
-// Pure functions; no side effects. Mirrored on the cloud side for atomic reward grants.
+// Battle Pass system — seasonal XP progression with free and premium tracks.
+//
+// Seasons last 30 days. Players earn XP from combat clears and can claim tier
+// rewards. The system tracks progress per season and auto-resets after 30 days.
 
-import bpRewards from '@data/bp_rewards.json';
-import type { RunResult } from './types';
-import type { Rarity } from './types';
+// Quest difficulty tiers map to BP XP rewards.
+export const QUEST_BP_XP: Record<string, number> = {
+  easy: 150,
+  medium: 300,
+  hard: 500,
+};
 
-export type BpRewardType = 'coins' | 'gems' | 'shards' | 'perk';
+// Battle pass tier constants.
+export const TOTAL_BP_TIERS = 40;
+export const XP_PER_TIER = 500;
+export const PREMIUM_PASS_GEM_COST = 800;
+
+export type BpRewardType = 'coins' | 'gems' | 'shards' | 'combat_card_copies' | 'talent_charge' | 'cosmetic' | 'perk';
+
+export interface BpRewardItem {
+  type: BpRewardType;
+  value?: number | string;
+}
 
 export interface BpReward {
-  type: BpRewardType;
-  value: number | string;   // number for coins/gems/shards, perk id for perk
+  tier: number;
+  free?: BpRewardItem;
+  premium?: BpRewardItem;
 }
 
-export interface BpTier {
-  tier: number;             // 1-based
-  free: BpReward | null;    // null if no free reward at this tier
-  premium: BpReward | null; // null if no premium reward at this tier
-}
-
-const ALL_TIERS = bpRewards as BpTier[];
-export const TOTAL_BP_TIERS = 40;
-export const XP_PER_TIER = 1000;
-
-export function allBpTiers(): BpTier[] {
-  return ALL_TIERS.slice();
+// Placeholder: will be loaded from data/bp_rewards_combat.json.
+export function allBpTiers(): BpReward[] {
+  return Array.from({ length: TOTAL_BP_TIERS }, (_, i) => ({
+    tier: i + 1,
+    free: { type: 'coins', value: 100 },
+    premium: { type: 'gems', value: 30 },
+  }));
 }
 
 export function bpTierFromXp(xp: number): number {
-  // Tier index is 1-based and capped at TOTAL_BP_TIERS.
-  return Math.max(1, Math.min(TOTAL_BP_TIERS, Math.floor(xp / XP_PER_TIER) + 1));
+  const tier = Math.floor(xp / XP_PER_TIER) + 1;
+  return Math.min(tier, TOTAL_BP_TIERS);
 }
 
-export function xpToNextTier(xp: number): { current: number; next: number; pct: number } {
-  const tier = bpTierFromXp(xp);
-  const tierFloorXp = (tier - 1) * XP_PER_TIER;
-  const tierCeilXp = tier * XP_PER_TIER;
-  const pct = Math.min(100, Math.round(((xp - tierFloorXp) / XP_PER_TIER) * 100));
-  return { current: xp - tierFloorXp, next: tierCeilXp - tierFloorXp, pct };
+// Legacy shop cost functions — these should be removed when dailyShop is refactored.
+// For now, they are stubs to satisfy the import.
+export function perkCoinCost(_perkId: string): number {
+  return 100;
 }
 
-// Phase 5 XP grant: 100 base + finalCoins/4. So a 200-coin win gives 150 XP,
-// a 1000-coin run gives 350 XP. Tunable from this single source of truth.
-export function xpFromRunResult(result: RunResult): number {
-  return Math.round(100 + result.finalCoins / 4);
+export function perkCost(_perkId: string, _currencyType?: string): number {
+  return 100;
 }
 
-// Per-rarity perk pricing. Used for both gem store + shard crafting (gems are
-// the convenience currency, shards are the slow-grind currency per GDD).
-// Perks are now CONSUMABLE — each purchased perk grants 1 use that's burned
-// when a run starts with it equipped. Lower rarities are cheap and can be
-// paid for with coins (so a player can grind runs and stock up); higher
-// rarities still go through the gem / shard premium pipes.
-const PERK_GEM_COST: Record<Rarity, number> = {
-  common: 25, uncommon: 60, rare: 200, epic: 600, legendary: 2500, mythic: 6000,
-};
-
-const PERK_SHARD_COST: Record<Rarity, number> = {
-  common: 30, uncommon: 75, rare: 200, epic: 400, legendary: 800, mythic: 1500,
-};
-
-// Coin price — only the bottom three rarities are coin-purchasable. Anything
-// epic+ requires a gems / shards purchase. Returns null when coins aren't an
-// option for this rarity.
-const PERK_COIN_COST: Partial<Record<Rarity, number>> = {
-  common: 80,
-  uncommon: 240,
-  rare: 700,
-};
-
-export function perkCost(rarity: Rarity, currency: 'gems' | 'shards'): number {
-  return currency === 'gems' ? PERK_GEM_COST[rarity] : PERK_SHARD_COST[rarity];
+// Combat clear XP formula: base (50 + stage*2), star multiplier, boss bonus, hardmode bonus.
+export function xpFromCombatClear(
+  stage: number,
+  stars: 1 | 2 | 3,
+  isBoss: boolean,
+  isHardmode: boolean = false,
+): number {
+  const base = 50 + stage * 2;
+  const starMult: Record<number, number> = { 1: 1.0, 2: 1.3, 3: 1.6 };
+  const mult = starMult[stars] ?? 1.0;
+  const bossBonus = isBoss ? 200 : 0;
+  const hardmodeBonus = isHardmode ? 1.5 : 1.0;
+  return Math.floor((base + bossBonus) * mult * hardmodeBonus);
 }
 
-export function perkCoinCost(rarity: Rarity): number | null {
-  return PERK_COIN_COST[rarity] ?? null;
+// Check if 30 days have elapsed since season start. If so, reset XP/claims and bump season.
+export function checkBpSeasonRollover(profile: {
+  bpSeasonISO: string | null;
+  bpSeasonNumber: number;
+  bpXp: number;
+  bpClaimedFree: number[];
+  bpClaimedPremium: number[];
+}): {
+  bpSeasonISO: string | null;
+  bpSeasonNumber: number;
+  bpXp: number;
+  bpClaimedFree: number[];
+  bpClaimedPremium: number[];
+} {
+  if (!profile.bpSeasonISO) {
+    // No season started yet; initialize today.
+    const today = new Date().toISOString().slice(0, 10);
+    return {
+      ...profile,
+      bpSeasonISO: today,
+      bpSeasonNumber: 1,
+    };
+  }
+
+  const startDate = new Date(profile.bpSeasonISO);
+  const now = new Date();
+  const elapsedDays = (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+
+  if (elapsedDays >= 30) {
+    // Season rolled over; reset XP and claims, start new season.
+    const nextSeasonStart = new Date(startDate);
+    nextSeasonStart.setDate(nextSeasonStart.getDate() + 30);
+    return {
+      ...profile,
+      bpSeasonISO: nextSeasonStart.toISOString().slice(0, 10),
+      bpSeasonNumber: profile.bpSeasonNumber + 1,
+      bpXp: 0,
+      bpClaimedFree: [],
+      bpClaimedPremium: [],
+    };
+  }
+
+  return profile;
 }
 
-// Phase 5 dev-mode price. Real RevenueCat IAP comes in Phase 6.
-export const PREMIUM_PASS_GEM_COST = 300;
+// Remaining days in the current season (for UI countdown).
+export function daysRemainingInSeason(bpSeasonISO: string | null): number {
+  if (!bpSeasonISO) return 30;
+  const startDate = new Date(bpSeasonISO);
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 30);
+  const remaining = (endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24);
+  return Math.max(0, Math.ceil(remaining));
+}

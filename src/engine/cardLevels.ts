@@ -95,3 +95,9 @@ export function cardUpgradeCostFor(currentLevel: number, rarity: Rarity): CardUp
 export function isCardMaxLevel(level: number): boolean {
   return clamp(level) >= MAX_CARD_LEVEL;
 }
+
+// F2: Card tier cap progresses with bosses defeated. Starts at 3, +1 per boss, capped at 10.
+export function cardTierCapForBossCount(bossesDefeated: number): number {
+  const cap = Math.min(MAX_CARD_LEVEL, 3 + bossesDefeated);
+  return cap;
+}

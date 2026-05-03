@@ -6,7 +6,10 @@
     "icon": "🌾",
     "kind": "seasons",
     "goal": 1,
-    "rewardGems": 10
+    "difficulty": "easy",
+    "rewardCoins": 100,
+    "rewardGems": 10,
+    "rewardShards": 0
   },
   {
     "id": "quest.coin_collector",
@@ -15,7 +18,10 @@
     "icon": "💰",
     "kind": "coins",
     "goal": 200,
-    "rewardGems": 15
+    "difficulty": "medium",
+    "rewardCoins": 50,
+    "rewardGems": 15,
+    "rewardShards": 25
   },
   {
     "id": "quest.triple_combo",
@@ -24,6 +30,160 @@
     "icon": "✨",
     "kind": "triple_combo",
     "goal": 1,
-    "rewardGems": 25
+    "difficulty": "hard",
+    "rewardCoins": 0,
+    "rewardGems": 25,
+    "rewardShards": 75
+  },
+  {
+    "id": "quest.fire_damage",
+    "name": "Pyromaniac",
+    "description": "Deal 500 fire damage in combat.",
+    "icon": "🔥",
+    "kind": "damage_type",
+    "param": "fire",
+    "goal": 500,
+    "difficulty": "medium",
+    "rewardCoins": 75,
+    "rewardGems": 0,
+    "rewardShards": 50
+  },
+  {
+    "id": "quest.ice_damage",
+    "name": "Frostbringer",
+    "description": "Deal 500 ice damage in combat.",
+    "icon": "❄️",
+    "kind": "damage_type",
+    "param": "ice",
+    "goal": 500,
+    "difficulty": "medium",
+    "rewardCoins": 75,
+    "rewardGems": 0,
+    "rewardShards": 50
+  },
+  {
+    "id": "quest.physical_damage",
+    "name": "Blade Master",
+    "description": "Deal 750 physical damage in combat.",
+    "icon": "⚔️",
+    "kind": "damage_type",
+    "param": "physical",
+    "goal": 750,
+    "difficulty": "hard",
+    "rewardCoins": 100,
+    "rewardGems": 10,
+    "rewardShards": 100
+  },
+  {
+    "id": "quest.combo_master",
+    "name": "Combo Chain",
+    "description": "Trigger 5 combos in a single combat.",
+    "icon": "⚡",
+    "kind": "combo_count",
+    "goal": 5,
+    "difficulty": "hard",
+    "rewardCoins": 50,
+    "rewardGems": 20,
+    "rewardShards": 75
+  },
+  {
+    "id": "quest.boss_slayer",
+    "name": "Boss Slayer",
+    "description": "Defeat 1 boss in combat.",
+    "icon": "👑",
+    "kind": "defeat_boss",
+    "goal": 1,
+    "difficulty": "easy",
+    "rewardCoins": 200,
+    "rewardGems": 0,
+    "rewardShards": 100
+  },
+  {
+    "id": "quest.survival_expert",
+    "name": "Survival Expert",
+    "description": "Complete a combat without taking damage on 3 consecutive turns.",
+    "icon": "🛡️",
+    "kind": "no_damage_turns",
+    "goal": 3,
+    "difficulty": "medium",
+    "rewardCoins": 100,
+    "rewardGems": 15,
+    "rewardShards": 50
+  },
+  {
+    "id": "quest.thunder_master",
+    "name": "Thunderstrike",
+    "description": "Deal 500 thunder damage in combat.",
+    "icon": "⚡",
+    "kind": "damage_type",
+    "param": "thunder",
+    "goal": 500,
+    "difficulty": "medium",
+    "rewardCoins": 75,
+    "rewardGems": 0,
+    "rewardShards": 50
+  },
+  {
+    "id": "quest.holy_guardian",
+    "name": "Holy Guardian",
+    "description": "Deal 500 holy damage in combat.",
+    "icon": "✨",
+    "kind": "damage_type",
+    "param": "holy",
+    "goal": 500,
+    "difficulty": "medium",
+    "rewardCoins": 75,
+    "rewardGems": 0,
+    "rewardShards": 50
+  },
+  {
+    "id": "quest.dark_warrior",
+    "name": "Shadow Master",
+    "description": "Deal 500 dark damage in combat.",
+    "icon": "🌑",
+    "kind": "damage_type",
+    "param": "dark",
+    "goal": 500,
+    "difficulty": "medium",
+    "rewardCoins": 75,
+    "rewardGems": 0,
+    "rewardShards": 50
+  },
+  {
+    "id": "quest.nature_caller",
+    "name": "Nature's Wrath",
+    "description": "Deal 500 nature damage in combat.",
+    "icon": "🌿",
+    "kind": "damage_type",
+    "param": "nature",
+    "goal": 500,
+    "difficulty": "medium",
+    "rewardCoins": 75,
+    "rewardGems": 0,
+    "rewardShards": 50
+  },
+  {
+    "id": "quest.double_combo",
+    "name": "Double Strike",
+    "description": "Trigger 3 combos in a single combat.",
+    "icon": "💥",
+    "kind": "combo_count",
+    "goal": 3,
+    "difficulty": "easy",
+    "rewardCoins": 100,
+    "rewardGems": 10,
+    "rewardShards": 50
+  },
+  {
+    "id": "quest.extended_survival",
+    "name": "Unbreakable",
+    "description": "Complete a combat without taking damage on 5 consecutive turns.",
+    "icon": "💪",
+    "kind": "no_damage_turns",
+    "goal": 5,
+    "difficulty": "hard",
+    "rewardCoins": 150,
+    "rewardGems": 20,
+    "rewardShards": 100
   }
 ]

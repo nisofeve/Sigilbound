@@ -40,6 +40,8 @@ import {
   sumUpgradeEffect,
   rollStageDrops,
   type ItemDrop,
+  cardTierCapForBossCount,
+  getLoreMilestone,
 } from '@engine/index';
 import { addPerkCharges, isStarterPerk } from './perks';
 import {
@@ -111,6 +113,22 @@ const empty: Profile = {
   combatShopBoughtIds: [],
   combatShopBoughtCounts: {},
   combatShopRerolls: 0,
+  // F1–F6: Retention features
+  hardmodeUnlockedThrough: 0,
+  hardmodeStageStars: {},
+  hardmodeRewardsClaimed: {},
+  bossesDefeated: 0,
+  bossesDefeatedByStage: {},
+  cardTierCap: 3,
+  enemyPrestigeLevel: 0,
+  allTimeHighScore: 0,
+  weeklyHighScore: 0,
+  weeklyScoreISO: null,
+  loreMilestonesUnlocked: [],
+  cosmeticsUnlocked: [],
+  activeCardBack: null,
+  bpSeasonISO: null,
+  bpSeasonNumber: 0,
 };
 
 // Default starter combat collection. Loaded on first run + topped up by
@@ -177,6 +195,22 @@ function withDefaults(partial: Partial<Profile>): Profile {
     combatShopBoughtIds: partial.combatShopBoughtIds ?? empty.combatShopBoughtIds,
     combatShopBoughtCounts: partial.combatShopBoughtCounts ?? empty.combatShopBoughtCounts,
     combatShopRerolls: partial.combatShopRerolls ?? empty.combatShopRerolls,
+    // F1–F6: Retention features
+    hardmodeUnlockedThrough: partial.hardmodeUnlockedThrough ?? empty.hardmodeUnlockedThrough,
+    hardmodeStageStars: { ...empty.hardmodeStageStars, ...partial.hardmodeStageStars },
+    hardmodeRewardsClaimed: { ...empty.hardmodeRewardsClaimed, ...partial.hardmodeRewardsClaimed },
+    bossesDefeated: partial.bossesDefeated ?? empty.bossesDefeated,
+    bossesDefeatedByStage: { ...empty.bossesDefeatedByStage, ...partial.bossesDefeatedByStage },
+    cardTierCap: partial.cardTierCap ?? empty.cardTierCap,
+    enemyPrestigeLevel: partial.enemyPrestigeLevel ?? empty.enemyPrestigeLevel,
+    allTimeHighScore: partial.allTimeHighScore ?? empty.allTimeHighScore,
+    weeklyHighScore: partial.weeklyHighScore ?? empty.weeklyHighScore,
+    weeklyScoreISO: partial.weeklyScoreISO ?? empty.weeklyScoreISO,
+    loreMilestonesUnlocked: partial.loreMilestonesUnlocked ?? empty.loreMilestonesUnlocked,
+    cosmeticsUnlocked: partial.cosmeticsUnlocked ?? empty.cosmeticsUnlocked,
+    activeCardBack: partial.activeCardBack ?? empty.activeCardBack,
+    bpSeasonISO: partial.bpSeasonISO ?? empty.bpSeasonISO,
+    bpSeasonNumber: partial.bpSeasonNumber ?? empty.bpSeasonNumber,
   };
   p = seedCombatStarter(p);
   // Migration: ensure combatDeckSets exists. Promote the active combatDeck
@@ -600,6 +634,30 @@ export function applyCombatClearToProfile(
       };
       if (!next.perksOwned.includes(drop.talentId)) {
         next.perksOwned = [...next.perksOwned, drop.talentId];
+      }
+    }
+  }
+
+  // === F1-F4: Retention feature updates ===
+
+  // F1 + F2: Boss clear detection. On boss first-clear, unlock hardmode stages and increment prestige.
+  if (stage.isBoss && firstClearAtTier > 0) {
+    const isBossFirstClear = !profile.bossesDefeatedByStage[stageNum];
+    if (isBossFirstClear) {
+      // F2: Track first-clear + increment counters.
+      next.bossesDefeated = (next.bossesDefeated ?? 0) + 1;
+      next.bossesDefeatedByStage = { ...next.bossesDefeatedByStage, [stageNum]: true };
+      // Increment card tier cap by 1 (starts 3, max 10).
+      next.cardTierCap = cardTierCapForBossCount(next.bossesDefeated);
+      // Increment prestige level (cap 20).
+      next.enemyPrestigeLevel = Math.min(20, (next.enemyPrestigeLevel ?? 0) + 1);
+      // F1: Update hardmode unlock gate.
+      next.hardmodeUnlockedThrough = Math.max(next.hardmodeUnlockedThrough, stageNum);
+      // F4: Lore unlock on boss first-clear.
+      const loreMilestone = getLoreMilestone(stageNum);
+      if (loreMilestone && !next.loreMilestonesUnlocked.includes(stageNum)) {
+        next.loreMilestonesUnlocked = [...next.loreMilestonesUnlocked, stageNum];
+        next.cosmeticsUnlocked = [...next.cosmeticsUnlocked, loreMilestone.rewardCosmetic];
       }
     }
   }

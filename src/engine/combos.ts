@@ -1,5 +1,6 @@
 import type { CropType, HarvestResult, Perk, RoundResult } from './types';
 import { sumModifier } from './perks';
+import type { DamageType } from './damage';
 
 // Sigilbound Combo 1 — Onslaught (Plotbound: Abundance Bonus).
 // 2 same → +25% | 3 → +50% | 4 → +85% | 5 → +130% | 6+ → +200%.
@@ -86,6 +87,34 @@ export function relentlessStreakAfter(
 
 /** @deprecated Renamed to `relentlessStreakAfter` for Sigilbound. */
 export const loyalStreakAfter = relentlessStreakAfter;
+
+// Sigilbound Element Chain combo system.
+// Adjacent slots filled with cards of the SAME damage type form a chain group.
+// Chain groups of length >= 2 apply a damage multiplier to all cards in the group.
+// Uses the same multiplier table as onslaughtMultiplier.
+
+export function elementChainMultiplier(chainLength: number): number {
+  for (const tier of ONSLAUGHT_TABLE) {
+    if (chainLength >= tier.count) return 1 + tier.bonus;
+  }
+  return 1;
+}
+
+// Returns groups of adjacent same-type slot indices that form element chains (length >= 2).
+// slotTypes is an array indexed by slot position; null means empty slot.
+export function computeElementChains(slotTypes: Array<DamageType | null>): Array<{ type: DamageType; indices: number[] }> {
+  const chains: Array<{ type: DamageType; indices: number[] }> = [];
+  let i = 0;
+  while (i < slotTypes.length) {
+    const t = slotTypes[i];
+    if (t === null) { i++; continue; }
+    let j = i + 1;
+    while (j < slotTypes.length && slotTypes[j] === t) j++;
+    if (j - i >= 2) chains.push({ type: t, indices: Array.from({ length: j - i }, (_, k) => i + k) });
+    i = j;
+  }
+  return chains;
+}
 
 export interface ResolveContext {
   relentlessStreakBefore: number;

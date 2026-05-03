@@ -95,6 +95,7 @@ export type PerkModifier =
   | { type: 'crit_heal'; value: number }                                         // Lucky Streak (paired)
   | { type: 'all_combo_damage_mult'; mult: number }                              // Sigilbound Master
   | { type: 'card_replicate_chance'; pct: number }                               // Astral Convergence
+  | { type: 'hand_cap_delta'; value: number }                                    // Spacious Mind
   | { type: 'noop' };
 
 export interface Perk {

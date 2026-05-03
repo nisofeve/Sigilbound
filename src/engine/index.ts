@@ -45,3 +45,8 @@ export * from './cardLevels';
 export * from './dropTables';
 // Battle intro narratives — per-biome area descriptions shown before combat.
 export * from './battleIntros';
+
+// Retention features (F1-F6).
+export * from './leaderboard';
+export * from './lore';
+export * from './cosmetics';

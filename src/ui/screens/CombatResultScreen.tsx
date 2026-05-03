@@ -48,10 +48,10 @@ export default function CombatResultScreen({ outcome, stage, runner, clearOutcom
   const totalDmg = player.damageDealtThisStage;
 
   return (
-    <div className="sb-bg sb-bg-stone relative h-full w-full flex flex-col safe-top safe-bottom">
+    <div className="sb-bg sb-bg-stone relative h-full w-full flex flex-col safe-top safe-bottom overflow-hidden">
 
-      {/* Hero banner — fixed at top */}
-      <div className="relative z-20 text-center pt-6 pb-4 sb-fade-up">
+      {/* Hero banner — locked at top, never scrolls */}
+      <div className="relative z-20 flex-shrink-0 text-center pt-6 pb-4 sb-fade-up">
         <div className="text-6xl mb-2" style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.7))' }}>
           {cleared ? '⚔' : '💀'}
         </div>
@@ -165,15 +165,13 @@ export default function CombatResultScreen({ outcome, stage, runner, clearOutcom
             boxShadow: 'inset 0 1px 0 rgba(255,200,140,0.1)',
           }}
         >
-          <ComboCount icon="⚔️" label="Onslaught" value={runner.state.combosTriggeredThisStage.onslaught} accent="var(--sb-crimson-light)" />
-          <ComboCount icon="✦"  label="Triadic"   value={runner.state.combosTriggeredThisStage.triadic}   accent="var(--sb-frost)" />
-          <ComboCount icon="◈"  label="Relentless" value={runner.state.combosTriggeredThisStage.relentless} accent="var(--sb-arcane)" />
+          <ComboCount icon="⛓" label="Element Chain" value={runner.state.combosTriggeredThisStage.element_chain} accent="var(--sb-crimson-light)" />
         </div>
       </div>
 
-      {/* Sticky CTA dock */}
+      {/* Sticky CTA dock — locked at bottom, never scrolls */}
       <div
-        className="relative z-20 flex gap-2 px-3 pt-2 pb-3"
+        className="relative z-20 flex-shrink-0 flex gap-2 px-3 pt-2 pb-3"
         style={{
           background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(15,10,7,0.85) 30%, rgba(15,10,7,0.95) 100%)',
           borderTop: '2px solid var(--sb-bronze-dark)',

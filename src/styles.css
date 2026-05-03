@@ -863,15 +863,14 @@ html, body, #root {
 }
 .sb-slot-windup { animation: sb-slot-windup 280ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* Slot connector — the SVG line between adjacent combo slots. Drawn as a
-   dashed animated path; color matches the combo type. */
-@keyframes sb-connector-flow {
-  0%   { stroke-dashoffset: 24; }
-  100% { stroke-dashoffset: 0; }
+/* Element chain connector — SVG animated energy beam between chained slots. */
+@keyframes sb-chain-flow {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -40; }
 }
 .sb-connector-path {
-  stroke-dasharray: 6 6;
-  animation: sb-connector-flow 0.6s linear infinite;
+  stroke-dasharray: 8 12;
+  animation: sb-chain-flow 0.9s linear infinite;
 }
 
 /* Combo notification banner — richer version of the old flash, includes
@@ -884,6 +883,38 @@ html, body, #root {
   100% { opacity: 0; transform: translate(-50%, calc(-50% - 28px)) scale(0.95); }
 }
 .sb-combo-notify { animation: sb-combo-notify 2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Upgrade-ready badge pulse on card vault items. */
+@keyframes sb-upgrade-pulse {
+  0%, 100% { opacity: 0.75; box-shadow: 0 0 5px #f59e0b50; }
+  50%       { opacity: 1;    box-shadow: 0 0 10px #f59e0b90; }
+}
+
+/* Tactic card play — centre pulse before shatter. */
+@keyframes sb-tactic-pulse {
+  0%   { transform: translate(-50%, -50%) scale(1);    filter: brightness(1)    drop-shadow(0 0 12px currentColor); }
+  40%  { transform: translate(-50%, -50%) scale(1.12); filter: brightness(1.5)  drop-shadow(0 0 36px currentColor); }
+  100% { transform: translate(-50%, -50%) scale(0.88); filter: brightness(2.2)  drop-shadow(0 0 60px currentColor); }
+}
+
+/* Tactic shatter shard — each shard fires outward then fades. */
+@keyframes sb-tactic-shard {
+  0%   { opacity: 1; transform: translate(var(--sx), var(--sy)) scale(1) rotate(var(--sr)); }
+  70%  { opacity: 0.7; }
+  100% { opacity: 0; transform: translate(calc(var(--sx) * 3.2), calc(var(--sy) * 3.2)) scale(0.3) rotate(calc(var(--sr) * 2)); }
+}
+
+/* Tactic effect announcement sweep-in. */
+@keyframes sb-tactic-announce-in {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7) skewX(-8deg); }
+  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04) skewX(0deg); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) skewX(0deg); }
+}
+
+@keyframes sb-tactic-announce-out {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -52%) scale(0.96); }
+}
 
 /* Charge pip dots inside slot card. */
 .sb-charge-pip {
@@ -966,6 +997,21 @@ html, body, #root {
   90%  { transform: translateY(-3px)  scaleX(0.99) scaleY(1.02) rotate(0deg); opacity: 1; }
   100% { transform: translateY(0)     scaleX(1)    scaleY(1)    rotate(0deg); opacity: 1; }
 }
+/* Strong shake after enemy lands */
+@keyframes sb-enemy-land-shake {
+  0%,100% { transform: translate(0,0) rotate(0deg); }
+  10%     { transform: translate(-12px, 8px) rotate(-1.2deg); }
+  20%     { transform: translate(14px, -10px) rotate(1.4deg); }
+  30%     { transform: translate(-10px, 9px) rotate(-1deg); }
+  40%     { transform: translate(11px, -7px) rotate(0.9deg); }
+  50%     { transform: translate(-8px, 6px) rotate(-0.6deg); }
+  60%     { transform: translate(6px, -4px) rotate(0.4deg); }
+  70%     { transform: translate(-4px, 3px) rotate(-0.2deg); }
+  80%     { transform: translate(2px, -2px) rotate(0.1deg); }
+}
+.sb-enemy-land-shake {
+  animation: sb-enemy-land-shake 0.7s ease-out both;
+}
 /* Comic smash burst */
 @keyframes sb-intro-smash {
   0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.2) rotate(-10deg); }
@@ -984,6 +1030,15 @@ html, body, #root {
 }
 .sb-intro-shake {
   animation: sb-intro-shake 0.55s ease-out both;
+}
+/* Hand card shake to indicate need for selection */
+@keyframes sb-hand-discard-shake {
+  0%,100% { transform: translate(0, 0); }
+  25%     { transform: translate(-3px, 0); }
+  75%     { transform: translate(3px, 0); }
+}
+.sb-hand-discard-shake {
+  animation: sb-hand-discard-shake 0.6s linear infinite;
 }
 /* Shockwave ring on enemy land */
 @keyframes sb-intro-ring {

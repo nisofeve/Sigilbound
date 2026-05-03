@@ -42,13 +42,15 @@ function imageUrlAt(base: string, ids: string[], attempt: number): string | null
   return `/${base}/${ids[idIdx]}.${IMG_EXTS[extIdx]}`;
 }
 
-// Scale a CSS rem string by a numeric factor while preserving the unit.
-function scaleRem(value: string, factor: number): string {
+// Scale a CSS rem string by a numeric factor, clamped to a minimum.
+function scaleRem(value: string, factor: number, minRem = 0): string {
   const m = value.match(/^([\d.]+)(rem|px|em)?$/);
   if (!m) return value;
   const n = parseFloat(m[1]);
   const unit = m[2] ?? '';
-  return `${(n * factor).toFixed(3).replace(/\.?0+$/, '')}${unit}`;
+  const scaled = n * factor;
+  const clamped = minRem > 0 && unit === 'rem' ? Math.max(scaled, minRem) : scaled;
+  return `${clamped.toFixed(3).replace(/\.?0+$/, '')}${unit}`;
 }
 
 // ─── Size tokens ──────────────────────────────────────────────────────────────
@@ -169,6 +171,7 @@ export function GameCard({
   const baseSz = SIZE_MAP[size] ?? SIZE_MAP.md;
   // When customWidth is given, scale every dimension/padding/font from the
   // base token proportionally so the card stays visually balanced.
+  // Font sizes are clamped to readable minimums so tiny mobile cards stay legible.
   const scale = customWidth ? customWidth / baseSz.w : 1;
   const sz: SizeTokens = customWidth
     ? {
@@ -177,9 +180,9 @@ export function GameCard({
         h: Math.round(baseSz.h * scale),
         radius: Math.max(4, Math.round(baseSz.radius * scale)),
         pad: Math.max(3, Math.round(baseSz.pad * scale)),
-        nameSize:  scaleRem(baseSz.nameSize,  scale),
-        statSize:  scaleRem(baseSz.statSize,  scale),
-        badgeSize: scaleRem(baseSz.badgeSize, scale),
+        nameSize:  scaleRem(baseSz.nameSize,  scale, 0.62),
+        statSize:  scaleRem(baseSz.statSize,  scale, 0.58),
+        badgeSize: scaleRem(baseSz.badgeSize, scale, 0.52),
         emojiFallbackSize: scaleRem(baseSz.emojiFallbackSize, scale),
       }
     : baseSz;

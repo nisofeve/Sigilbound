@@ -29,6 +29,18 @@
     "resistances": { "physical": 0.7, "holy": 1.5, "dark": 0.5 },
     "lore": "Highwaymen are former soldiers, disgraced merchants, or desperate farmers who found the forest more honest than civilization. They operate in loosely organized cells along trade routes, communicating through carved bark-glyphs. Their footwork and blade discipline betray actual combat training — these are not amateurs. They carry good steel, wear stolen mail patches, and know exactly how long before a guard patrol returns. Holy blessings unsettle them deeply, a remnant guilt from whatever life they abandoned. Many carry old guild tokens they can't bring themselves to discard." },
 
+  { "id": "forest_dryad",       "name": "Thorn Dryad",          "archetype": "caster",     "difficulty": "easy",
+    "sprite": "🌿", "baseHp": 28, "atk": 4,  "def": 0, "speed": 1.0,
+    "damageType": "nature", "biome": "forest",
+    "resistances": { "nature": 0.3, "fire": 1.8, "ice": 0.8, "physical": 0.9 },
+    "lore": "Thorn Dryads are spirits bound to ancient trees whose roots were soaked in spilled sigil-energy. They step halfway from the bark when danger nears, lashing with vine-whips and hurling clusters of hardened thorns. Their bond with the tree is their greatest strength and their deepest vulnerability — fire threatens both host and spirit, sending them into desperate retreat. Those who have looked into a dryad's eyes describe the experience as meeting a forest that has learned regret: something vast and patient, forced by circumstance into a body too small for everything it remembers." },
+
+  { "id": "forest_hexblade",    "name": "Hexblade",             "archetype": "skirmisher", "difficulty": "medium",
+    "sprite": "🪄", "baseHp": 42, "atk": 7,  "def": 0, "speed": 1.2,
+    "damageType": "dark", "biome": "forest",
+    "resistances": { "dark": 0.6, "holy": 1.5, "nature": 0.7, "physical": 0.85 },
+    "lore": "Hexblades are cunning women who dwell where the forest's shadow grows thickest, trading in curses and debts. They carry enchanted shortblades whose edges are coated in a tar distilled from nightshade and crushed sigil-fragments, each cut leaving an invisible mark that slowly drains vitality. Holy light burns away their hex-coatings, forcing them into open confrontation they despise. Nature magic resonates harmlessly through them — the forest recognizes its own. Many are former herbalists or midwives displaced by encroaching settlements, who discovered the forest's darker knowledge out of necessity and never found a reason to stop learning." },
+
   { "id": "crypt_skeleton",     "name": "Skeleton Warrior",     "archetype": "brute",      "difficulty": "medium",
     "sprite": "💀", "baseHp": 95, "atk": 9,  "def": 2, "speed": 0.8,
     "damageType": "physical", "biome": "crypts",
@@ -58,6 +70,18 @@
     "damageType": "physical", "biome": "crypts",
     "resistances": { "physical": 0.4, "holy": 1.5, "dark": 0.4, "fire": 1.5 },
     "lore": "Bone Knights are the elite guard of ancient crypts — champions who swore fealty to burial rites and were interred in full armor, reanimated to serve eternally. Their plate has fused with their bones over centuries, creating a hybrid of steel and calcium that deflects most strikes. They move with deliberate, mechanical efficiency, never overextending, never panicking. A holy blessing detonates the sacred binding that holds their armor together. Fire renders their joints brittle. Those who have survived encountering one describe the hollow echo of footsteps in darkness — getting slower. Then stopping." },
+
+  { "id": "crypt_banshee",      "name": "Banshee",              "archetype": "caster",     "difficulty": "medium",
+    "sprite": "👰", "baseHp": 55, "atk": 8,  "def": 0, "speed": 1.1,
+    "damageType": "dark", "biome": "crypts",
+    "resistances": { "dark": 0.4, "holy": 1.5, "physical": 0.4, "fire": 0.9 },
+    "lore": "Banshees are the keening spirits of women who died while holding a grief so absolute it refused to dissolve. They drift through crypt corridors trailing cold air and a sound that sits just below the range of conscious hearing — a vibration felt in the teeth and the back of the skull. When they wail, the sound crystallizes sorrow directly into the nervous system, bypassing the mind entirely. Holy light strikes them with the force of everything they failed to grieve, scattering them momentarily into silence. Dark magic nourishes them. Those who have survived a Banshee's direct wail describe spending weeks afterward unable to identify what, exactly, they had lost." },
+
+  { "id": "crypt_revenant",     "name": "Revenant",             "archetype": "elite",      "difficulty": "hard",
+    "sprite": "⚔️", "baseHp": 150, "atk": 11, "def": 2, "speed": 1.0,
+    "damageType": "dark", "biome": "crypts",
+    "resistances": { "dark": 0.3, "holy": 1.5, "physical": 0.5, "fire": 1.2, "ice": 0.8 },
+    "lore": "Revenants are warriors who died with a vengeance so specific and so righteous that death itself couldn't hold them. They returned with full memory, full purpose, and none of the frailties that made them mortal. This particular revenant was a siege commander betrayed by her own general — she has been hunting his bloodline for two hundred years and destroys anything that interrupts the search. She fights with perfect tactical clarity, reads terrain like a map, and anticipates every feint. Holy light burns at the oath-binding that tethers her to the material world. She is not cruel. She is simply not finished, and she has no patience left for obstacles." },
 
   { "id": "frostpeak_yeti",     "name": "Frostpeak Yeti",       "archetype": "brute",      "difficulty": "hard",
     "sprite": "❄️", "baseHp": 185, "atk": 14, "def": 2, "speed": 0.7,
@@ -89,6 +113,18 @@
     "resistances": { "ice": 0.3, "fire": 1.5, "physical": 0.7, "nature": 1.5 },
     "lore": "Snow Wardens were once mortal guardians of Frostpeak's sacred burial cairns, transformed by ancient ritual into semi-immortal sentinels when they died at their post. Their armor is grown rather than forged — ice-crystal plates that reform after each battle, shaped by glacial magic. They remember every face that has passed their territory and never forget a trespass. Fire dissolves their armor plating temporarily, exposing vulnerable joints. Nature magic disrupts the glacial bond sustaining them. Those who have spoken with Snow Wardens describe a profound sadness beneath the hostility — a vigil kept long past the point of meaning." },
 
+  { "id": "frostpeak_shaman",   "name": "Glacier Shaman",       "archetype": "caster",     "difficulty": "medium",
+    "sprite": "🧊", "baseHp": 65, "atk": 8,  "def": 0, "speed": 1.0,
+    "damageType": "ice", "biome": "frostpeak",
+    "resistances": { "ice": 0.2, "fire": 1.5, "thunder": 1.2, "nature": 0.8 },
+    "lore": "Glacier Shamans are seers of the mountain people — women who learned to read the future in cracking ice and interpret the language of avalanches. Driven from their villages by the Sigilbreaker's corruption spreading through the peaks, they now wander the high passes as hostile spirits, their rituals twisted by grief into offensive weapons. They call freezing storms with drums made of whale-bone and mammoth sinew, each beat dropping the temperature in a twenty-foot radius. Fire disrupts the resonance between shaman and storm. Thunder mimics their drum-calls but creates dissonance that fragments their concentration. Their songs, researchers note, contain meteorological data accurate to within hours." },
+
+  { "id": "frostpeak_huntress", "name": "Frost Huntress",       "archetype": "skirmisher", "difficulty": "hard",
+    "sprite": "🏹", "baseHp": 105, "atk": 13, "def": 1, "speed": 1.3,
+    "damageType": "ice", "biome": "frostpeak",
+    "resistances": { "ice": 0.2, "fire": 1.5, "physical": 0.7, "dark": 1.2 },
+    "lore": "Frost Huntresses are the peak's apex predators in human form — scouts of the mountain clans who pursued prey across glaciers for decades until the cold became part of them. They coat their arrows in shaved ice from the mountain's magical core, which splinters on impact and spreads freezing crystallization through tissue. Their white-patterned cloaks make them nearly invisible in snowfields. Fire melts both cloak and the ice-coating on their ammunition, stripping their key advantages. Darkness confuses their heat-trail tracking. They do not charge headlong — they wait, perfectly still, for thirty minutes without discomfort, until the moment of absolute certainty. Then they do not miss." },
+
   { "id": "volcano_salamander", "name": "Magma Salamander",     "archetype": "skirmisher", "difficulty": "medium",
     "sprite": "🦎", "baseHp": 75, "atk": 9,  "def": 0, "speed": 1.2,
     "damageType": "fire", "biome": "volcano",
@@ -119,6 +155,18 @@
     "resistances": { "fire": 0.0, "ice": 1.5, "physical": 0.5, "nature": 1.5 },
     "lore": "Lava Elementals coalesce when volcanic eruptions intersect with dormant ley-lines, the raw geological force crystallizing around magical current into something animate and deeply territorial. They are not intelligent in any conventional sense — they process only heat, pressure, and obstruction. Anything blocking their path through the caldera field will be consumed. Ice flash-freezes their outer shell, trapping the molten core until the pressure ruptures it explosively. Nature magic corrodes their mineral matrix. Ancient texts describe them as the volcano's immune response — rising specifically when sacred ground is trespassed by the unworthy." },
 
+  { "id": "volcano_ember_witch","name": "Ember Witch",          "archetype": "caster",     "difficulty": "medium",
+    "sprite": "🔮", "baseHp": 70, "atk": 9,  "def": 0, "speed": 1.0,
+    "damageType": "fire", "biome": "volcano",
+    "resistances": { "fire": 0.2, "ice": 1.5, "dark": 0.7, "holy": 1.3 },
+    "lore": "Ember Witches are fire-cult acolytes who survived the cult's collapse by becoming the fire itself — feeding their own blood into the caldera as offering until the volcano recognized them as kin. They draw geometric patterns in mid-air with trails of living ember, then collapse the geometry into searing bursts that track their target's thermal signature. Ice disrupts the thermal-tracking sigils they weave into every cast. Holy light burns away the blood-offering that powers their flame-communion, reducing them to mundane pyromancers for precious seconds. Many carry half-finished ritual tablets, still attempting to complete a ceremony their dead masters never explained fully." },
+
+  { "id": "volcano_magma_queen","name": "Magma Queen",          "archetype": "elite",      "difficulty": "hard",
+    "sprite": "👸", "baseHp": 195, "atk": 14, "def": 2, "speed": 1.0,
+    "damageType": "fire", "biome": "volcano",
+    "resistances": { "fire": 0.0, "ice": 1.5, "physical": 0.6, "dark": 0.8, "nature": 1.3 },
+    "lore": "The Magma Queen was the last high-priestess of the fire-cult, elevated to near-divinity by the final sacrifice of her entire congregation — power given freely, which the volcano accepted. She did not ask for this. She emerged from the caldera three weeks after the cult's end, cooled on the outside, still molten at the core, and has spent every century since trying to understand what she owes a god that consumed everyone she loved. She fights with furious precision, lava flowing around her like a second body. Ice cracks her crystallized outer shell. Nature magic unsettles her — it reminds her of growth, of things that did not choose to burn." },
+
   { "id": "ashen_demon",        "name": "Ashen Demon",          "archetype": "elite",      "difficulty": "hard",
     "sprite": "👿", "baseHp": 320, "atk": 16, "def": 4, "speed": 1.0,
     "damageType": "dark", "biome": "ashen",
@@ -148,6 +196,18 @@
     "damageType": "dark", "biome": "ashen",
     "resistances": { "dark": 0.3, "holy": 1.5, "fire": 0.7, "ice": 1.5 },
     "lore": "Ashen Warlocks were once sigil-bearers — players of the same cosmic game as the heroes they now oppose. They bargained with the Sigilbreaker for power and knowledge, receiving both, and discovering too late the cost was their ability to refuse further service. They are the Sigilbreaker's most dangerous servants precisely because they understand the sigil system's mechanics. They summon from accumulated debt, spending life-force borrowed from tomorrow. Holy light reminds them of what they abandoned. Fire scorches but does not break them. Ice gives them pause. They fight with a desperation that borders on grief." },
+
+  { "id": "ashen_soulbinder",   "name": "Soulbinder",           "archetype": "caster",     "difficulty": "hard",
+    "sprite": "🕸️", "baseHp": 140, "atk": 13, "def": 0, "speed": 1.1,
+    "damageType": "dark", "biome": "ashen",
+    "resistances": { "dark": 0.3, "holy": 1.5, "physical": 0.5, "fire": 0.8, "thunder": 1.3 },
+    "lore": "Soulbinders are the Sigilbreaker's archivists — women who volunteered to catalog the sigil-system by binding fragments of captured souls into their own nervous systems, becoming living libraries of consumed power. The process was not reversible. They now carry dozens of fractured personalities simultaneously, their consciousness a crowded room of the dead. They can project those fragments as weapons, launching shards of stolen selfhood that tear at a target's own identity. Holy light disrupts the binding stitches, causing momentary cascading personality breaks. Thunder scatters the fragments before they can coalesce into coherent attacks. In quiet moments, between projections, fragments sometimes surface and weep." },
+
+  { "id": "ashen_void_knight",  "name": "Void Knight",          "archetype": "tank",       "difficulty": "hard",
+    "sprite": "🌑", "baseHp": 310, "atk": 12, "def": 5, "speed": 0.75,
+    "damageType": "dark", "biome": "ashen",
+    "resistances": { "dark": 0.3, "holy": 1.5, "physical": 0.4, "ice": 1.2, "thunder": 1.3 },
+    "lore": "Void Knights are the Sigilbreaker's honor guard — former champions who accepted void-infusion as a terminal promotion, their armor fused with a layer of compressed nothingness that absorbs incoming force the way black holes absorb light. They speak rarely, and when they do it's in a voice that seems to come from slightly behind where they're standing. Holy light penetrates the void-layer catastrophically, finding the mortal body still inside and burning it specifically. Ice briefly solidifies the void-layer, making it brittle and shatterable. Each Void Knight carries a sealed ledger. No one who has gotten close enough to read one has reported back. The ledgers are presumed to contain something about what they agreed to." },
 
   { "id": "boss_antlered_king", "name": "The Antlered King",    "archetype": "boss",       "difficulty": "hard",
     "sprite": "🦌", "baseHp": 450, "atk": 16, "def": 3, "speed": 1.0,

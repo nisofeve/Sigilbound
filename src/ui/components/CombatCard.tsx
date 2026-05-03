@@ -65,7 +65,7 @@ function nameAlternates(name: string): string[] {
 export function ActionCard({
   card, size = 'md', customWidth, ...interaction
 }: { card: ActionCardDef } & SizingProps & InteractionProps) {
-  const accent = RARITY_COLOR[card.rarity] ?? RARITY_COLOR.common;
+  const rarityColor = RARITY_COLOR[card.rarity] ?? RARITY_COLOR.common;
   const dmgColor = DAMAGE_TYPE_COLOR[card.damageType] ?? '#cbd5e1';
   const dmgGlyph = DAMAGE_TYPE_GLYPH[card.damageType] ?? '⚔';
 
@@ -84,7 +84,7 @@ export function ActionCard({
       placeholderEmoji={card.emoji}
       size={size}
       customWidth={customWidth}
-      accentColor={accent}
+      accentColor={dmgColor}
       topBadge={{
         glyph: dmgGlyph,
         label: card.damageType.slice(0, 4).toUpperCase(),
@@ -93,7 +93,7 @@ export function ActionCard({
       pips={{
         filled: RARITY_PIP_COUNT[card.rarity] ?? 1,
         total: 6,
-        color: accent,
+        color: rarityColor,
       }}
       stats={stats}
       {...interaction}

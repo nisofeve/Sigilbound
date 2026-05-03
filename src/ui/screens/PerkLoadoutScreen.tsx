@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { allPerks, getPerk, maxPerkSlots, type Perk, type PerkKind, type Rarity } from '@engine/index';
 import { isStarterPerk, perkChargesAvailable, setEquippedPerks, type Profile } from '@storage/index';
 import AnimatedBackground from '@ui/components/AnimatedBackground';
+import { CardDetailModal } from '@ui/components/CardDetailBody';
 
 interface Props {
   profile: Profile;
@@ -44,6 +45,18 @@ const kindBanner: Record<PerkKind, { label: string; bg: string; icon: string }> 
 export default function PerkLoadoutScreen({ profile, onProfileChange, onStart, onBack }: Props) {
   const slots = maxPerkSlots(profile.upgradesOwned);
   const [equipped, setLocalEquipped] = useState<string[]>(profile.perksEquipped.slice(0, slots));
+  const [detailPerk, setDetailPerk] = useState<Perk | null>(null);
+  const detailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function startPerkLongPress(perk: Perk) {
+    detailTimerRef.current = setTimeout(() => {
+      detailTimerRef.current = null;
+      setDetailPerk(perk);
+    }, 500);
+  }
+  function cancelPerkLongPress() {
+    if (detailTimerRef.current) { clearTimeout(detailTimerRef.current); detailTimerRef.current = null; }
+  }
 
   // "Available" = starter perks (always permanent) + any perk with at least
   // one consumable charge in inventory. The legacy perksOwned list is kept
@@ -116,6 +129,8 @@ export default function PerkLoadoutScreen({ profile, onProfileChange, onStart, o
                 isStarter={isStarterPerk(perk.id)}
                 disabled={!equipped.includes(perk.id) && equipped.length >= slots}
                 onClick={() => toggle(perk.id)}
+                onLongPress={() => startPerkLongPress(perk)}
+                onLongPressCancel={cancelPerkLongPress}
               />
             ))}
           </div>
@@ -127,7 +142,18 @@ export default function PerkLoadoutScreen({ profile, onProfileChange, onStart, o
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-24">
             {allLockedPerks.map(perk => (
-              <PerkCard key={perk.id} perk={perk} equipped={false} charges={0} isStarter={false} disabled locked onClick={() => {}} />
+              <PerkCard
+                key={perk.id}
+                perk={perk}
+                equipped={false}
+                charges={0}
+                isStarter={false}
+                disabled
+                locked
+                onClick={() => {}}
+                onLongPress={() => startPerkLongPress(perk)}
+                onLongPressCancel={cancelPerkLongPress}
+              />
             ))}
           </div>
 
@@ -138,6 +164,13 @@ export default function PerkLoadoutScreen({ profile, onProfileChange, onStart, o
           </div>
         </div>
       </div>
+
+      {detailPerk && (
+        <CardDetailModal
+          target={{ kind: 'talent', perk: detailPerk }}
+          onClose={() => setDetailPerk(null)}
+        />
+      )}
     </div>
   );
 }
@@ -152,9 +185,11 @@ interface CardProps {
   isStarter: boolean;
   locked?: boolean;
   onClick: () => void;
+  onLongPress: () => void;
+  onLongPressCancel: () => void;
 }
 
-function PerkCard({ perk, equipped, disabled, locked, charges, isStarter, onClick }: CardProps) {
+function PerkCard({ perk, equipped, disabled, locked, charges, isStarter, onClick, onLongPress, onLongPressCancel }: CardProps) {
   const isNoOp = perk.modifier.type === 'noop';
   const banner = kindBanner[perk.kind];
   const accent = rarityColor[perk.rarity];
@@ -166,10 +201,14 @@ function PerkCard({ perk, equipped, disabled, locked, charges, isStarter, onClic
     <button
       onClick={onClick}
       disabled={disabled}
+      onPointerDown={onLongPress}
+      onPointerUp={onLongPressCancel}
+      onPointerLeave={onLongPressCancel}
+      onPointerCancel={onLongPressCancel}
       className={`group relative text-left rounded-xl overflow-hidden transition-all duration-150 ${
         disabled && !locked ? 'cursor-not-allowed' : ''
       } ${equipped ? 'scale-[1.02]' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
-      style={{
+      style={{ touchAction: 'none', userSelect: 'none',
         // Outer rarity stroke. Equipped → thick gold inner ring + glow.
         background: equipped
           ? `linear-gradient(180deg, #2d5a35 0%, #1c3d23 100%)`

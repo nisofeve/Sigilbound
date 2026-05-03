@@ -16,11 +16,8 @@
 
 import { computeDamage } from './damage';
 import {
-  onslaughtMultiplier,
-  relentlessMultiplier,
-  triadicStrikeBonus,
-  triadicStrikeMultiplier,
-  relentlessStreakAfter,
+  elementChainMultiplier,
+  computeElementChains,
 } from './combos';
 import { advanceCharge, chooseIntent } from './enemyAI';
 import {
@@ -94,7 +91,7 @@ export type ResolveEvent =
       enemyHpAfter: number;
       enemyKilled: boolean;
     }
-  | { kind: 'combo'; combo: 'onslaught' | 'triadic' | 'relentless' }
+  | { kind: 'combo'; combo: 'element_chain'; damageType: DamageType; chainLength: number; slotIndices: number[] }
   | {
       kind: 'enemy_attack';
       enemyId: string;
@@ -138,19 +135,24 @@ export interface SigilSlot {
   bound: ActionInstance | null;
 }
 
+export const DRAW_PER_TURN = 2;
+export const HAND_HARD_CAP = 7;
+
 export interface BattleState {
   player: PlayerCombatant;
   enemies: EnemyState[];
   slots: SigilSlot[];
   reactions: ActiveReactions;
-  // Combo carry-over — Relentless streak tracks ONE damage type across turns.
-  relentlessStreak: number;
-  relentlessType: DamageType | null;
   // Per-stage counters (seeded into the player combatant, but we also keep
   // turn-level totals for objective evaluation).
   turn: number;                  // 1-indexed
-  combosTriggeredThisStage: { onslaught: number; triadic: number; relentless: number };
+  combosTriggeredThisStage: { element_chain: number };
   outcome: 'in_progress' | 'cleared' | 'defeated';
+  // When > 0, the player must discard this many cards before acting.
+  // Set after drawing if hand would exceed the cap, or by discard_draw tactics.
+  pendingDiscardCount: number;
+  // Cards to draw after the pending discard resolves (from discard_draw tactics).
+  pendingDiscardDrawCount: number;
   // Equipment-driven state. The runner reads `triggers` to apply on-event
   // bonuses (extra combo damage, low-HP revives) and tracks once-per-stage
   // consumption in `triggersFired`.
@@ -189,8 +191,6 @@ export interface BattleState {
     cardReplicateChance: number;          // 0 if not equipped
     // Swift Recovery: heal N at end of clean turn.
     cleanTurnHeal: number;
-    // Triple Threat: triadic damage +50%.
-    triadicBonusPct: number;              // 0 if not equipped
     // Iron Discipline: block carries to next turn (capped). 0 = no carry.
     blockCarryCap: number;
     // Combo Cascade: +N draws + refund stamina on each combo.
@@ -244,6 +244,10 @@ export interface BattleConfig {
   // Card tier multipliers (Phase 3). Maps card id → tier (1..5).
   // The runner scales each action card's base damage by TIER_DAMAGE_MULT[tier-1].
   cardTierMultipliers?: Record<string, number>;
+  // F1: Hardmode flag — when true, enemies receive 1.35× stat multiplier.
+  hardmode?: boolean;
+  // F2: Enemy prestige level — +3% per level (cap 20), stack with hardmode.
+  enemyPrestigeLevel?: number;
 }
 
 // === Public API ===
@@ -257,6 +261,9 @@ export class BattleRunner {
   // scales numeric stats via levelStatMultiplier(level). Missing entries
   // default to level 1 (= 0.6× authored stats — the new baseline).
   private readonly tierMults: Record<string, number>;
+  // F1-F2: Hardmode and prestige scaling multipliers.
+  private readonly hardmode: boolean;
+  private readonly enemyPrestigeLevel: number;
 
   private damageTakenAtTurnStart: number = 0;
 
@@ -273,6 +280,8 @@ export class BattleRunner {
     this.rng = createRng(config.seed);
     this.defs = new Map(config.enemyDefs.map(d => [d.id, d]));
     this.tierMults = config.cardTierMultipliers ?? {};
+    this.hardmode = config.hardmode ?? false;
+    this.enemyPrestigeLevel = Math.min(20, config.enemyPrestigeLevel ?? 0);
 
     // Compile equipment if provided. Caller may pass either:
     //   - playerStats directly (tests, cloud replay)
@@ -284,9 +293,22 @@ export class BattleRunner {
     const playerStats: PlayerStats = config.playerStats
       ?? computePlayerStats({ level: config.level ?? 1, modifiers: compiled?.modifiers ?? [] });
 
-    const enemies: EnemyState[] = config.enemyDefs.map((def, i) =>
-      newEnemyState(def, `${def.id}_${i}`),
-    );
+    // Apply hardmode and prestige scaling to enemy stats.
+    const enemies: EnemyState[] = config.enemyDefs.map((def, i) => {
+      let scaledDef = def;
+      // F1 + F2: Stack hardmode (1.35×) and prestige (1 + 0.03 × level, capped at 1.6×).
+      const hardmodeMult = this.hardmode ? 1.35 : 1.0;
+      const prestigeMult = 1 + Math.min(0.6, this.enemyPrestigeLevel * 0.03);
+      const finalMult = Math.min(2.0, hardmodeMult * prestigeMult);
+      if (finalMult !== 1.0) {
+        scaledDef = {
+          ...def,
+          baseHp: Math.floor(def.baseHp * finalMult),
+          atk: Math.floor(def.atk * finalMult),
+        };
+      }
+      return newEnemyState(scaledDef, `${def.id}_${i}`);
+    });
 
     const player = newCombatant(playerStats);
     // Hardcore: override starting HP if the arc orchestrator provided one.
@@ -366,10 +388,8 @@ export class BattleRunner {
       enemies,
       slots,
       reactions,
-      relentlessStreak: 0,
-      relentlessType: null,
       turn: 1,
-      combosTriggeredThisStage: { onslaught: 0, triadic: 0, relentless: 0 },
+      combosTriggeredThisStage: { element_chain: 0 },
       outcome: 'in_progress',
       equipment: {
         triggers: compiled?.triggers ?? [],
@@ -380,6 +400,8 @@ export class BattleRunner {
       hand,
       deck,
       discard: [],
+      pendingDiscardCount: 0,
+      pendingDiscardDrawCount: 0,
       staminaThisTurn: playerStats.stamina,
       talents: compiledTalents,
       upgradeBuffs,
@@ -418,9 +440,18 @@ export class BattleRunner {
 
   // === Card flow helpers (Phase 6) ===
 
+  /** The effective hand cap: base HAND_HARD_CAP + any talent bonus. */
+  handCap(): number {
+    const bonus = this.state.talents.list.reduce((acc, t) => {
+      if (t.modifier?.type === 'hand_cap_delta') return acc + (t.modifier.value as number);
+      return acc;
+    }, 0);
+    return HAND_HARD_CAP + bonus;
+  }
+
   /** Draw N cards from the deck into the hand. Reshuffles discard into deck
-   * when the deck runs dry. Returns the cards actually drawn (may be < n if
-   * both deck and discard are empty). */
+   * when the deck runs dry. If drawing would exceed handCap(), draws up to
+   * the cap and sets pendingDiscardCount for the overflow. Returns drawn cards. */
   drawCards(n: number): CardId[] {
     const drawn: CardId[] = [];
     for (let i = 0; i < n; i++) {
@@ -435,7 +466,33 @@ export class BattleRunner {
       this.state.hand.push(card);
       drawn.push(card);
     }
+    // Check if hand now exceeds cap — player must discard the overflow.
+    const overflow = this.state.hand.length - this.handCap();
+    if (overflow > 0) {
+      this.state.pendingDiscardCount = (this.state.pendingDiscardCount ?? 0) + overflow;
+    }
     return drawn;
+  }
+
+  /** Player resolves a pending discard by choosing hand indices to discard.
+   * Must provide exactly pendingDiscardCount indices. Returns true on success.
+   * If pendingDiscardDrawCount > 0, draws that many cards afterwards. */
+  resolveDiscard(handIndices: number[]): boolean {
+    const needed = this.state.pendingDiscardCount;
+    if (handIndices.length !== needed) return false;
+    // Sort descending so splicing doesn't shift subsequent indices.
+    const sorted = [...handIndices].sort((a, b) => b - a);
+    for (const idx of sorted) {
+      if (idx < 0 || idx >= this.state.hand.length) return false;
+      const [card] = this.state.hand.splice(idx, 1);
+      this.state.discard.push(card!);
+    }
+    this.state.pendingDiscardCount = 0;
+    if (this.state.pendingDiscardDrawCount > 0) {
+      this.drawCards(this.state.pendingDiscardDrawCount);
+      this.state.pendingDiscardDrawCount = 0;
+    }
+    return true;
   }
 
   /** Move a card from hand to discard (the most common discard path —
@@ -527,56 +584,24 @@ export class BattleRunner {
    * of the current resolve set.
    */
   previewCombosForEndTurn(): {
-    onslaught: number[];   // slot indices contributing to an Onslaught
-    triadic: number[];     // slot indices contributing to a Triadic
-    relentless: number[];  // slot indices contributing to a Relentless
+    chains: Array<{ type: DamageType; indices: number[]; multiplier: number }>;
   } {
-    // Collect indices of slots that will resolve this turn. A slot resolves
-    // if its current charge would tick to 0 — i.e. charge <= 1 at plan time.
-    // (endTurn ticks all bound slots' charge by 1 before resolution.)
-    const resolvingSlots: { idx: number; type: DamageType }[] = [];
-    for (let si = 0; si < this.state.slots.length; si++) {
-      const slot = this.state.slots[si];
-      if (!slot.bound) continue;
-      const willResolve = slot.bound.charge <= 1;
-      if (willResolve) resolvingSlots.push({ idx: si, type: slot.bound.damageType });
-    }
+    // Build a slotTypes array: null for empty/not-resolving slots, damageType
+    // for slots that will resolve this turn (charge <= 1).
+    const slotTypes: Array<DamageType | null> = this.state.slots.map(slot => {
+      if (!slot.bound) return null;
+      if (slot.bound.charge > 1) return null;
+      return slot.bound.damageType;
+    });
 
-    if (resolvingSlots.length === 0) {
-      return { onslaught: [], triadic: [], relentless: [] };
-    }
+    const rawChains = computeElementChains(slotTypes);
+    const chains = rawChains.map(chain => ({
+      type: chain.type,
+      indices: chain.indices,
+      multiplier: elementChainMultiplier(chain.indices.length),
+    }));
 
-    const counts = new Map<DamageType, number>();
-    for (const s of resolvingSlots) counts.set(s.type, (counts.get(s.type) ?? 0) + 1);
-
-    const distinctCount = counts.size;
-    const allOneType = distinctCount === 1;
-    const carriedRelentless = allOneType
-      && (this.state.relentlessType === null
-        || this.state.relentlessType === resolvingSlots[0].type);
-
-    // Onslaught: any damage type with >= 2 copies fires. Each contributing
-    // slot is whichever slot has that damage type (could be multiple types
-    // each with their own onslaught cluster).
-    const onslaughtTypes = new Set<DamageType>();
-    for (const [type, c] of counts.entries()) {
-      if (c >= 2) onslaughtTypes.add(type);
-    }
-    const onslaughtSlots = resolvingSlots
-      .filter(s => onslaughtTypes.has(s.type))
-      .map(s => s.idx);
-
-    // Triadic: 3+ distinct types — every resolving slot contributes.
-    const triadicSlots = distinctCount >= 3 ? resolvingSlots.map(s => s.idx) : [];
-
-    // Relentless: needs single type AND a prior streak (or fresh streak start
-    // matching the prior type). UI shows the highlight even on fresh start
-    // since the player benefits from building it.
-    const relentlessSlots = (allOneType && (this.state.relentlessStreak > 0 || carriedRelentless))
-      ? resolvingSlots.map(s => s.idx)
-      : [];
-
-    return { onslaught: onslaughtSlots, triadic: triadicSlots, relentless: relentlessSlots };
+    return { chains };
   }
 
   /** Returns true if a slot's bound card can be returned to hand: it was
@@ -691,6 +716,14 @@ export class BattleRunner {
         const cleared = this.state.slots.filter(s => s.bound).length;
         for (const s of this.state.slots) s.bound = null;
         this.drawCards(cleared);
+        break;
+      }
+      case 'discard_draw': {
+        // Player must discard N cards (UI handles choice), then draws M.
+        // We record the pending discard count and stash the draw count so
+        // resolveDiscard() can complete it.
+        this.state.pendingDiscardCount = (this.state.pendingDiscardCount ?? 0) + effect.discard;
+        this.state.pendingDiscardDrawCount = (this.state.pendingDiscardDrawCount ?? 0) + effect.draw;
         break;
       }
       case 'instant_resolve_one_sigil': {
@@ -814,14 +847,10 @@ export class BattleRunner {
       );
     }
 
-    // 6. End-of-turn card flow (Phase 6): unspent hand goes to discard, draw
-    // a fresh hand for next turn, reset stamina. This mirrors Slay-the-Spire's
-    // discard-all-on-end pattern. Players who want to "save" cards across
-    // turns must bind them to slots (action) or play them (tactic) this turn.
-    while (this.state.hand.length > 0) {
-      this.state.discard.push(this.state.hand.shift()!);
-    }
-    this.drawCards(this.state.player.stats.handSize);
+    // 6. End-of-turn card flow: keep unspent hand cards, draw DRAW_PER_TURN.
+    // If the draw pushes hand over handCap(), pendingDiscardCount is set and
+    // the UI will prompt the player to discard before they can act next turn.
+    this.drawCards(DRAW_PER_TURN);
     this.state.staminaThisTurn = this.state.player.stats.stamina;
 
     this.state.turn += 1;
@@ -942,43 +971,22 @@ export class BattleRunner {
     // below so each emitted resolve event carries the right source slot.
     let resolvedSlots: number[] = [...slotIndices];
     while (resolvedSlots.length < resolved.length) resolvedSlots.push(-1);
-    // Group by damage type for combo evaluation.
-    const counts = new Map<DamageType, number>();
-    for (const a of resolved) {
-      counts.set(a.damageType, (counts.get(a.damageType) ?? 0) + 1);
-    }
-
-    const distinctCount = counts.size;
-    const allOneType = distinctCount === 1;
-    const carriedRelentless = allOneType
-      && (this.state.relentlessType === null
-        || this.state.relentlessType === resolved[0].damageType);
-
-    const triadicBonus = triadicStrikeBonus(distinctCount);
-    const triadicMult = triadicStrikeMultiplier(distinctCount);
 
     const outgoingMult = playerOutgoingMult(this.state.player);
 
-    // Equipment-side combo bonuses (Sigilbound 4pc +50% on onslaught, etc).
-    // Aggregated once per resolve set since combos are per-resolve.
-    const onslaughtFired = Array.from(counts.values()).some(c => c >= 2);
-    const eqOnslaught = onslaughtFired ? this.equipmentComboBonus('onslaught') : 0;
-    const eqTriadic = triadicBonus > 0 ? this.equipmentComboBonus('triadic') : 0;
-    const eqRelentless = carriedRelentless && this.state.relentlessStreak > 0
-      ? this.equipmentComboBonus('relentless')
-      : 0;
-    const equipmentComboMult = 1 + eqOnslaught + eqTriadic + eqRelentless;
+    // Equipment-side combo bonuses. Element chain maps to 'onslaught' trigger
+    // since Sigilbound 4pc (+50% on onslaught) should fire when a chain forms.
+    const eqOnslaught = this.equipmentComboBonus('onslaught');
+    const equipmentComboMult = 1 + eqOnslaught;
 
     // Talent-side combo math (Phase 6C):
     //   - Sigilbound Master: combo damage bonuses doubled. Applied as a
     //     scaler on the (mult - 1) portion so 1.0× combos stay neutral.
-    //   - Triple Threat: triadic damage +50%.
     const t = this.state.talents;
     const buffs = this.state.upgradeBuffs;
     // Both talents and Stronghold "Sigilbound Master" can scale combo bonuses.
     const allComboScale = Math.max(t.allComboDamageMult, buffs.allComboDamageMult);
     const talentComboScale = (mult: number) => 1 + (mult - 1) * allComboScale;
-    const triadicTalentMult = 1 + (triadicBonus > 0 ? t.triadicBonusPct : 0);
     // Stronghold "Combo Mastery": flat additive bonus to every combo strike.
     const upgradeComboBonusMult = 1 + buffs.comboDamageBonus;
 
@@ -998,10 +1006,22 @@ export class BattleRunner {
       }
       resolved = expanded;
       resolvedSlots = expandedSlots;
-      counts.clear();
-      for (const a of resolved) {
-        counts.set(a.damageType, (counts.get(a.damageType) ?? 0) + 1);
-      }
+    }
+
+    // Build element chain multiplier lookup: slot index → chain multiplier.
+    // Chains are computed from the original (pre-replication) slot positions
+    // so replicated cards inherit the chain mult of their source slot.
+    const maxSlotIdx = resolvedSlots.reduce((m, s) => Math.max(m, s), -1);
+    const slotTypeArray: Array<DamageType | null> = Array(maxSlotIdx + 1).fill(null);
+    for (let i = 0; i < resolvedSlots.length; i++) {
+      const si = resolvedSlots[i];
+      if (si >= 0) slotTypeArray[si] = resolved[i].damageType;
+    }
+    const elementChains = computeElementChains(slotTypeArray);
+    const chainMultBySlot = new Map<number, number>();
+    for (const chain of elementChains) {
+      const mult = elementChainMultiplier(chain.indices.length);
+      for (const idx of chain.indices) chainMultBySlot.set(idx, mult);
     }
 
     // Apply each strike. Combo bonuses fold into the raw damage; the damage
@@ -1009,9 +1029,9 @@ export class BattleRunner {
     for (let i = 0; i < resolved.length; i++) {
       const action = resolved[i];
       const sourceSlotIdx = resolvedSlots[i] ?? -1;
-      const same = counts.get(action.damageType) ?? 1;
-      const onMult = talentComboScale(onslaughtMultiplier(same));
-      const reMult = carriedRelentless ? talentComboScale(relentlessMultiplier(this.state.relentlessStreak)) : 1;
+      // Element chain multiplier for this slot (1 if not part of a chain).
+      const chainMultForSlot = chainMultBySlot.get(sourceSlotIdx) ?? 1;
+      const chainMult = talentComboScale(chainMultForSlot);
       const eqTypeMult = this.equipmentTypeBonus(action.damageType);
       // Talent + upgrade damage_type_bonus stack additively, multiplicative on raw.
       const talentTypeMult = 1
@@ -1026,13 +1046,9 @@ export class BattleRunner {
       if (battlecryMult > 1) {
         this.state.talents = { ...t, firstActionUsedThisTurn: true };
       }
-      // Triadic stacks two ways:
-      //   - flat add (triadicBonus, +30 per strike when 3+ types resolve)
-      //   - multiplier (triadicMult, +25% per strike) folded into the buff
-      // chain alongside Onslaught/Relentless/equipment/talent multipliers.
       const buffedRaw = Math.round(
-        action.damage * onMult * reMult * triadicMult * outgoingMult * equipmentComboMult * eqTypeMult * talentTypeMult * battlecryMult * triadicTalentMult * upgradeComboBonusMult,
-      ) + triadicBonus;
+        action.damage * chainMult * outgoingMult * equipmentComboMult * eqTypeMult * talentTypeMult * battlecryMult * upgradeComboBonusMult,
+      );
 
       // Look up the card def once per action for AOE + self-effect data.
       const cardDef = getActionDef(action.cardId);
@@ -1173,34 +1189,18 @@ export class BattleRunner {
       }
     }
 
-    // Combo bookkeeping.
-    if (counts.size > 0) {
-      const triadicFired = triadicBonus > 0;
-      const relentlessFired = carriedRelentless && this.state.relentlessStreak > 0;
-      if (onslaughtFired) {
-        this.fireComboReaction('onslaught');
-        this.applyEquipmentOnCombo('onslaught');
-        this.resolveLog.push({ kind: 'combo', combo: 'onslaught' });
-      }
-      if (triadicFired) {
-        this.fireComboReaction('triadic');
-        this.applyEquipmentOnCombo('triadic');
-        this.resolveLog.push({ kind: 'combo', combo: 'triadic' });
-      }
-      if (relentlessFired) {
-        this.fireComboReaction('relentless');
-        this.applyEquipmentOnCombo('relentless');
-        this.resolveLog.push({ kind: 'combo', combo: 'relentless' });
-      }
+    // Element chain combo bookkeeping — one event per chain group.
+    for (const chain of elementChains) {
+      this.fireComboReaction('onslaught');
+      this.applyEquipmentOnCombo('onslaught');
+      this.resolveLog.push({
+        kind: 'combo',
+        combo: 'element_chain',
+        damageType: chain.type,
+        chainLength: chain.indices.length,
+        slotIndices: chain.indices,
+      });
     }
-
-    // Update relentless streak for next turn.
-    const types = resolved.map(a => a.damageType);
-    const r = relentlessStreakAfter(this.state.relentlessStreak, types as never);
-    // We coerce to any because relentlessStreakAfter was written for crop
-    // types; the data shape is identical (string identity), so reuse is safe.
-    this.state.relentlessStreak = r.streak;
-    this.state.relentlessType = allOneType ? resolved[0].damageType : null;
   }
 
   private findLivingTarget(preferredId: string | undefined): EnemyState | undefined {
@@ -1342,7 +1342,7 @@ export class BattleRunner {
   }
 
   private fireComboReaction(combo: ComboKind): void {
-    this.state.combosTriggeredThisStage[combo] += 1;
+    this.state.combosTriggeredThisStage.element_chain += 1;
     this.fireReactionTrigger('onCombo', { combo });
     // Combo Cascade — talent + Stronghold's "Combo Cascade" upgrade BOTH
     // refund stamina + draw a card per combo. Sources stack additively.
@@ -1415,7 +1415,6 @@ function compileTalents(list: ReadonlyArray<Perk>): BattleState['talents'] {
     allComboDamageMult: 1,
     cardReplicateChance: 0,
     cleanTurnHeal: 0,
-    triadicBonusPct: 0,
     blockCarryCap: 0,
     comboStaminaRefund: 0,
     tacticEffectMult: 1,
@@ -1461,7 +1460,7 @@ function compileTalents(list: ReadonlyArray<Perk>): BattleState['talents'] {
         out.cleanTurnHeal = Math.max(out.cleanTurnHeal, m.value);
         break;
       case 'triadic_damage_bonus':
-        out.triadicBonusPct = Math.max(out.triadicBonusPct, m.pct);
+        // No longer used in element chain system — no-op.
         break;
       case 'block_carry_cap':
         out.blockCarryCap = Math.max(out.blockCarryCap, m.value);
