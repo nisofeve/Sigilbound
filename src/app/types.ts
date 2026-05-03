@@ -19,7 +19,7 @@ export type Screen =
   // Plotbound farm hub for emergency fallback.
   | { kind: 'sigilbound_hub' }
   | { kind: 'home' }
-  | { kind: 'perks'; stage: number | null }
+  | { kind: 'perks'; stage: number | null; hardmode?: boolean }
   | { kind: 'farmstead' }
   | { kind: 'settings' }
   | { kind: 'social' }
@@ -35,7 +35,7 @@ export type Screen =
   // Sigilbound combat flow (Phase 5 — parallel to the farming flow above).
   // Cleanup of the farming branch comes in Phase 6.
   | { kind: 'combat_home' }
-  | { kind: 'combat'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; carryHp?: number; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string> }
-  | { kind: 'combat_result'; outcome: 'cleared' | 'defeated'; stage: CombatStageDef; runner: BattleRunner; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string>; clearOutcome?: CombatClearOutcome }
+  | { kind: 'combat'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; hardmode?: boolean; carryHp?: number; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string> }
+  | { kind: 'combat_result'; outcome: 'cleared' | 'defeated'; stage: CombatStageDef; runner: BattleRunner; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; hardmode?: boolean; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string>; clearOutcome?: CombatClearOutcome }
   | { kind: 'bestiary' }
   | { kind: 'encyclopedia' };

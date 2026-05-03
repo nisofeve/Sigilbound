@@ -29,6 +29,7 @@ interface Props {
     talents: ReadonlyArray<Perk>;
     equipment: EquippedSet;
     hardcore: boolean;
+    hardmode?: boolean;
   }) => void;
   onBack: () => void;
   currentStage?: number;
