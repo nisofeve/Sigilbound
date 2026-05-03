@@ -37,9 +37,22 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
   }, [startStage, endStage]);
 
   const [deckExpanded, setDeckExpanded] = useState(false);
-  const [hardmode, setHardmode] = useState(false);
+  const [mode, setMode] = useState<'normal' | 'hard'>('normal');
   const [cardDetail, setCardDetail] = useState<ActionCardDef | TacticCardDef | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Hardmode: only show stages that are unlocked
+  const hardmodeUnlocked = profile.hardmodeUnlockedThrough ?? 0;
+  const isHardmodeTab = mode === 'hard';
+
+  const handleModeChange = (newMode: 'normal' | 'hard') => {
+    setMode(newMode);
+    setPage(0); // Reset pagination when switching modes
+  };
+
+  const visibleStages = isHardmodeTab
+    ? stages.filter(s => isHardmodeUnlocked(s, hardmodeUnlocked))
+    : stages;
 
   function startCardLongPress(def: ActionCardDef | TacticCardDef) {
     longPressTimer.current = setTimeout(() => {
@@ -100,66 +113,91 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
       {/* ── Header ── */}
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
+        alignItems: 'stretch',
         gap: 10,
-        padding: '14px 16px 10px',
+        padding: '14px 16px 0px',
         borderBottom: '1px solid rgba(255,235,180,0.08)',
         flexShrink: 0,
       }}>
-        <button
-          onClick={onBack}
-          style={{
-            background: 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
-            border: '1.5px solid var(--sb-bronze-dark)',
-            borderRadius: 8,
-            color: 'var(--sb-gold-light)',
-            padding: '6px 12px',
-            cursor: 'pointer',
-            fontFamily: "'Nunito', sans-serif",
-            fontSize: '0.78rem',
-            fontWeight: 800,
-            letterSpacing: '0.08em',
-          }}
-        >
-          ← HOME
-        </button>
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <div
-            className="sb-display"
-            style={{ fontSize: '1.1rem', color: 'var(--sb-gold-light)', letterSpacing: '0.25em' }}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <button
+            onClick={onBack}
+            style={{
+              background: 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
+              border: '1.5px solid var(--sb-bronze-dark)',
+              borderRadius: 8,
+              color: 'var(--sb-gold-light)',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              fontFamily: "'Nunito', sans-serif",
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+            }}
           >
-            ⚔ STAGES {hardmode && profile.hardmodeUnlockedThrough > 0 && '🔥'}
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {profile.hardmodeUnlockedThrough > 0 && (
-            <button
-              onClick={() => setHardmode(!hardmode)}
-              style={{
-                background: hardmode
-                  ? 'linear-gradient(180deg, rgba(248,113,113,0.3) 0%, rgba(127,29,29,0.4) 100%)'
-                  : 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
-                border: hardmode ? '1.5px solid #f87171' : '1.5px solid var(--sb-bronze-dark)',
-                borderRadius: 8,
-                color: hardmode ? '#fca5a5' : 'var(--sb-gold-light)',
-                padding: '6px 10px',
-                cursor: 'pointer',
-                fontFamily: "'Nunito', sans-serif",
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                letterSpacing: '0.08em',
-                transition: 'all 140ms ease',
-              }}
-            >
-              {hardmode ? '🔥 HARD' : 'NORM'}
-            </button>
-          )}
+            ← HOME
+          </button>
           <div
             className="sb-mono"
-            style={{ fontSize: '0.7rem', color: 'var(--sb-gold)', opacity: 0.7, letterSpacing: '0.1em', minWidth: 52, textAlign: 'right' }}
+            style={{ fontSize: '0.7rem', color: 'var(--sb-gold)', opacity: 0.7, letterSpacing: '0.1em' }}
           >
             {unlockedThrough}/{MAX_STAGES}
           </div>
+        </div>
+
+        {/* Mode tabs */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={() => handleModeChange('normal')}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '8px 8px 0 0',
+              background: mode === 'normal'
+                ? 'linear-gradient(180deg, rgba(102,187,106,0.2) 0%, rgba(76,175,80,0.1) 100%)'
+                : 'rgba(0,0,0,0.3)',
+              border: mode === 'normal'
+                ? '1.5px solid rgba(165,214,167,0.4)'
+                : '1px solid rgba(255,255,255,0.05)',
+              borderBottom: mode === 'normal' ? 'none' : '1px solid rgba(255,235,180,0.08)',
+              color: mode === 'normal' ? '#a5d6a7' : 'rgba(255,255,255,0.5)',
+              fontFamily: "'Nunito', sans-serif",
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              cursor: 'pointer',
+              transition: 'all 140ms ease',
+            }}
+          >
+            ⚔ NORMAL
+          </button>
+          {hardmodeUnlocked > 0 && (
+            <button
+              onClick={() => handleModeChange('hard')}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: '8px 8px 0 0',
+                background: mode === 'hard'
+                  ? 'linear-gradient(180deg, rgba(248,113,113,0.2) 0%, rgba(220,38,38,0.1) 100%)'
+                  : 'rgba(0,0,0,0.3)',
+                border: mode === 'hard'
+                  ? '1.5px solid rgba(248,113,113,0.4)'
+                  : '1px solid rgba(255,255,255,0.05)',
+                borderBottom: mode === 'hard' ? 'none' : '1px solid rgba(255,235,180,0.08)',
+                color: mode === 'hard' ? '#fca5a5' : 'rgba(255,255,255,0.5)',
+                fontFamily: "'Nunito', sans-serif",
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                cursor: 'pointer',
+                transition: 'all 140ms ease',
+              }}
+            >
+              🔥 HARDMODE
+            </button>
+          )}
         </div>
       </div>
 
@@ -283,15 +321,15 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
       {/* ── Stage grid ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 12px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.08) transparent' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, maxWidth: 600, margin: '0 auto' }}>
-          {stages.map(s => (
+          {visibleStages.map(s => (
             <StageCard
               key={s}
               stage={s}
-              unlocked={hardmode ? isHardmodeUnlocked(s, profile.hardmodeUnlockedThrough) : s <= unlockedThrough}
-              stars={hardmode ? (profile.hardmodeStageStars[s] ?? 0) : (profile.stageStars[s] ?? 0)}
-              isCurrent={hardmode ? false : s === unlockedThrough}
-              isHardmode={hardmode}
-              onPick={() => onPick(s, hardmode)}
+              unlocked={isHardmodeTab ? isHardmodeUnlocked(s, hardmodeUnlocked) : s <= unlockedThrough}
+              stars={isHardmodeTab ? (profile.hardmodeStageStars[s] ?? 0) : (profile.stageStars[s] ?? 0)}
+              isCurrent={isHardmodeTab ? false : s === unlockedThrough}
+              isHardmode={isHardmodeTab}
+              onPick={() => onPick(s, isHardmodeTab)}
             />
           ))}
         </div>
