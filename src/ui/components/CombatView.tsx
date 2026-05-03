@@ -47,6 +47,10 @@ interface Props {
   customDeck?: ReadonlyArray<string>;
   initialHp?: number;
   hardcore?: boolean;
+  // F1: Hardmode flag — when true, enemies receive 1.35× stat scaling.
+  hardmode?: boolean;
+  // F2: Enemy prestige level — +3% per level (cap 20), stacks with hardmode.
+  enemyPrestigeLevel?: number;
   // Stronghold upgrades — feed into stat block + runtime buffs at battle start.
   ownedUpgradeIds?: ReadonlyArray<string>;
   // Card tier damage multipliers (Phase 3). Maps card id → tier (1..5).
@@ -133,8 +137,8 @@ function useIsMobile(): boolean {
 }
 
 export default function CombatView({
-  stageNumber, playerLevel, equipment, talents, reactions, customDeck, initialHp, hardcore, ownedUpgradeIds,
-  cardTierMultipliers,
+  stageNumber, playerLevel, equipment, talents, reactions, customDeck, initialHp, hardcore, hardmode, enemyPrestigeLevel,
+  ownedUpgradeIds, cardTierMultipliers,
   playerName = 'Sigilist', playerAvatar = '🛡️',
   onOutcome, onExit,
 }: Props) {
@@ -143,11 +147,11 @@ export default function CombatView({
   const { runner, stage } = useMemo(() => {
     const result = buildStageRun({
       stageNumber, playerLevel, equipment, talents, reactions,
-      customDeck, initialHp, hardcore, ownedUpgradeIds,
+      customDeck, initialHp, hardcore, hardmode, enemyPrestigeLevel, ownedUpgradeIds,
       cardTierMultipliers,
     });
     return { runner: result.runner, stage: result.stage };
-  }, [stageNumber, playerLevel, equipment, talents, reactions, customDeck, initialHp, hardcore, ownedUpgradeIds, cardTierMultipliers]);
+  }, [stageNumber, playerLevel, equipment, talents, reactions, customDeck, initialHp, hardcore, hardmode, enemyPrestigeLevel, ownedUpgradeIds, cardTierMultipliers]);
 
   const [, setTick] = useState(0);
   const repaint = useCallback(() => setTick(t => t + 1), []);

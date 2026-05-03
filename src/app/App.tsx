@@ -33,7 +33,7 @@ import {
   type Profile,
   type StageRunOutcome,
 } from '@storage/index';
-import { getStageDef, type RunResult } from '@engine/index';
+import { emptyEquippedSet, type RunResult } from '@engine/index';
 import { isCloudEnabled } from '@firebase-app/client';
 import { watchAuth, type AuthStatus } from '@firebase-app/auth';
 import { pullOrSeedProfile, pushProfile } from '@firebase-app/profileSync';
@@ -82,45 +82,19 @@ export default function App() {
   // Modal state for the stage-info popover. When set, the home screen
   // overlays the StageInfoModal; pressing "Start Farming" from there routes
   // through the perk loadout into the game with that stage's fixed orders.
-  const [stageInfoOpen, setStageInfoOpen] = useState<number | null>(null);
+  const [stageInfoOpen, setStageInfoOpen] = useState<number | { stage: number; hardmode?: boolean } | null>(null);
 
-  async function startSoloRun(stage: number | null = null) {
-    let seed = Math.floor(Math.random() * 0xffffffff);
-    let cloud: CloudRunHandle | null = null;
-    if (auth.kind === 'signed_in') {
-      const cloudStart = await cloudStartRun({
-        perks: profile.perksEquipped,
-        ownedUpgradeIds: profile.upgradesOwned,
-      });
-      if (cloudStart) {
-        seed = cloudStart.seed;
-        cloud = { runId: cloudStart.runId, token: cloudStart.token, startedAt: cloudStart.startedAt, mode: 'solo' };
-      }
-    }
-    const { customDeck, customDeckGrades, ownedCardIds } = activeDeckPayload();
-    if (stage !== null) {
-      // Stage run — orders are FIXED by the stage def. Skip OrderPickScreen.
-      // Burn perk charges here since the player won't pass through the
-      // pre-run order picker that normally does it.
-      persistProfile(consumeEquippedPerksForRun(profile));
-      const def = getStageDef(stage);
-      setScreen({
-        kind: 'game',
-        seed,
-        perkIds: profile.perksEquipped,
-        ownedUpgradeIds: profile.upgradesOwned,
-        customDeck,
-        customDeckGrades,
-        ownedCardIds,
-        chosenOrders: def.orders,
-        stageNumber: stage,
-        cloud,
-      });
-      return;
-    }
-    // Free play — keep the original 3-of-5 picker so power users still get
-    // variety/agency.
-    setScreen({ kind: 'order_pick', seed, perkIds: profile.perksEquipped, ownedUpgradeIds: profile.upgradesOwned, customDeck, customDeckGrades, ownedCardIds, cloud });
+  function startCombatRun(stage: number, hardmode?: boolean) {
+    setScreen({
+      kind: 'combat',
+      stageNumber: stage,
+      talents: [],
+      equipment: emptyEquippedSet(),
+      hardcore: false,
+      hardmode,
+      customDeck: profile.combatDeck,
+      ownedUpgradeIds: profile.upgradesOwned,
+    });
   }
 
   async function startPvpRun(matchId: string, _sharedSeedFromList: number) {
@@ -250,20 +224,22 @@ export default function App() {
         <StageSelectScreen
           profile={profile}
           onProfileChange={persistProfile}
-          onPick={(stage) => setStageInfoOpen(stage)}
+          onPick={(stage, hardmode) => setStageInfoOpen({ stage, hardmode })}
           onBack={() => setScreen({ kind: 'home' })}
           onDeck={() => setScreen({ kind: 'deck' })}
         />
       )}
-      {stageInfoOpen !== null && (
+      {stageInfoOpen !== null && typeof stageInfoOpen === 'object' && (
         <StageInfoModal
-          stage={stageInfoOpen}
+          stage={stageInfoOpen.stage}
+          hardmode={stageInfoOpen.hardmode}
           profile={profile}
           onClose={() => setStageInfoOpen(null)}
           onStart={() => {
-            const target = stageInfoOpen;
+            const target = stageInfoOpen.stage;
+            const hm = stageInfoOpen.hardmode;
             setStageInfoOpen(null);
-            setScreen({ kind: 'perks', stage: target });
+            setScreen({ kind: 'perks', stage: target, hardmode: hm });
           }}
         />
       )}
@@ -303,8 +279,8 @@ export default function App() {
         <PerkLoadoutScreen
           profile={profile}
           onProfileChange={persistProfile}
-          onStart={() => void startSoloRun(screen.stage)}
-          onBack={() => setScreen({ kind: 'home' })}
+          onStart={() => void startCombatRun(screen.stage ?? 1, screen.hardmode)}
+          onBack={() => setScreen({ kind: 'sigilbound_hub' })}
         />
       )}
       {screen.kind === 'farmstead' && (
@@ -428,6 +404,8 @@ export default function App() {
           equipment={screen.equipment}
           talents={screen.talents}
           hardcore={screen.hardcore}
+          hardmode={screen.hardmode}
+          enemyPrestigeLevel={profile.enemyPrestigeLevel}
           initialHp={screen.carryHp}
           customDeck={screen.customDeck}
           ownedUpgradeIds={screen.ownedUpgradeIds}

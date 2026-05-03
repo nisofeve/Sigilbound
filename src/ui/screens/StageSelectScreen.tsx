@@ -1,14 +1,14 @@
 import { useMemo, useRef, useState } from 'react';
 import type { Profile } from '@storage/index';
 import { setActiveCombatDeckSet } from '@storage/index';
-import { getStageDef, allActions, allTactics, MAX_STAGES } from '@engine/index';
+import { getStageDef, allActions, allTactics, MAX_STAGES, isHardmodeUnlocked } from '@engine/index';
 import type { ActionCardDef, TacticCardDef } from '@engine/index';
 import { CardDetailModal } from '../components/CardDetailBody';
 
 interface Props {
   profile: Profile;
   onProfileChange?: (next: Profile) => void;
-  onPick: (stage: number) => void;
+  onPick: (stage: number, hardmode?: boolean) => void;
   onBack: () => void;
   onDeck?: () => void;
 }
@@ -37,6 +37,7 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
   }, [startStage, endStage]);
 
   const [deckExpanded, setDeckExpanded] = useState(false);
+  const [hardmode, setHardmode] = useState(false);
   const [cardDetail, setCardDetail] = useState<ActionCardDef | TacticCardDef | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -127,14 +128,38 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
             className="sb-display"
             style={{ fontSize: '1.1rem', color: 'var(--sb-gold-light)', letterSpacing: '0.25em' }}
           >
-            ⚔ STAGES
+            ⚔ STAGES {hardmode && profile.hardmodeUnlockedThrough > 0 && '🔥'}
           </div>
         </div>
-        <div
-          className="sb-mono"
-          style={{ fontSize: '0.7rem', color: 'var(--sb-gold)', opacity: 0.7, letterSpacing: '0.1em', minWidth: 52, textAlign: 'right' }}
-        >
-          {unlockedThrough}/{MAX_STAGES}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {profile.hardmodeUnlockedThrough > 0 && (
+            <button
+              onClick={() => setHardmode(!hardmode)}
+              style={{
+                background: hardmode
+                  ? 'linear-gradient(180deg, rgba(248,113,113,0.3) 0%, rgba(127,29,29,0.4) 100%)'
+                  : 'linear-gradient(180deg, #2c1810 0%, #1a0f0a 100%)',
+                border: hardmode ? '1.5px solid #f87171' : '1.5px solid var(--sb-bronze-dark)',
+                borderRadius: 8,
+                color: hardmode ? '#fca5a5' : 'var(--sb-gold-light)',
+                padding: '6px 10px',
+                cursor: 'pointer',
+                fontFamily: "'Nunito', sans-serif",
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                transition: 'all 140ms ease',
+              }}
+            >
+              {hardmode ? '🔥 HARD' : 'NORM'}
+            </button>
+          )}
+          <div
+            className="sb-mono"
+            style={{ fontSize: '0.7rem', color: 'var(--sb-gold)', opacity: 0.7, letterSpacing: '0.1em', minWidth: 52, textAlign: 'right' }}
+          >
+            {unlockedThrough}/{MAX_STAGES}
+          </div>
         </div>
       </div>
 
@@ -262,10 +287,11 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
             <StageCard
               key={s}
               stage={s}
-              unlocked={s <= unlockedThrough}
-              stars={profile.stageStars[s] ?? 0}
-              isCurrent={s === unlockedThrough}
-              onPick={() => onPick(s)}
+              unlocked={hardmode ? isHardmodeUnlocked(s, profile.hardmodeUnlockedThrough) : s <= unlockedThrough}
+              stars={hardmode ? (profile.hardmodeStageStars[s] ?? 0) : (profile.stageStars[s] ?? 0)}
+              isCurrent={hardmode ? false : s === unlockedThrough}
+              isHardmode={hardmode}
+              onPick={() => onPick(s, hardmode)}
             />
           ))}
         </div>
@@ -339,12 +365,13 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
 // ─── Stage Card ───────────────────────────────────────────────────────────────
 
 function StageCard({
-  stage, unlocked, stars, isCurrent, onPick,
+  stage, unlocked, stars, isCurrent, isHardmode, onPick,
 }: {
   stage: number;
   unlocked: boolean;
   stars: 0 | 1 | 2 | 3;
   isCurrent: boolean;
+  isHardmode?: boolean;
   onPick: () => void;
 }) {
   const def = unlocked ? getStageDef(stage) : null;
@@ -362,14 +389,20 @@ function StageCard({
         cursor: unlocked ? 'pointer' : 'not-allowed',
         background: !unlocked
           ? 'rgba(0,0,0,0.5)'
-          : isBoss
-            ? 'linear-gradient(160deg, rgba(127,29,29,0.6) 0%, rgba(60,12,12,0.7) 100%)'
-            : 'linear-gradient(160deg, rgba(34,89,46,0.35) 0%, rgba(6,13,7,0.7) 100%)',
+          : isHardmode
+            ? isBoss
+              ? 'linear-gradient(160deg, rgba(155,40,40,0.7) 0%, rgba(80,20,20,0.8) 100%)'
+              : 'linear-gradient(160deg, rgba(80,60,40,0.6) 0%, rgba(40,30,20,0.8) 100%)'
+            : isBoss
+              ? 'linear-gradient(160deg, rgba(127,29,29,0.6) 0%, rgba(60,12,12,0.7) 100%)'
+              : 'linear-gradient(160deg, rgba(34,89,46,0.35) 0%, rgba(6,13,7,0.7) 100%)',
         border: `1.5px solid ${!unlocked
           ? 'rgba(255,255,255,0.06)'
-          : isBoss
-            ? '#f87171'
-            : '#4ade8066'
+          : isHardmode
+            ? '#dc2626'
+            : isBoss
+              ? '#f87171'
+              : '#4ade8066'
         }`,
         boxShadow: isCurrent
           ? '0 0 0 2px #fbbf24, 0 4px 12px rgba(251,191,36,0.2)'
@@ -401,18 +434,28 @@ function StageCard({
         </div>
       )}
 
+      {/* Hardmode skull overlay */}
+      {isHardmode && unlocked && (
+        <div style={{
+          position: 'absolute', top: 4, right: 4,
+          fontSize: 18, opacity: 0.6,
+        }}>
+          💀
+        </div>
+      )}
+
       {/* Top: stage number + boss/lock icon */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <div className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.4)', letterSpacing: '0.15em', marginBottom: 1 }}>
-            STAGE
+            {isHardmode ? 'HARD' : 'STAGE'}
           </div>
           <div className="sb-display" style={{ fontSize: 22, color: isBoss ? '#fca5a5' : 'var(--sb-gold-light)', lineHeight: 1 }}>
             {stage}
           </div>
         </div>
         <span style={{ fontSize: 16, lineHeight: 1, marginTop: 2 }}>
-          {!unlocked ? '🔒' : isBoss ? '👑' : ''}
+          {!unlocked ? '🔒' : isHardmode ? '💀' : isBoss ? '👑' : ''}
         </span>
       </div>
 

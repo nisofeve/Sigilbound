@@ -8,6 +8,7 @@ interface Props {
   profile: Profile;
   onStart: () => void;
   onClose: () => void;
+  hardmode?: boolean;
 }
 
 // Modal that pops up before a stage run. Shows the stage's fixed orders,
@@ -15,13 +16,10 @@ interface Props {
 // the player has already posted on this stage. Pressing "Start Farming"
 // kicks off the perk-loadout → run pipeline; the parent decides where to
 // route based on whether the player has equipped perks etc.
-export default function StageInfoModal({ stage, profile, onStart, onClose }: Props) {
+export default function StageInfoModal({ stage, profile, onStart, onClose, hardmode = false }: Props) {
   const def = useMemo(() => getStageDef(stage), [stage]);
-  // TS without noUncheckedIndexedAccess narrows Record indexed access to the
-  // value type (1|2|3), eliding undefined — so we widen to `number` here so
-  // 0 (not yet cleared) is a valid sentinel.
-  const bestStars: number = profile.stageStars[stage] ?? 0;
-  const claimedTier: number = profile.stageRewardsClaimed[stage] ?? 0;
+  const bestStars: number = hardmode ? (profile.hardmodeStageStars[stage] ?? 0) : (profile.stageStars[stage] ?? 0);
+  const claimedTier: number = hardmode ? (profile.hardmodeRewardsClaimed[stage] ?? 0) : (profile.stageRewardsClaimed[stage] ?? 0);
 
   return (
     <div
@@ -39,14 +37,16 @@ export default function StageInfoModal({ stage, profile, onStart, onClose }: Pro
           <div
             className="inline-block px-4 py-1 rounded-full text-[10px] uppercase tracking-widest font-extrabold mb-2"
             style={{
-              background: def.kind === 'boss'
+              background: hardmode
+                ? 'linear-gradient(180deg, #d32f2f 0%, #7b1d1d 100%)'
+                : def.kind === 'boss'
                 ? 'linear-gradient(180deg, #ff80ab 0%, #c2185b 100%)'
                 : 'linear-gradient(180deg, #66bb6a 0%, #2e7d32 100%)',
               color: '#fff',
               boxShadow: '0 3px 0 rgba(0,0,0,0.25)',
             }}
           >
-            {def.kind === 'boss' ? '👑 Boss Stage' : 'Stage'}
+            {hardmode ? '🔥 Hardmode' : def.kind === 'boss' ? '👑 Boss Stage' : 'Stage'}
           </div>
           <h2 className="pb-title text-2xl">{def.title}</h2>
           <div className="mt-2 flex justify-center">

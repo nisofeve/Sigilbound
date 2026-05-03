@@ -5,7 +5,7 @@ import {
   allBpTiers,
   bpTierFromXp,
   getPerk,
-  type BpReward,
+  type BpRewardItem,
 } from '@engine/index';
 import { PREMIUM_PASS_GEM_COST } from '@engine/bp';
 import type { AuthStatus } from '@firebase-app/auth';
@@ -256,8 +256,8 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
 
 function TierRow(props: {
   tier: number;
-  free: BpReward | null;
-  premium: BpReward | null;
+  free: BpRewardItem | undefined;
+  premium: BpRewardItem | undefined;
   currentTier: number;
   premiumOwned: boolean;
   freeClaimed: boolean;
@@ -302,7 +302,7 @@ function TierRow(props: {
 }
 
 function RewardCell(props: {
-  reward: BpReward | null;
+  reward: BpRewardItem | undefined;
   track: 'free' | 'premium';
   tier: number;
   reached: boolean;
@@ -375,7 +375,7 @@ function RewardCell(props: {
   );
 }
 
-function rewardIcon(r: BpReward): string {
+function rewardIcon(r: BpRewardItem): string {
   switch (r.type) {
     case 'coins':  return '💰';
     case 'gems':   return '💎';
@@ -383,10 +383,13 @@ function rewardIcon(r: BpReward): string {
     case 'perk':   {
       try { return getPerk(r.value as string).icon; } catch { return '💎'; }
     }
+    case 'combat_card_copies': return '🃏';
+    case 'talent_charge': return '⚡';
+    case 'cosmetic': return '🎨';
   }
 }
 
-function describeReward(r: BpReward): string {
+function describeReward(r: BpRewardItem): string {
   switch (r.type) {
     case 'coins':  return `${r.value} coins`;
     case 'gems':   return `${r.value} gems`;
@@ -394,5 +397,8 @@ function describeReward(r: BpReward): string {
     case 'perk':   {
       try { return getPerk(r.value as string).name; } catch { return r.value as string; }
     }
+    case 'combat_card_copies': return `Card Copies ×${r.value}`;
+    case 'talent_charge': return `Talent Charge`;
+    case 'cosmetic': return `Cosmetic`;
   }
 }
