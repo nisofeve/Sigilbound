@@ -22,6 +22,9 @@ import CombatDeckScreen from '@ui/screens/CombatDeckScreen';
 import CombatShopScreen from '@ui/screens/CombatShopScreen';
 import BestiaryScreen from '@ui/screens/BestiaryScreen';
 import CardEncyclopediaScreen from '@ui/screens/CardEncyclopediaScreen';
+import LeaderboardScreen from '@ui/screens/LeaderboardScreen';
+import LoreJournalScreen from '@ui/screens/LoreJournalScreen';
+import CardUpgradeScreen from '@ui/screens/CardUpgradeScreen';
 import {
   applyStageOutcomeToProfile,
   applyCombatClearToProfile,
@@ -83,6 +86,9 @@ export default function App() {
   // overlays the StageInfoModal; pressing "Start Farming" from there routes
   // through the perk loadout into the game with that stage's fixed orders.
   const [stageInfoOpen, setStageInfoOpen] = useState<number | { stage: number; hardmode?: boolean } | null>(null);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [loreOpen, setLoreOpen] = useState(false);
+  const [cardUpgradeOpen, setCardUpgradeOpen] = useState(false);
 
   function startCombatRun(stage: number, hardmode?: boolean) {
     setScreen({
@@ -201,6 +207,9 @@ export default function App() {
           onShop={() => setScreen({ kind: 'shop' })}
           onBestiary={() => setScreen({ kind: 'bestiary' })}
           onEncyclopedia={() => setScreen({ kind: 'encyclopedia' })}
+          onLeaderboard={() => setLeaderboardOpen(true)}
+          onLore={() => setLoreOpen(true)}
+          onCardUpgrade={() => setCardUpgradeOpen(true)}
         />
       )}
       {screen.kind === 'home' && (
@@ -241,6 +250,24 @@ export default function App() {
             setStageInfoOpen(null);
             setScreen({ kind: 'perks', stage: target, hardmode: hm });
           }}
+        />
+      )}
+      {leaderboardOpen && (
+        <LeaderboardScreen
+          profile={profile}
+          onClose={() => setLeaderboardOpen(false)}
+        />
+      )}
+      {loreOpen && (
+        <LoreJournalScreen
+          profile={profile}
+          onClose={() => setLoreOpen(false)}
+        />
+      )}
+      {cardUpgradeOpen && (
+        <CardUpgradeScreen
+          profile={profile}
+          onClose={() => setCardUpgradeOpen(false)}
         />
       )}
       {screen.kind === 'profile' && (

@@ -14,10 +14,13 @@ interface Props {
   onShop: () => void;
   onBestiary: () => void;
   onEncyclopedia: () => void;
+  onLeaderboard?: () => void;
+  onLore?: () => void;
+  onCardUpgrade?: () => void;
 }
 
 export default function SigilboundHubScreen({
-  profile, onProfileChange, onCombat, onStronghold, onProfile, onSettings, onDeck, onShop, onBestiary, onEncyclopedia,
+  profile, onProfileChange, onCombat, onStronghold, onProfile, onSettings, onDeck, onShop, onBestiary, onEncyclopedia, onLeaderboard, onLore, onCardUpgrade,
 }: Props) {
   const stage = profile.currentStage ?? 1;
   const stageStars = profile.stageStars[stage] ?? 0;
@@ -159,7 +162,7 @@ export default function SigilboundHubScreen({
 
       {/* === BOTTOM DOCK === */}
       <nav
-        className="relative z-20 flex items-stretch justify-around gap-1 px-2 pb-3 pt-2 pointer-events-auto"
+        className="relative z-20 flex items-stretch justify-around gap-1 px-2 pb-3 pt-2 pointer-events-auto overflow-x-auto"
         style={{
           background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(15,10,7,0.85) 30%, rgba(15,10,7,0.95) 100%)',
           borderTop: '2px solid var(--sb-bronze-dark)',
@@ -171,6 +174,9 @@ export default function SigilboundHubScreen({
         <DockButton onClick={onStronghold}   icon="🏰" label="Stronghold" />
         <DockButton onClick={onBestiary}     icon="📖" label="Bestiary" />
         <DockButton onClick={onEncyclopedia} icon="📚" label="Cards" />
+        {onLeaderboard && <DockButton onClick={onLeaderboard} icon="🏆" label="Scores" />}
+        {onLore && <DockButton onClick={onLore} icon="📜" label="Lore" />}
+        {onCardUpgrade && <DockButton onClick={onCardUpgrade} icon="⚙" label="Upgrades" />}
       </nav>
 
       {/* version mark */}
