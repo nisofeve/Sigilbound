@@ -352,6 +352,7 @@ export default function CombatView({
       case 'block':                      return `+${e.amount} BLOCK`;
       case 'heal':                       return `HEAL ${e.amount} HP`;
       case 'draw':                       return `DRAW ${e.cards} CARD${e.cards !== 1 ? 'S' : ''}`;
+      case 'draw_and_buff':             return `DRAW ${e.cards} · +${Math.round(e.buffPct * 100)}% DMG`;
       case 'gain_stamina':               return `+${e.amount} STAMINA`;
       case 'damage_buff':                return `+${Math.round(e.pct * 100)}% DAMAGE`;
       case 'enemy_damage_debuff':        return `−${Math.round(e.pct * 100)}% ENEMY DMG`;

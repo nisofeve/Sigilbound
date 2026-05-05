@@ -41,6 +41,7 @@ import {
   XP_PER_TIER,
   VIP_PASS_GEM_COST,
   allBpTiers,
+  xpFromCombatClear,
   type CardId,
   type Grade,
   type LevelReward,
@@ -154,12 +155,13 @@ const empty: Profile = {
 // withDefaults() so legacy saves migrate forward. Tuned for a playable
 // run on stage 1 without any equipment.
 const COMBAT_STARTER_DECK: ReadonlyArray<string> = [
-  'act_001', 'act_001', 'act_001',  // 3 Strike (1-charge Steel)
-  'act_002', 'act_002',              // 2 Slash
-  'act_011',                          // 1 Firebolt
-  'act_015',                          // 1 Frost Shard
-  'act_019',                          // 1 Arcane Bolt
-  'tac_001', 'tac_002',              // Block + Bandage
+  'act_001', 'act_001',  // 2 Strike (1-charge Steel)
+  'act_002', 'act_002',  // 2 Slash
+  'act_011',             // 1 Firebolt
+  'act_015',             // 1 Frost Shard
+  'act_019',             // 1 Arcane Bolt
+  'tac_001', 'tac_001',  // 2 Block
+  'tac_002',             // Bandage
 ];
 
 function seedCombatStarter(p: Profile): Profile {
@@ -671,6 +673,7 @@ export interface CombatClearOutcome {
   itemDrops: ItemDrop[];                   // equipment / talent / card drops (first-clear only)
   newCurrentStage: number;                 // stage after this clear (unchanged on defeat)
   loreUnlocked: number[];                  // stage numbers of lore milestones newly unlocked this clear
+  bpXpAwarded: number;                     // BP XP granted for this clear
   achievementsUnlocked: Array<{
     id: string; rarity: string; name: string; icon: string;
     rewardCoins: number; rewardGems: number;
@@ -708,7 +711,7 @@ export function applyCombatClearToProfile(
   if (stars === 0) {
     return {
       profile,
-      outcome: { stars: 0, firstClearAtTier: 0, rewardsGranted: [], itemDrops: [], newCurrentStage: profile.currentStage, loreUnlocked: [], achievementsUnlocked: [] },
+      outcome: { stars: 0, firstClearAtTier: 0, rewardsGranted: [], itemDrops: [], newCurrentStage: profile.currentStage, loreUnlocked: [], bpXpAwarded: 0, achievementsUnlocked: [] },
     };
   }
 
@@ -851,6 +854,15 @@ export function applyCombatClearToProfile(
     next.bestRating = ratingFromStars;
   }
 
+  // Award BP XP for the combat clear.
+  const combatBpXp = xpFromCombatClear(
+    stageNum,
+    stars,
+    stage.isBoss ?? false,
+    result.hardcore ?? false,
+  );
+  next.bpXp = Math.min(TOTAL_BP_TIERS * XP_PER_TIER, next.bpXp + combatBpXp);
+
   // Evaluate achievements against the just-updated profile. Coin/gem
   // rewards are folded in here; the unlocked list flows out via the
   // outcome so the result screen can celebrate them.
@@ -867,6 +879,7 @@ export function applyCombatClearToProfile(
       itemDrops,
       newCurrentStage: next.currentStage,
       loreUnlocked,
+      bpXpAwarded: combatBpXp,
       achievementsUnlocked: unlocked,
     },
   };

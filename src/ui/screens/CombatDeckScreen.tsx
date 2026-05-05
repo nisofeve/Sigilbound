@@ -42,6 +42,7 @@ interface Props {
   profile: Profile;
   onProfileChange: (next: Profile) => void;
   onBack: () => void;
+  from?: 'stage_select' | 'stage_info';
 }
 
 interface PreviewTarget {
@@ -53,7 +54,7 @@ interface PreviewTarget {
 // Main screen
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function CombatDeckScreen({ profile, onProfileChange, onBack }: Props) {
+export default function CombatDeckScreen({ profile, onProfileChange, onBack, from }: Props) {
   const [tab, setTab]         = useState<Tab>('edit');
   const [filter, setFilter]   = useState<Filter>('all');
   const [msg, setMsg]         = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -124,7 +125,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
     return source.map(card => {
       const owned  = profile.combatCardInventory[card.id] ?? 0;
       const inDeck = deckCounts.get(card.id) ?? 0;
-      return { card, owned, inDeck, available: Math.max(0, owned - inDeck) };
+      return { card, owned, inDeck, available: Math.max(0, Math.min(owned - inDeck, 2 - inDeck)) };
     });
   }, [filter, ownedActions, ownedTactics, profile.combatCardInventory, deckCounts]);
 
@@ -137,6 +138,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
     const next = addToCombatDeck(profile, cardId);
     if (!next) {
       if (deckCount >= limits.max) showMsg('err', `Deck full (${limits.max} max)`);
+      else if ((deckCounts.get(cardId) ?? 0) >= 2) showMsg('err', 'Max 2 copies per card');
       else showMsg('err', 'No more copies owned');
       return;
     }
@@ -189,7 +191,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
 
           {/* Top bar */}
           <div className="flex items-center justify-between mb-4">
-            <button onClick={onBack} className="pb-btn pb-btn-cream pb-btn-sm">← Home</button>
+            <button onClick={onBack} className="pb-btn pb-btn-cream pb-btn-sm">{from ? '← Back' : '← Home'}</button>
             <div
               className="px-3 py-1.5 rounded-xl text-sm font-extrabold text-yellow-200"
               style={{ background: 'rgba(0,0,0,0.35)', border: '1.5px solid rgba(196,146,42,0.4)' }}

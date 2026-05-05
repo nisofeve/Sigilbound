@@ -25,7 +25,7 @@ export type Screen =
   | { kind: 'social' }
   | { kind: 'battlepass' }
   | { kind: 'shop' }
-  | { kind: 'deck' }
+  | { kind: 'deck'; from?: 'stage_select' | 'stage_info' }
   | { kind: 'profile' }
   | { kind: 'stage_select' }
   | { kind: 'order_pick'; seed: number; perkIds: string[]; ownedUpgradeIds: string[]; customDeck: string[]; customDeckGrades: string[]; ownedCardIds: string[]; cloud: CloudRunHandle | null }

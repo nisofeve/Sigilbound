@@ -53,9 +53,9 @@ export interface StatusDef {
 }
 
 export const STATUS_DEFS: Record<StatusId, StatusDef> = {
-  burn:       { id: 'burn',       icon: '🔥', name: 'Burn',       description: 'Deals 30 damage per stack at end of turn. Loses 1 stack each tick.',                              decayKind: 'damage' },
-  bleed:      { id: 'bleed',      icon: '🩸', name: 'Bleed',      description: 'Deals 40 damage per stack at end of turn. Loses 1 stack each tick.',                              decayKind: 'damage' },
-  poison:     { id: 'poison',     icon: '☠️', name: 'Poison',     description: 'Deals 20 damage per stack at end of turn. Stacks accumulate and decay by 1 each tick.',           decayKind: 'damage' },
+  burn:       { id: 'burn',       icon: '🔥', name: 'Burn',       description: 'Deals 15 damage per stack at end of turn. Loses 1 stack each tick.',                              decayKind: 'damage' },
+  bleed:      { id: 'bleed',      icon: '🩸', name: 'Bleed',      description: 'Deals 20 damage per stack at end of turn. Loses 1 stack each tick.',                              decayKind: 'damage' },
+  poison:     { id: 'poison',     icon: '☠️', name: 'Poison',     description: 'Deals 10 damage per stack at end of turn. Stacks accumulate and decay by 1 each tick.',           decayKind: 'damage' },
   frozen:     { id: 'frozen',     icon: '❄️', name: 'Frozen',     description: 'Skips the target\'s next action phase entirely.',                                                 decayKind: 'turns' },
   chill:      { id: 'chill',      icon: '🧊', name: 'Chill',      description: 'Slows the target. At 3 or more stacks the target loses its next turn.',                           decayKind: 'turns' },
   sleep:      { id: 'sleep',      icon: '💤', name: 'Sleep',      description: 'Target skips turns while asleep. Any damage wakes them immediately.',                              decayKind: 'turns' },
@@ -63,7 +63,7 @@ export const STATUS_DEFS: Record<StatusId, StatusDef> = {
   entangled:  { id: 'entangled',  icon: '🌿', name: 'Entangled',  description: 'Target cannot gain Block and deals reduced damage while bound.',                                   decayKind: 'turns' },
   charmed:    { id: 'charmed',    icon: '💛', name: 'Charmed',    description: 'Target attacks allies instead of enemies on its next turn.',                                       decayKind: 'turns' },
   weakened:   { id: 'weakened',   icon: '🌀', name: 'Weakened',   description: 'Reduces damage dealt by 25% for the duration.',                                                    decayKind: 'turns' },
-  empowered:  { id: 'empowered',  icon: '💪', name: 'Empowered',  description: 'Increases damage dealt by 30% for the duration.',                                                  decayKind: 'turns' },
+  empowered:  { id: 'empowered',  icon: '💪', name: 'Empowered',  description: 'Increases damage dealt by 10% per stack for the duration.',                                         decayKind: 'turns' },
   marked:     { id: 'marked',     icon: '👁',  name: 'Marked',     description: 'The next attack against this target deals 50% extra damage.',                                     decayKind: 'turns' },
   vulnerable: { id: 'vulnerable', icon: '💥', name: 'Vulnerable', description: 'Target takes 50% increased damage from all sources for the duration.',                            decayKind: 'turns' },
   curse:      { id: 'curse',      icon: '💀', name: 'Curse',      description: 'Drains 1 Stamina from the player (or reduces enemy ATK by 1) at the start of each turn.',         decayKind: 'turns' },
@@ -119,21 +119,21 @@ export function tickDamageOverTime(bag: StatusBag): DotTickResult {
   const breakdown = { burn: 0, bleed: 0, poison: 0 };
   const burn = bag.burn;
   if (burn && burn.stacks > 0) {
-    const d = 30 * burn.stacks;
+    const d = 15 * burn.stacks;
     damage += d;
     breakdown.burn = d;
     next = applyStackChange(next, 'burn', -1);
   }
   const bleed = bag.bleed;
   if (bleed && bleed.stacks > 0) {
-    const d = 40 * bleed.stacks;
+    const d = 20 * bleed.stacks;
     damage += d;
     breakdown.bleed = d;
     next = applyStackChange(next, 'bleed', -1);
   }
   const poison = bag.poison;
   if (poison && poison.stacks > 0) {
-    const d = 20 * poison.stacks; // 20 dmg per stack (Nature signature)
+    const d = 10 * poison.stacks;
     damage += d;
     breakdown.poison = d;
     next = applyStackChange(next, 'poison', -1);
@@ -183,7 +183,7 @@ export function decayStatuses(bag: StatusBag): StatusBag {
 export function outgoingDamageMult(bag: StatusBag): number {
   let m = 1;
   if (hasStatus(bag, 'weakened'))  m *= 0.75;
-  if (hasStatus(bag, 'empowered')) m *= 1.30;
+  if (hasStatus(bag, 'empowered')) m *= 1 + 0.10 * (bag.empowered?.stacks ?? 1);
   return m;
 }
 

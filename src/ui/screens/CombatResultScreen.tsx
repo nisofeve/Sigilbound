@@ -134,6 +134,19 @@ export default function CombatResultScreen({ outcome, stage, runner, clearOutcom
           <AchievementsUnlockedPanel achievements={clearOutcome.achievementsUnlocked} />
         )}
 
+        {/* Battle Pass XP awarded */}
+        {clearOutcome && clearOutcome.bpXpAwarded > 0 && (
+          <div className="sb-parchment p-3 mb-3 flex items-center gap-3">
+            <span style={{ fontSize: 22 }}>🏆</span>
+            <div>
+              <div className="sb-display" style={{ fontSize: 10, letterSpacing: '0.25em', color: 'var(--sb-gold-dark)', opacity: 0.7 }}>BATTLE PASS</div>
+              <div style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 800, fontSize: '0.85rem', color: '#fbbf24' }}>
+                +{clearOutcome.bpXpAwarded} XP
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Damage breakdown */}
         {totalDmg > 0 && (
           <div className="sb-parchment p-3 mb-3">

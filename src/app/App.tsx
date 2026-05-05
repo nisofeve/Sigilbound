@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import HomeScreen from '@ui/screens/HomeScreen';
 import GameView from '@ui/components/GameView';
 import ResultsScreen from '@ui/screens/ResultsScreen';
@@ -52,6 +52,11 @@ export default function App() {
   // farm home is still reachable as `{ kind: 'home' }` if a screen routes
   // there explicitly, but no normal flow does anymore.
   const [screen, setScreen] = useState<Screen>({ kind: 'sigilbound_hub' });
+  const prevScreenRef = useRef<Screen | null>(null);
+  function navigateTo(next: Screen) {
+    prevScreenRef.current = screen;
+    setScreen(next);
+  }
   const [auth, setAuth] = useState<AuthStatus>(
     isCloudEnabled() ? { kind: 'signing_in' } : { kind: 'cloud_disabled' },
   );
@@ -250,7 +255,7 @@ export default function App() {
           onProfileChange={persistProfile}
           onPick={(stage, hardmode) => setStageInfoOpen({ stage, hardmode })}
           onBack={() => setScreen({ kind: 'home' })}
-          onDeck={() => setScreen({ kind: 'deck' })}
+          onDeck={() => navigateTo({ kind: 'deck', from: 'stage_select' })}
         />
       )}
       {stageInfoOpen !== null && typeof stageInfoOpen === 'object' && (
@@ -299,7 +304,12 @@ export default function App() {
         <CombatDeckScreen
           profile={profile}
           onProfileChange={persistProfile}
-          onBack={() => setScreen({ kind: 'sigilbound_hub' })}
+          from={screen.from}
+          onBack={() => {
+            const prev = prevScreenRef.current;
+            if (screen.from && prev) setScreen(prev);
+            else setScreen({ kind: 'sigilbound_hub' });
+          }}
         />
       )}
       {screen.kind === 'battlepass' && (
@@ -573,7 +583,7 @@ export default function App() {
             })
           }
           onQuit={() => setScreen({ kind: 'sigilbound_hub' })}
-          onDeck={() => setScreen({ kind: 'deck' })}
+          onDeck={() => navigateTo({ kind: 'deck', from: 'stage_info' })}
           onProfileChange={persistProfile}
         />
       )}

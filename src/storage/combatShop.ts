@@ -157,6 +157,7 @@ export function addToCombatDeck(profile: Profile, cardId: string): Profile | nul
   const owned = profile.combatCardInventory[cardId] ?? 0;
   const inDeck = deck.filter(id => id === cardId).length;
   if (inDeck >= owned) return null;
+  if (inDeck >= 2) return null;
   return withActiveSetCards(profile, [...deck, cardId]);
 }
 
