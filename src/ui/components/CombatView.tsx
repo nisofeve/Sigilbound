@@ -27,6 +27,9 @@ import {
   elementChainMultiplier,
   computeElementChains,
   getBattleIntro,
+  STATUS_DEFS,
+  type StatusBag,
+  type StatusId,
 } from '@engine/index';
 import type { DamageType } from '../../engine/damage';
 import { elementalHitLabel } from '../../engine/damage';
@@ -219,6 +222,8 @@ export default function CombatView({
     | { kind: 'player' }
     | null
   >(null);
+  const [statusTooltip, setStatusTooltip] = useState<{ id: StatusId; stacks: number; turnsRemaining: number } | null>(null);
+  const [intentTooltip, setIntentTooltip] = useState<{ intent: Intent; enemyName: string } | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Refs for hand cards, slots, and enemies — used to measure DOM rects so
@@ -238,6 +243,14 @@ export default function CombatView({
   const [animating, setAnimating] = useState(false);
   const [displayedEnemyHp, setDisplayedEnemyHp] = useState<Record<string, number>>({});
   const [displayedPlayerHp, setDisplayedPlayerHp] = useState<number | null>(null);
+  // Block override for the resolve animation. Mirrors HP behaviour: snapshot
+  // pre-resolve block at start, drain it as enemy attacks consume it, revert
+  // to live engine state after the log finishes. `null` = use engine state.
+  const [displayedPlayerBlock, setDisplayedPlayerBlock] = useState<number | null>(null);
+  // Triggered for ~450ms when an enemy attack consumes block — drives a
+  // shake + flash animation on the block badge so the player sees the soak.
+  const [blockHitFlash, setBlockHitFlash] = useState(false);
+  const blockHitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Floating numbers + per-target hit-flash + projectile VFX queue.
   const [floaters, setFloaters] = useState<Array<{
     id: number; x: number; y: number; text: string; color: string; crit: boolean;
@@ -295,6 +308,20 @@ export default function CombatView({
   const floaterIdRef = useRef(0);
   const projectileIdRef = useRef(0);
 
+  // DoT (burn/bleed/poison) tick FX — each entry renders a flash overlay,
+  // a burst of status-coloured particles, and a rising floater on the target.
+  // Cleared automatically after the longest sub-animation completes (~1.1s).
+  type DotStatus = 'burn' | 'bleed' | 'poison';
+  const [dotFx, setDotFx] = useState<Array<{
+    id: number;
+    status: DotStatus;
+    // Snapshot of the target's bounding rect so the layer doesn't drift if
+    // the underlying card moves while the FX is alive.
+    left: number; top: number; width: number; height: number;
+    damage: number;
+  }>>([]);
+  const dotFxIdRef = useRef(0);
+
   // Flying-card animation state. While `flying` is non-null we render an
   // overlay card travelling from `from` to `to`. The original hand card with
   // realIndex === flying.handIndex is hidden so it appears to leave the hand.
@@ -343,6 +370,34 @@ export default function CombatView({
       case 'discard_draw':               return `DISCARD ${e.discard} · DRAW ${e.draw}`;
       default:                           return def.description.toUpperCase();
     }
+  }
+
+  // Returns the indices in `after` that correspond to NEWLY-DRAWN cards.
+  //
+  // Why this isn't a simple index-by-index `before[i] !== after[i]` check:
+  // when a card leaves the hand mid-operation (tactic discard, player-chosen
+  // discard, reaction discard, etc.) the array shifts. An index-diff then
+  // mis-flags every card after the splice point as "new", and the UI re-deals
+  // them from the deck — visually undoing the existing hand.
+  //
+  // We instead diff by content as a multiset, scanned end → start so that
+  // when the same card id existed before AND was just drawn again, the NEW
+  // copy (appended to the end by drawCards) is the one marked, not the
+  // original. Returned indices are sorted ascending for the dealer animation.
+  function diffDrawnIndices(before: ReadonlyArray<string>, after: ReadonlyArray<string>): number[] {
+    const remaining = new Map<string, number>();
+    for (const c of before) remaining.set(c, (remaining.get(c) ?? 0) + 1);
+    const drawn: number[] = [];
+    for (let i = after.length - 1; i >= 0; i--) {
+      const c = after[i];
+      const cnt = remaining.get(c) ?? 0;
+      if (cnt > 0) {
+        remaining.set(c, cnt - 1);
+      } else {
+        drawn.push(i);
+      }
+    }
+    return drawn.sort((a, b) => a - b);
   }
 
   async function handlePlayTactic(realHandIndex: number): Promise<void> {
@@ -413,10 +468,7 @@ export default function CombatView({
     const handBefore = [...runner.state.hand];
     runner.playTactic(realHandIndex);
     const handAfter = runner.state.hand;
-    const drawnIndices: number[] = [];
-    for (let i = 0; i < handAfter.length; i++) {
-      if (handBefore[i] !== handAfter[i]) drawnIndices.push(i);
-    }
+    const drawnIndices = diffDrawnIndices(handBefore, handAfter);
     if (drawnIndices.length > 0) {
       setDrawingCards(prev => { const n = new Set(prev); for (const idx of drawnIndices) n.add(idx); return n; });
     }
@@ -445,10 +497,7 @@ export default function CombatView({
       setDiscardPickSelected(new Set());
       // Find cards drawn by pendingDiscardDrawCount (discard_draw tactics).
       const handAfter = runner.state.hand;
-      const drawnIndices: number[] = [];
-      for (let i = 0; i < handAfter.length; i++) {
-        if (handBefore[i] !== handAfter[i]) drawnIndices.push(i);
-      }
+      const drawnIndices = diffDrawnIndices(handBefore, handAfter);
       if (drawnIndices.length > 0) {
         setDrawingCards(prev => {
           const next = new Set(prev);
@@ -475,15 +524,18 @@ export default function CombatView({
     }
   };
 
-  // Push a floating damage number at world coords. Auto-cleans after 900ms.
+  // Push a floating damage number at world coords. Auto-cleans after the
+  // CSS animation completes (slowed from 900ms → 1200ms so players have time
+  // to register the number before it fades).
   function spawnFloater(x: number, y: number, text: string, color: string, crit: boolean) {
     const id = ++floaterIdRef.current;
     setFloaters(list => [...list, { id, x, y, text, color, crit }]);
-    setTimeout(() => setFloaters(list => list.filter(f => f.id !== id)), 950);
+    setTimeout(() => setFloaters(list => list.filter(f => f.id !== id)), 1250);
   }
 
-  // Briefly flash an enemy/player target with a hit ring.
-  function flashTarget(id: string, durationMs = 380) {
+  // Briefly flash an enemy/player target with a hit ring. Default bumped from
+  // 380ms → 500ms so the impact flash is easier to read.
+  function flashTarget(id: string, durationMs = 500) {
     setHitFlashes(prev => {
       const next = new Set(prev);
       next.add(id);
@@ -549,11 +601,21 @@ export default function CombatView({
   }
 
   // Particle burst — explosion of small particles at the impact point.
-  // Sparks (steel/pyre), shards (frost), motes (arcane).
+  // Sparks (steel/pyre), shards (frost), motes (arcane). Cleanup window
+  // bumped (1100ms → 1450ms) so particles linger long enough to read.
   function spawnParticles(x: number, y: number, color: string, archetype: VfxArchetype, count = 8): void {
     const id = ++particleIdRef.current;
     setParticles(list => [...list, { id, x, y, color, archetype, count }]);
-    setTimeout(() => setParticles(list => list.filter(p => p.id !== id)), 1100);
+    setTimeout(() => setParticles(list => list.filter(p => p.id !== id)), 1450);
+  }
+
+  // Spawn a status-tick FX overlay (flash + particles + floater) on the
+  // target rect. Auto-cleans after the longest sub-animation finishes.
+  // Cleanup bumped to 1600ms to match the slowed CSS floater.
+  function spawnDotFx(rect: { left: number; top: number; width: number; height: number }, status: DotStatus, damage: number): void {
+    const id = ++dotFxIdRef.current;
+    setDotFx(list => [...list, { id, status, left: rect.left, top: rect.top, width: rect.width, height: rect.height, damage }]);
+    setTimeout(() => setDotFx(list => list.filter(p => p.id !== id)), 1600);
   }
 
   // Fireball explosion — bespoke multi-layer flame burst at impact point.
@@ -607,6 +669,21 @@ export default function CombatView({
     }
     if (initialPlayerHp !== null) setDisplayedPlayerHp(initialPlayerHp);
 
+    // Snapshot the block value the badge should show going INTO the enemy
+    // attack phase. The engine has already applied the whole turn so
+    // runner.state.player.block is the post-resolve value. We add back the
+    // total block consumed by enemy attacks in this log so the displayed
+    // value is correct just before the first enemy hit lands. selfBlock
+    // gained mid-log isn't reversed (it has no event), but in practice the
+    // viewer sees block "appear" from selfBlock action cards via that
+    // card's own VFX so the rail just snaps to the post-selfBlock value
+    // before the attacks start.
+    let totalBlockConsumed = 0;
+    for (const ev of log) {
+      if (ev.kind === 'enemy_attack') totalBlockConsumed += ev.blockConsumed;
+    }
+    setDisplayedPlayerBlock(runner.state.player.block + totalBlockConsumed);
+
     // Walk the log with grouped-volley awareness. We look ahead in
     // contiguous runs of action_resolve events and bundle the ones whose
     // slot is part of a combo into a single volley.
@@ -651,6 +728,9 @@ export default function CombatView({
         flashTarget(ev.enemyId, 280);
         await wait(180);
         i++;
+      } else if (ev.kind === 'status_dot') {
+        await playStatusDot(ev);
+        i++;
       } else {
         // enemy_debuff: silent for now — already covered by status icons later.
         i++;
@@ -664,6 +744,7 @@ export default function CombatView({
     setAnimating(false);
     setDisplayedEnemyHp({});
     setDisplayedPlayerHp(null);
+    setDisplayedPlayerBlock(null);
     setWindingUpSlots(new Set());
   }
 
@@ -879,11 +960,20 @@ export default function CombatView({
           spawnImpactRing(cx, cy, color, r.width * 0.8, 450);
           spawnParticles(cx, cy, color, 'bolt', 6);
           break;
-        case 'slash':
-          spawnSlash(cx, cy, r.width * 1.1, color, -25 + Math.random() * 50, timing.impactMs * 0.7);
+        case 'slash': {
+          // Per-attack jitter so back-to-back slashes never look identical:
+          // length scales 90%–140% of base (≈10–40% variation) and rotation
+          // spans a full 90° arc. Effect lingers for 2 seconds.
+          const slashScale = 0.9 + Math.random() * 0.5;
+          const slashAngle = -45 + Math.random() * 90;
+          spawnSlash(cx, cy, r.width * 1.1 * slashScale, color, slashAngle, 2000);
           spawnParticles(cx, cy, color, 'slash', 8);
+          // Fast air-cut whoosh layered with the visual slice — sells the
+          // speed of the swing in addition to the steelHit impact tone.
+          sfx.slashWhoosh();
           if (ev.wasCrit) shakeScreen('light');
           break;
+        }
         case 'smash':
           spawnSlash(cx, cy, r.width * 1.3, color, 0, timing.impactMs * 0.7);
           spawnImpactRing(cx, cy, color, r.width * 1.5, 700);
@@ -1003,6 +1093,21 @@ export default function CombatView({
     // screen shakes, HP bar drains, floater number rises.
     // ============================================================
     setDisplayedPlayerHp(ev.playerHpAfter);
+    // Block consumption: drop the displayed block by the consumed amount
+    // and trigger the shake/flash on the badge. This runs even when block
+    // soaks the entire hit (damageDealt = 0) so the player sees the shield
+    // do its job.
+    if (ev.blockConsumed > 0) {
+      setDisplayedPlayerBlock(prev => {
+        // prev is set by the resolve-log opener; subtract this hit's bite.
+        const base = prev ?? runner.state.player.block + ev.blockConsumed;
+        return Math.max(0, base - ev.blockConsumed);
+      });
+      setBlockHitFlash(true);
+      if (blockHitTimerRef.current) clearTimeout(blockHitTimerRef.current);
+      blockHitTimerRef.current = setTimeout(() => setBlockHitFlash(false), 450);
+      sfx.blockSoak();
+    }
     const r = playerEl.getBoundingClientRect();
     const cx = r.left + r.width / 2;
     const cy = r.top + r.height / 2;
@@ -1035,12 +1140,19 @@ export default function CombatView({
         spawnParticles(cx, cy, color, 'bolt', 8);
         break;
       case 'slash':
-      default:
-        // Sweeping slash arc across the player bar + sparks.
-        spawnSlash(cx, cy, Math.min(r.width * 0.85, 260), color, -25 + Math.random() * 50, timing.impactMs * 0.7);
+      default: {
+        // Per-attack jitter so back-to-back slashes never look identical:
+        // length scales 90%–140% of base (≈10–40% variation) and rotation
+        // spans a full 90° arc. Effect lingers for 2 seconds.
+        const slashScale = 0.9 + Math.random() * 0.5;
+        const slashAngle = -45 + Math.random() * 90;
+        spawnSlash(cx, cy, Math.min(r.width * 0.85, 260) * slashScale, color, slashAngle, 2000);
         spawnImpactRing(cx, cy, color, Math.min(r.width * 0.5, 160), 500);
         spawnParticles(cx, cy, color, 'slash', 10);
+        // Fast air-cut whoosh layered with the visual slice.
+        sfx.slashWhoosh();
         break;
+      }
     }
 
     // Strong shake on the player bar itself — a hard jolt at the moment of
@@ -1075,6 +1187,68 @@ export default function CombatView({
       shakeScreen(ev.damageDealt > 15 ? 'heavy' : 'light');
     }
     await wait(timing.impactMs);
+  }
+
+  // Status DoT tick (burn / bleed / poison). Each event animates one
+  // (target × status) hit: flash overlay + particle burst + rising floater
+  // + status-specific SFX. Player flash uses the existing __player__ key.
+  // Damage on the displayed HP is committed mid-animation so the bar drops
+  // in time with the SFX.
+  async function playStatusDot(ev: Extract<ResolveEvent, { kind: 'status_dot' }>): Promise<void> {
+    let rect: { left: number; top: number; width: number; height: number } | null = null;
+    let flashKey: string | null = null;
+    if (ev.targetKind === 'enemy' && ev.targetId) {
+      const el = enemyRefs.current.get(ev.targetId);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        rect = { left: r.left, top: r.top, width: r.width, height: r.height };
+      }
+      flashKey = ev.targetId;
+    } else if (ev.targetKind === 'player') {
+      const el = playerHpRef.current;
+      if (el) {
+        const r = el.getBoundingClientRect();
+        rect = { left: r.left, top: r.top, width: r.width, height: r.height };
+      }
+      flashKey = '__player__';
+    }
+
+    // Without a rect we still need to commit the HP delta so the bar agrees
+    // with engine state before the animation queue continues.
+    if (!rect) {
+      if (ev.targetKind === 'enemy' && ev.targetId) {
+        setDisplayedEnemyHp(p => ({ ...p, [ev.targetId!]: ev.hpAfter }));
+      } else if (ev.targetKind === 'player') {
+        setDisplayedPlayerHp(ev.hpAfter);
+      }
+      await wait(200);
+      return;
+    }
+
+    // Status-specific config — palette, SFX, glyph.
+    const cfg = ev.status === 'burn'
+      ? { color: '#f97316', glow: '#fb923c', icon: '🔥', play: () => sfx.burnTick() }
+      : ev.status === 'poison'
+        ? { color: '#a855f7', glow: '#c084fc', icon: '☠', play: () => sfx.poisonTick() }
+        : { color: '#dc2626', glow: '#f87171', icon: '🩸', play: () => sfx.bleedTick() };
+
+    cfg.play();
+    if (flashKey) flashTarget(flashKey, 700);
+    spawnDotFx(rect, ev.status, ev.damage);
+
+    // Commit displayed HP partway through so the bar drains as the floater
+    // climbs — feels like the tick lands rather than vanishing instantly.
+    await wait(500);
+    if (ev.targetKind === 'enemy' && ev.targetId) {
+      setDisplayedEnemyHp(p => ({ ...p, [ev.targetId!]: ev.hpAfter }));
+    } else if (ev.targetKind === 'player') {
+      setDisplayedPlayerHp(ev.hpAfter);
+    }
+
+    // Hold so the next tick (next target, or next status) can read clearly.
+    // Per-tick budget ~1050ms (was 750ms) — slower so DoT damage lands with
+    // visible weight rather than blurring past.
+    await wait(550);
   }
 
   function handleEndTurn(force = false): void {
@@ -1118,14 +1292,12 @@ export default function CombatView({
     const outcome = runner.endTurn();
     const log = runner.getLastResolveLog();
 
-    // Compute which hand indices changed (new cards drawn or positions shifted)
-    // and hide them BEFORE repaint() so they never flash visible during the
-    // attack animation sequence.
+    // Compute which hand indices are newly drawn cards (content-diff —
+    // index-diff misfires when cards mid-array are removed during resolve,
+    // see diffDrawnIndices for rationale). Hide them BEFORE repaint() so
+    // they never flash visible during the attack animation sequence.
     const handAfter = runner.state.hand;
-    const dealIndicesEarly: number[] = [];
-    for (let i = 0; i < handAfter.length; i++) {
-      if (handBefore[i] !== handAfter[i]) dealIndicesEarly.push(i);
-    }
+    const dealIndicesEarly = diffDrawnIndices(handBefore, handAfter);
     if (dealIndicesEarly.length > 0) {
       setDrawingCards(prev => {
         const next = new Set(prev);
@@ -1159,6 +1331,9 @@ export default function CombatView({
 
   function commitBind(realHandIndex: number, slotIndex: number): void {
     if (runner.bindHandToSlot(realHandIndex, slotIndex)) {
+      // Thud the moment the card lands in the slot — gives the bind real
+      // physical weight. Played after the flight animation already finished.
+      sfx.cardThud();
       if (selectedEnemyId) runner.retarget(slotIndex, selectedEnemyId);
       setSelectedHandIdx(null);
       setHandCardPopup(null);
@@ -1648,14 +1823,22 @@ export default function CombatView({
   }
 
   // Deal `indices` sequentially. Called from handleEndTurn (post-resolve) and
-  // on mount for the opening hand.
+  // on mount for the opening hand. Cards arrive one at a time, in left-to-
+  // right order, so the player can see each one slot into the fan.
   async function dealNewCards(indices: number[]): Promise<void> {
     if (indices.length === 0) return;
+    // Defensive: deal in left-to-right hand order so the visual sequence
+    // matches the fan layout. Callers already pass sorted indices, but
+    // guarantee it here so a future caller can't break the visual.
+    const ordered = [...indices].sort((a, b) => a - b);
     setIsDealing(true);
     // Mark all indices as hidden so they don't show in the fan prematurely.
+    // While hidden, HandCard renders at `opacity: 0` parked at the deck
+    // origin so the fan slot exists in DOM (preserving cardRefs) but the
+    // viewer sees nothing in the gap.
     setDrawingCards(prev => {
       const next = new Set(prev);
-      for (const idx of indices) next.add(idx);
+      for (const idx of ordered) next.add(idx);
       return next;
     });
 
@@ -1667,12 +1850,12 @@ export default function CombatView({
     const deckOrigin = { x: vw - 60, y: vh - 60 };
 
     // Determine card dimensions from the first available cardRef, or use a default.
-    const firstRef = cardRefs.current.get(indices[0] ?? -1)
+    const firstRef = cardRefs.current.get(ordered[0] ?? -1)
       ?? (cardRefs.current.values().next().value as HTMLDivElement | undefined);
     const sampleW = firstRef?.offsetWidth  ?? 82;
     const sampleH = firstRef?.offsetHeight ?? 115;
 
-    for (const idx of indices) {
+    for (const idx of ordered) {
       // Wait a frame so React has committed the hand render for this index
       // before we read its DOM rect.
       await new Promise<void>(r => requestAnimationFrame(() => r()));
@@ -1686,21 +1869,31 @@ export default function CombatView({
 
       const def = getAction(runner.state.hand[idx] ?? '');
       if (!def) {
-        // Non-action card (tactic) — just unhide it instantly.
+        // Non-action card (tactic) — flight overlay still flies the card
+        // back, but uses a generic placeholder. Reveal it instantly after
+        // the (skipped) flight so tactics still slot in order with actions.
         setDrawingCards(prev => { const n = new Set(prev); n.delete(idx); return n; });
+        // Brief pause so the next card still feels staggered.
+        if (idx !== ordered[ordered.length - 1]) {
+          await new Promise<void>(r => setTimeout(r, 110));
+        }
         continue;
       }
 
       sfx.cardDraw();
       await animateDealCard(def, sampleW, sampleH, deckOrigin, to);
 
-      // Reveal the real card in the fan and remove from hidden set.
+      // Reveal the real card in the fan. Because the hidden state parks
+      // the card at the deck origin (matching where the overlay just
+      // landed in opacity), the fan-in transition is a clean slide from
+      // deck → fan slot rather than a pop-up from below.
       setDrawingCards(prev => { const n = new Set(prev); n.delete(idx); return n; });
       repaint();
 
-      // Brief pause between each card — like a human dealing.
-      if (indices.indexOf(idx) < indices.length - 1) {
-        await new Promise<void>(r => setTimeout(r, 35));
+      // Visible pause between each card — bumped from 35ms → 110ms so the
+      // sequential lining-up is clearly readable to the player.
+      if (idx !== ordered[ordered.length - 1]) {
+        await new Promise<void>(r => setTimeout(r, 110));
       }
     }
 
@@ -1803,6 +1996,10 @@ export default function CombatView({
 
   const p = runner.state.player;
   const shownPlayerHp = displayedPlayerHp ?? p.currentHp;
+  // Block override mirrors HP — used by the buff rail so the badge can
+  // animate from before-attack value down to after-attack value during the
+  // resolve log, even though the engine has already applied the consumption.
+  const shownPlayerBlock = displayedPlayerBlock ?? p.block;
   const hpRatio = Math.max(0, shownPlayerHp / Math.max(1, p.stats.maxHp));
   const lowHp = hpRatio < 0.25;
   const playerFlashing = hitFlashes.has('__player__');
@@ -1869,6 +2066,155 @@ export default function CombatView({
   }
 
   // === Shared subcomponents ===
+
+  // Per-status accent colors (border + tinted background).
+  const STATUS_COLORS: Partial<Record<StatusId, string>> = {
+    burn: '#f97316', bleed: '#dc2626', poison: '#a855f7',
+    frozen: '#93c5fd', chill: '#bfdbfe', sleep: '#94a3b8',
+    stun: '#fbbf24', entangled: '#4ade80', charmed: '#f472b6',
+    weakened: '#6b7280', empowered: '#fbbf24', marked: '#fcd34d',
+    vulnerable: '#f97316', curse: '#c026d3', regen: '#22c55e',
+    hasted: '#facc15',
+  };
+
+  // Player buff/status rail — reserved-height row beneath the HP bar.
+  // Always renders the same vertical footprint so the player bar layout
+  // stays stable whether the player has block/status or none. Block badge
+  // shakes + flashes when blockShaking is true (driven by enemy attacks
+  // consuming block).
+  function PlayerBuffRail({
+    block, blockShaking, statuses, compact,
+  }: {
+    block: number;
+    blockShaking: boolean;
+    statuses: StatusBag;
+    compact: boolean;
+  }) {
+    const statusEntries = (Object.entries(statuses) as Array<[StatusId, { stacks: number; turnsRemaining: number }]>)
+      .filter(([id, v]) => id !== 'block' && v && v.stacks > 0);
+    const railHeight = compact ? 22 : 26;
+    return (
+      <div style={{
+        marginTop: 4,
+        height: railHeight,
+        minHeight: railHeight,
+        display: 'flex', alignItems: 'center',
+        gap: 4, flexWrap: 'nowrap', overflow: 'hidden',
+      }}>
+        {/* Block badge — tap to show block description */}
+        {block > 0 && (
+          <div
+            className={blockShaking ? 'sb-block-shake' : undefined}
+            onClick={() => setStatusTooltip({ id: 'block', stacks: block, turnsRemaining: -1 })}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: compact ? '1px 6px 1px 4px' : '2px 8px 2px 5px',
+              background: blockShaking
+                ? 'linear-gradient(135deg, #2c5e9c 0%, #1a3a6e 100%)'
+                : 'linear-gradient(135deg, #1e3a5f 0%, #0f2040 100%)',
+              border: `1.5px solid ${blockShaking ? '#bae6fd' : '#60a5fa'}`,
+              borderRadius: 3,
+              boxShadow: blockShaking
+                ? '0 0 14px rgba(186,230,253,0.85), inset 0 1px 0 rgba(255,255,255,0.3)'
+                : '0 0 8px rgba(96,165,250,0.35), inset 0 1px 0 rgba(147,197,253,0.15)',
+              transition: 'background 200ms ease, border-color 200ms ease, box-shadow 200ms ease',
+              flexShrink: 0,
+              cursor: 'pointer',
+            }}
+          >
+            <svg width={compact ? 10 : 12} height={compact ? 11 : 13} viewBox="0 0 12 14" fill="none">
+              <path d="M6 1L11 3.2V7.5C11 10.2 8.8 12.5 6 13C3.2 12.5 1 10.2 1 7.5V3.2L6 1Z" fill="#2563eb" stroke="#93c5fd" strokeWidth="1.2"/>
+              <path d="M6 3.5L9 4.8V7.5C9 9.2 7.7 10.6 6 11C4.3 10.6 3 9.2 3 7.5V4.8L6 3.5Z" fill="#60a5fa" opacity="0.5"/>
+            </svg>
+            <span className="sb-mono" style={{
+              fontSize: compact ? 11 : 12, fontWeight: 700,
+              color: blockShaking ? '#e0f2fe' : '#93c5fd',
+              letterSpacing: '0.05em',
+              textShadow: blockShaking
+                ? '0 0 8px rgba(255,255,255,0.7)'
+                : '0 0 6px rgba(96,165,250,0.5)',
+              lineHeight: 1,
+              transition: 'color 200ms ease',
+            }}>
+              {block}
+            </span>
+          </div>
+        )}
+        {/* Status badges — tap to show description */}
+        {statusEntries.map(([id, inst]) => {
+          const def = STATUS_DEFS[id];
+          const color = STATUS_COLORS[id] ?? '#6b7280';
+          return (
+            <div
+              key={id}
+              onClick={() => setStatusTooltip({ id, stacks: inst.stacks, turnsRemaining: inst.turnsRemaining })}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 2,
+                padding: compact ? '0px 4px' : '1px 5px',
+                background: `${color}28`,
+                border: `1px solid ${color}88`,
+                borderRadius: 3,
+                fontSize: compact ? 9 : 10,
+                lineHeight: 1,
+                flexShrink: 0,
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: compact ? 10 : 11, lineHeight: 1 }}>{def.icon}</span>
+              {inst.stacks > 1 && (
+                <span className="sb-mono" style={{
+                  fontWeight: 700, color: '#e2d5c0',
+                  fontSize: compact ? 9 : 10, lineHeight: 1,
+                }}>
+                  {inst.stacks}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function StatusBadges({ bag, compact = false }: { bag: StatusBag; compact?: boolean }) {
+    const entries = (Object.entries(bag) as Array<[StatusId, { stacks: number; turnsRemaining: number }]>)
+      .filter(([id, v]) => id !== 'block' && v && v.stacks > 0);
+    if (entries.length === 0) return null;
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+        {entries.map(([id, inst]) => {
+          const def = STATUS_DEFS[id];
+          const color = STATUS_COLORS[id] ?? '#6b7280';
+          return (
+            <div
+              key={id}
+              onClick={() => setStatusTooltip({ id, stacks: inst.stacks, turnsRemaining: inst.turnsRemaining })}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 2,
+                padding: compact ? '0px 4px' : '1px 5px',
+                background: `${color}28`,
+                border: `1px solid ${color}88`,
+                borderRadius: 3,
+                fontSize: compact ? 9 : 10,
+                lineHeight: 1,
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: compact ? 10 : 11, lineHeight: 1 }}>{def.icon}</span>
+              {inst.stacks > 1 && (
+                <span className="sb-mono" style={{
+                  fontWeight: 700, color: '#e2d5c0',
+                  fontSize: compact ? 9 : 10, lineHeight: 1,
+                }}>
+                  {inst.stacks}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   // Player bar — avatar + name + HP. Sits at the bottom of the playfield as
   // the player's "card" peer to the enemy cards at the top. The HP banner
@@ -1950,9 +2296,19 @@ export default function CombatView({
               textShadow: '0 1px 2px rgba(0,0,0,0.9)',
               letterSpacing: '0.05em',
             }}>
-              {shownPlayerHp} / {p.stats.maxHp}{p.block > 0 ? `  🛡 ${p.block}` : ''}
+              {shownPlayerHp} / {p.stats.maxHp}
             </div>
           </div>
+          {/* Buff/status rail — fixed height so block & status icons
+              appear/disappear without resizing the player bar above. The
+              row is reserved even when empty. Block badge animates a shake
+              + flash when consumed (blockHitFlash). */}
+          <PlayerBuffRail
+            block={shownPlayerBlock}
+            blockShaking={blockHitFlash}
+            statuses={p.statuses}
+            compact={compact}
+          />
         </div>
       </div>
     );
@@ -2028,6 +2384,7 @@ export default function CombatView({
         {/* Intent telegraph — floats above the card so the player can plan. */}
         <div
           className="sb-mono"
+          onClick={!dead ? () => setIntentTooltip({ intent: e.intent, enemyName: def?.name ?? e.defId }) : undefined}
           style={{
             padding: '3px 8px',
             background: dead
@@ -2047,6 +2404,7 @@ export default function CombatView({
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             boxShadow: isBossEnemy && !dead ? '0 0 12px rgba(251,191,36,0.3)' : 'none',
+            cursor: dead ? 'default' : 'pointer',
           }}
         >
           {dead ? '💀 SLAIN' : intentDisplay(e.intent)}
@@ -2070,6 +2428,17 @@ export default function CombatView({
             <div style={{ width: cardW, height: cardH, background: '#222', borderRadius: 8 }} />
           )}
         </div>
+
+        {/* Status effect badges */}
+        {!dead && (() => {
+          const badges = StatusBadges({ bag: e.statuses, compact: true });
+          if (!badges) return null;
+          return (
+            <div style={{ maxWidth: cardW + 8, width: '100%' }}>
+              {badges}
+            </div>
+          );
+        })()}
 
         {selected && (
           <div
@@ -2496,19 +2865,24 @@ export default function CombatView({
           opacity: isFlyingSource ? 0 : drawing ? 0 : (dragging ? 0.4 : (isTactic && !canAffordTactic ? 0.55 : 1)),
           visibility: isFlyingSource ? 'hidden' : 'visible',
           transformOrigin: 'center center',
-          transform: drawing
-            ? `translateX(${baseX}px) translateY(280px) rotate(${offsetIdx > 0 ? 22 : -22}deg) scale(0.7)`
-            : `translateX(${baseX}px) translateY(${arcY - lift}px) rotate(${rot}deg) scale(${scale})`,
+          // Drawing cards are parked at the FINAL fan slot but invisible.
+          // The deal overlay flies separately and lands at the same spot;
+          // when it finishes, drawing → false fades the real card in at
+          // its proper position with no spring-up detour.
+          transform: `translateX(${baseX}px) translateY(${arcY - lift - (selectedForDiscard ? 48 : 0)}px) rotate(${rot}deg) scale(${scale})`,
+          // When a card just stopped drawing the deal overlay has already
+          // visually landed at this spot; fade in the real card quickly
+          // (90ms) so the swap is seamless rather than a slow ghost.
           transition: drawing
             ? `transform 0ms, opacity 0ms`
-            : `transform 480ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 320ms ease-out`,
+            : `transform 480ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 90ms ease-out`,
           willChange: 'transform',
           userSelect: 'none',
           pointerEvents: 'auto',
-          zIndex: selected ? 200 : (hovered ? 150 : 10 + i),
-          outline: selectedForDiscard ? '3px solid #ef4444' : undefined,
+          zIndex: selectedForDiscard ? 200 : (selected ? 200 : (hovered ? 150 : 10 + i)),
+          outline: selectedForDiscard ? '2px solid #ef4444' : undefined,
           borderRadius: selectedForDiscard ? 8 : undefined,
-          filter: selectedForDiscard ? 'brightness(1.3)' : undefined,
+          filter: selectedForDiscard ? 'brightness(1.2) drop-shadow(0 0 8px rgba(239,68,68,0.7))' : undefined,
         }}
       >
         <div className={isDiscardPicking && !selectedForDiscard ? 'sb-hand-discard-shake' : ''} style={{ width: '100%', height: '100%' }}>
@@ -3429,29 +3803,84 @@ export default function CombatView({
     </div>
   );
 
-  // Slash impact overlay — sweeping arc on the target for slash/smash strikes.
+  // Slash impact overlay — sharp, straight blade slice rendered with SVG.
+  // A semi-transparent sword cut: thin sharp white core inside a soft colored
+  // halo. The path is drawn via stroke-dashoffset animation so the slash
+  // visibly sweeps along its line, then trails off as it fades.
   const SlashLayer = slashes.length > 0 && (
     <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 255 }}>
-      {slashes.map(s => (
-        <div
-          key={s.id}
-          className="sb-slash"
-          style={{
-            position: 'absolute',
-            left: s.x - s.size / 2,
-            top: s.y - 14,
-            width: s.size,
-            height: 28,
-            transform: `rotate(${s.angle}deg)`,
-            transformOrigin: 'center center',
-            background: `linear-gradient(90deg, transparent 0%, ${s.color}00 5%, ${s.color}cc 25%, #ffffff 50%, ${s.color}cc 75%, ${s.color}00 95%, transparent 100%)`,
-            borderRadius: 14,
-            filter: `drop-shadow(0 0 10px ${s.color}) drop-shadow(0 0 24px ${s.color}cc)`,
-            pointerEvents: 'none',
-            ['--slash-duration' as string]: `${s.durationMs}ms`,
-          } as React.CSSProperties}
-        />
-      ))}
+      {slashes.map(s => {
+        // SVG viewBox 100×24. The slash is a straight line from (2,12) to
+        // (98,12) — perfectly horizontal so the inline rotation handles the
+        // swing angle. Wrap height is kept tight so the bounding box doesn't
+        // catch other elements visually.
+        const w = s.size;
+        const h = Math.max(20, s.size * 0.16);
+        return (
+          <div
+            key={s.id}
+            className="sb-slash-wrap"
+            style={{
+              position: 'absolute',
+              left: s.x - w / 2,
+              top: s.y - h / 2,
+              width: w,
+              height: h,
+              transformOrigin: 'center center',
+              pointerEvents: 'none',
+              // CSS custom properties feed the keyframe transform so the
+              // rotation stays applied throughout the animation.
+              ['--slash-duration' as string]: `${s.durationMs}ms`,
+              ['--slash-rot' as string]: `${s.angle}deg`,
+            } as React.CSSProperties}
+          >
+            <svg
+              width="100%"
+              height="100%"
+              viewBox="0 0 100 24"
+              preserveAspectRatio="none"
+              style={{
+                overflow: 'visible',
+                // Soft semi-transparent halo around the line — keeps the
+                // strike readable without pasting an opaque colored bar
+                // over the target.
+                filter: `drop-shadow(0 0 4px ${s.color}88) drop-shadow(0 0 10px ${s.color}55)`,
+              }}
+            >
+              {/* Outer glow — wide, soft, very transparent. */}
+              <path
+                className="sb-slash-glow"
+                d="M 2 12 L 98 12"
+                fill="none"
+                stroke={s.color}
+                strokeWidth={4}
+                strokeLinecap="butt"
+                opacity={0.35}
+              />
+              {/* Mid-weight tinted line — the colored "blade body". */}
+              <path
+                className="sb-slash-main"
+                d="M 2 12 L 98 12"
+                fill="none"
+                stroke={s.color}
+                strokeWidth={1.6}
+                strokeLinecap="butt"
+                opacity={0.55}
+              />
+              {/* Sharp white core — the cut itself. Thin and crisp. */}
+              <path
+                className="sb-slash-core"
+                d="M 2 12 L 98 12"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth={0.9}
+                strokeLinecap="butt"
+                opacity={0.7}
+              />
+            </svg>
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -3666,6 +4095,74 @@ export default function CombatView({
           {f.text}
         </div>
       ))}
+    </div>
+  );
+
+  // DoT tick FX layer — burn/bleed/poison flash + particles + floater
+  // anchored to the snapshot rect. One entry per (target × status × turn).
+  const DotFxLayer = dotFx.length > 0 && (
+    <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 259 }}>
+      {dotFx.map(fx => {
+        const cfg = fx.status === 'burn'
+          ? { glow: 'rgba(249,115,22,0.55)', color: '#f97316', icon: '🔥', particle: 'sb-dot-ember', floaterGlow: '#fb923c' }
+          : fx.status === 'poison'
+            ? { glow: 'rgba(168,85,247,0.55)', color: '#a855f7', icon: '☠', particle: 'sb-dot-drip', floaterGlow: '#c084fc' }
+            : { glow: 'rgba(220,38,38,0.55)', color: '#dc2626', icon: '🩸', particle: 'sb-dot-bleed', floaterGlow: '#f87171' };
+        const cx = fx.left + fx.width / 2;
+        const cy = fx.top + fx.height / 2;
+        return (
+          <div key={fx.id} style={{ position: 'absolute', left: fx.left, top: fx.top, width: fx.width, height: fx.height }}>
+            {/* Card-wide flash overlay */}
+            <div
+              className="sb-dot-flash"
+              style={{
+                background: `radial-gradient(circle at 50% 60%, ${cfg.color}66 0%, ${cfg.color}22 50%, transparent 80%)`,
+                boxShadow: `inset 0 0 24px ${cfg.glow}`,
+              }}
+            />
+            {/* Particle burst — 12 anchored to base of card, drifting per archetype */}
+            {Array.from({ length: 12 }).map((_, i) => {
+              // Offset particles around the card. Burn rises (drift mostly
+              // up), drip/bleed fall (drift down — handled by their own
+              // keyframes). Horizontal --dx randomised per particle.
+              const slot = (i / 12) * Math.PI * 2;
+              const dx = Math.cos(slot) * (10 + (i % 4) * 4);
+              const startX = fx.width * 0.5 + (Math.cos(slot) * fx.width * 0.35);
+              const startY = fx.status === 'burn'
+                ? fx.height * 0.7 + (i % 3) * 4   // embers rise from lower portion
+                : fx.height * 0.15 + (i % 3) * 4; // drips fall from upper portion
+              return (
+                <div
+                  key={i}
+                  className={cfg.particle}
+                  style={{
+                    left: startX,
+                    top: startY,
+                    animationDelay: `${(i * 30) % 240}ms`,
+                    ['--dx' as string]: `${dx}px`,
+                    ['--dur' as string]: `${1200 + (i % 3) * 100}ms`,
+                  } as React.CSSProperties}
+                />
+              );
+            })}
+            {/* Rising floater positioned above card centre. Uses fixed positioning
+                so it can rise past the card border without being clipped. */}
+            <div
+              className="sb-dot-floater"
+              style={{
+                left: cx,
+                top: cy - 4,
+                color: cfg.color,
+                fontSize: 22,
+                ['--floater-glow' as string]: cfg.floaterGlow,
+              } as React.CSSProperties}
+            >
+              <span style={{ marginRight: 6 }}>{cfg.icon}</span>
+              -{fx.damage}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -3911,6 +4408,336 @@ export default function CombatView({
       </div>
     </>
   );
+
+  // Status effect tooltip — shown on tap of any status badge.
+  const StatusTooltipModal = statusTooltip && (() => {
+    const def = STATUS_DEFS[statusTooltip.id];
+    const color = STATUS_COLORS[statusTooltip.id] ?? '#6b7280';
+    const { stacks, turnsRemaining } = statusTooltip;
+    return (
+      <div
+        onClick={() => setStatusTooltip(null)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 60,
+          background: 'rgba(0,0,0,0.72)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '0 20px',
+        }}
+      >
+        <div
+          className="pb-pop-in"
+          onClick={e => e.stopPropagation()}
+          style={{
+            width: '100%',
+            maxWidth: 300,
+            background: 'linear-gradient(160deg, #0f0b17 0%, #0a0810 100%)',
+            border: `1.5px solid ${color}88`,
+            borderRadius: 14,
+            boxShadow: `0 0 32px ${color}44, 0 8px 32px rgba(0,0,0,0.7)`,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            padding: '14px 16px 10px',
+            borderBottom: `1px solid ${color}33`,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 28, lineHeight: 1 }}>{def.icon}</span>
+            <div>
+              <div style={{
+                fontFamily: "'Fredoka One', cursive",
+                fontSize: '1.1rem',
+                color: '#f1f5f9',
+                lineHeight: 1,
+              }}>
+                {def.name}
+              </div>
+              <div style={{
+                fontFamily: "'Nunito', sans-serif",
+                fontSize: '0.6rem', fontWeight: 800,
+                letterSpacing: '0.15em',
+                color: color,
+                textTransform: 'uppercase',
+                marginTop: 2,
+              }}>
+                {def.decayKind === 'permanent' ? 'PASSIVE' : def.decayKind === 'damage' ? 'DOT' : 'DEBUFF'}
+              </div>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '12px 16px' }}>
+            <p style={{
+              fontFamily: "'Nunito', sans-serif",
+              fontSize: '0.78rem', fontWeight: 600,
+              lineHeight: 1.6,
+              color: 'rgba(226,232,240,0.9)',
+              margin: 0,
+            }}>
+              {def.description}
+            </p>
+
+            {/* Current state chips */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              {stacks > 0 && (
+                <div style={{
+                  background: `${color}22`, border: `1px solid ${color}66`,
+                  borderRadius: 6, padding: '3px 8px',
+                  fontFamily: "'Nunito', sans-serif", fontSize: '0.65rem', fontWeight: 800,
+                  color: color, letterSpacing: '0.08em',
+                }}>
+                  {stacks > 1 ? `×${stacks} STACKS` : '×1 STACK'}
+                </div>
+              )}
+              {turnsRemaining > 0 && (
+                <div style={{
+                  background: 'rgba(255,235,180,0.08)', border: '1px solid rgba(255,235,180,0.25)',
+                  borderRadius: 6, padding: '3px 8px',
+                  fontFamily: "'Nunito', sans-serif", fontSize: '0.65rem', fontWeight: 800,
+                  color: 'rgba(255,235,180,0.7)', letterSpacing: '0.08em',
+                }}>
+                  {turnsRemaining}T REMAINING
+                </div>
+              )}
+              {turnsRemaining === -1 && (
+                <div style={{
+                  background: 'rgba(255,235,180,0.08)', border: '1px solid rgba(255,235,180,0.25)',
+                  borderRadius: 6, padding: '3px 8px',
+                  fontFamily: "'Nunito', sans-serif", fontSize: '0.65rem', fontWeight: 800,
+                  color: 'rgba(255,235,180,0.7)', letterSpacing: '0.08em',
+                }}>
+                  PERSISTENT
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Close */}
+          <div style={{ padding: '0 16px 14px' }}>
+            <button
+              onClick={() => setStatusTooltip(null)}
+              style={{
+                width: '100%', padding: '8px 0', borderRadius: 8,
+                background: `${color}18`,
+                border: `1.5px solid ${color}55`,
+                color: '#e2e8f0', cursor: 'pointer',
+                fontFamily: "'Nunito', sans-serif", fontSize: '0.78rem', fontWeight: 800,
+                letterSpacing: '0.06em',
+              }}
+            >
+              CLOSE
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  })();
+
+  // Intent tooltip — shown on tap of the enemy's next-action badge.
+  const IntentTooltipModal = intentTooltip && (() => {
+    const { intent, enemyName } = intentTooltip;
+
+    // Resolve nested charge payload
+    const resolved: Intent = intent.kind === 'charge' ? intent.payload : intent;
+
+    type IntentInfo = { icon: string; label: string; detail: string; color: string };
+    function describeIntent(i: Intent): IntentInfo {
+      switch (i.kind) {
+        case 'attack': {
+          const totalDmg = i.hits && i.hits > 1 ? `${i.damage} × ${i.hits} hits` : `${i.damage}`;
+          const pierceNote = i.piercing ? ` (ignores ${Math.round(i.piercing * 100)}% block)` : '';
+          return {
+            icon: '⚔',
+            label: 'ATTACK',
+            detail: `Deals ${totalDmg} ${i.type.toUpperCase()} damage${pierceNote}.`,
+            color: '#f87171',
+          };
+        }
+        case 'block':
+          return {
+            icon: '🛡',
+            label: 'DEFEND',
+            detail: `Gains ${i.amount} Block. Reduces incoming damage until the start of its next turn.`,
+            color: '#60a5fa',
+          };
+        case 'debuff': {
+          const statusDef = STATUS_DEFS[i.status];
+          return {
+            icon: statusDef?.icon ?? '🌀',
+            label: 'DEBUFF',
+            detail: `Applies ${i.stacks} stack${i.stacks > 1 ? 's' : ''} of ${statusDef?.name ?? i.status} for ${i.turns} turn${i.turns > 1 ? 's' : ''}. ${statusDef?.description ?? ''}`,
+            color: '#c084fc',
+          };
+        }
+        case 'summon':
+          return {
+            icon: '💀',
+            label: 'SUMMON',
+            detail: `Summons a ${i.archetype} ally to join the fight.`,
+            color: '#f472b6',
+          };
+        case 'charge':
+          return {
+            icon: '⏳',
+            label: 'CHARGING',
+            detail: `Winding up a powerful attack. Fires in ${i.turnsLeft + 1} turn${i.turnsLeft + 1 > 1 ? 's' : ''}.`,
+            color: '#fbbf24',
+          };
+        case 'hidden':
+          return {
+            icon: '❓',
+            label: 'UNKNOWN',
+            detail: 'Intent is concealed. Expect the unexpected.',
+            color: '#94a3b8',
+          };
+        default:
+          return { icon: '?', label: 'ACTION', detail: 'Unknown action.', color: '#6b7280' };
+      }
+    }
+
+    const info = describeIntent(intent);
+    const resolvedInfo = intent.kind === 'charge' ? describeIntent(resolved) : null;
+
+    return (
+      <div
+        onClick={() => setIntentTooltip(null)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 60,
+          background: 'rgba(0,0,0,0.72)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '0 20px',
+        }}
+      >
+        <div
+          className="pb-pop-in"
+          onClick={e => e.stopPropagation()}
+          style={{
+            width: '100%',
+            maxWidth: 300,
+            background: 'linear-gradient(160deg, #1a0d0d 0%, #0f0a0a 100%)',
+            border: `1.5px solid ${info.color}88`,
+            borderRadius: 14,
+            boxShadow: `0 0 32px ${info.color}44, 0 8px 32px rgba(0,0,0,0.7)`,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Enemy name header */}
+          <div style={{
+            padding: '10px 16px 8px',
+            borderBottom: `1px solid ${info.color}33`,
+          }}>
+            <div style={{
+              fontFamily: "'Nunito', sans-serif",
+              fontSize: '0.6rem', fontWeight: 800,
+              letterSpacing: '0.2em',
+              color: 'rgba(255,235,180,0.5)',
+              textTransform: 'uppercase',
+              marginBottom: 2,
+            }}>
+              {enemyName} · NEXT ACTION
+            </div>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <span style={{ fontSize: 28, lineHeight: 1 }}>{info.icon}</span>
+              <div>
+                <div style={{
+                  fontFamily: "'Fredoka One', cursive",
+                  fontSize: '1.1rem',
+                  color: '#f1f5f9',
+                  lineHeight: 1,
+                }}>
+                  {info.label}
+                </div>
+                <div style={{
+                  fontFamily: "'Nunito', sans-serif",
+                  fontSize: '0.6rem', fontWeight: 800,
+                  letterSpacing: '0.15em',
+                  color: info.color,
+                  textTransform: 'uppercase',
+                  marginTop: 2,
+                }}>
+                  {intentDisplay(intent)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div style={{ padding: '12px 16px' }}>
+            <p style={{
+              fontFamily: "'Nunito', sans-serif",
+              fontSize: '0.78rem', fontWeight: 600,
+              lineHeight: 1.6,
+              color: 'rgba(226,232,240,0.9)',
+              margin: 0,
+            }}>
+              {info.detail}
+            </p>
+
+            {/* Charge payload preview */}
+            {resolvedInfo && (
+              <div style={{
+                marginTop: 12,
+                padding: '8px 10px',
+                background: `${resolvedInfo.color}14`,
+                border: `1px solid ${resolvedInfo.color}44`,
+                borderRadius: 8,
+              }}>
+                <div style={{
+                  fontFamily: "'Nunito', sans-serif",
+                  fontSize: '0.58rem', fontWeight: 800,
+                  letterSpacing: '0.15em',
+                  color: 'rgba(255,235,180,0.5)',
+                  textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}>
+                  PAYLOAD
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 18 }}>{resolvedInfo.icon}</span>
+                  <span style={{
+                    fontFamily: "'Nunito', sans-serif",
+                    fontSize: '0.72rem', fontWeight: 700,
+                    color: resolvedInfo.color,
+                  }}>
+                    {resolvedInfo.label}
+                  </span>
+                </div>
+                <p style={{
+                  fontFamily: "'Nunito', sans-serif",
+                  fontSize: '0.72rem', fontWeight: 600,
+                  lineHeight: 1.5,
+                  color: 'rgba(226,232,240,0.75)',
+                  margin: '4px 0 0',
+                }}>
+                  {resolvedInfo.detail}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Close */}
+          <div style={{ padding: '0 16px 14px' }}>
+            <button
+              onClick={() => setIntentTooltip(null)}
+              style={{
+                width: '100%', padding: '8px 0', borderRadius: 8,
+                background: `${info.color}18`,
+                border: `1.5px solid ${info.color}55`,
+                color: '#e2e8f0', cursor: 'pointer',
+                fontFamily: "'Nunito', sans-serif", fontSize: '0.78rem', fontWeight: 800,
+                letterSpacing: '0.06em',
+              }}
+            >
+              CLOSE
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  })();
 
   // SVG connector lines between adjacent slots that share an element chain.
   // Thick glowing elemental lines with animated flow particles.
@@ -4414,8 +5241,11 @@ export default function CombatView({
         {FireballExplosionLayer}
         {SlashLayer}
         {ParticleLayer}
+        {DotFxLayer}
         {FloaterLayer}
         {InfoModal}
+        {StatusTooltipModal}
+        {IntentTooltipModal}
         {HandCardPopupLayer}
         {OutcomeAnnounceLayer}
         {ConfirmDialogLayer}
@@ -4661,8 +5491,11 @@ export default function CombatView({
       {FireballExplosionLayer}
       {SlashLayer}
       {ParticleLayer}
+      {DotFxLayer}
       {FloaterLayer}
       {InfoModal}
+      {StatusTooltipModal}
+      {IntentTooltipModal}
       {HandCardPopupLayer}
       {OutcomeAnnounceLayer}
       {ConfirmDialogLayer}

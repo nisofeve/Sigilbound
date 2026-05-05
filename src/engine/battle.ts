@@ -59,7 +59,7 @@ import {
 import { getAction as getActionDef, getTactic as getTacticDef, type TacticEffect } from './actionCards';
 import { scaleStatForLevel } from './cardLevels';
 import type { DamageType } from './damage';
-import { clearSleepOnHit, applyStatus } from './status';
+import { clearSleepOnHit, applyStatus, tickDamageOverTime, tickHealOverTime, decayStatuses } from './status';
 import type { CardId, Perk } from './types';
 import { compileUpgradeBuffs, emptyUpgradeBuffs, type UpgradeBuffs } from './upgradeBuffs';
 
@@ -110,6 +110,18 @@ export type ResolveEvent =
       kind: 'enemy_debuff';
       enemyId: string;
       status: string;
+    }
+  | {
+      // Damage-over-time tick (burn / bleed / poison) at end-of-turn.
+      // Emitted once per (target × status) when tick damage > 0 so the UI
+      // can sequence per-target VFX/SFX.
+      kind: 'status_dot';
+      targetKind: 'enemy' | 'player';
+      targetId?: string;            // enemy id; absent when targetKind === 'player'
+      status: 'burn' | 'bleed' | 'poison';
+      damage: number;
+      hpAfter: number;
+      killed: boolean;
     };
 
 export interface ActionInstance {
@@ -801,9 +813,60 @@ export class BattleRunner {
       if (this.state.outcome !== 'in_progress') return this.state.outcome;
     }
 
+    // 3b. Enemy status tick: DoT damage, regen, decay, block reset.
+    for (const enemy of this.state.enemies) {
+      if (!isEnemyAlive(enemy)) continue;
+      const dotResult = tickDamageOverTime(enemy.statuses);
+      const healResult = tickHealOverTime(dotResult.bag);
+      let hp = enemy.currentHp;
+      if (dotResult.damage > 0) hp = Math.max(0, hp - dotResult.damage);
+      if (healResult.heal > 0) hp = Math.min(enemy.maxHp, hp + healResult.heal);
+      const decayed = decayStatuses(healResult.bag);
+      this.state.enemies = this.state.enemies.map(e =>
+        e.id === enemy.id ? { ...e, currentHp: hp, statuses: decayed, block: 0 } : e,
+      );
+      // Emit one resolve event per status that dealt damage so the UI can
+      // sequence VFX/SFX per (enemy × status). hp here already reflects the
+      // post-tick value, used so the modal "killed" badge can fire.
+      const killed = hp === 0 && enemy.currentHp > 0;
+      for (const s of ['burn', 'bleed', 'poison'] as const) {
+        const d = dotResult.breakdown[s];
+        if (d > 0) {
+          this.resolveLog.push({
+            kind: 'status_dot',
+            targetKind: 'enemy',
+            targetId: enemy.id,
+            status: s,
+            damage: d,
+            hpAfter: hp,
+            killed,
+          });
+        }
+      }
+    }
+    if (this.checkOutcome()) return this.state.outcome;
+
     // 4. Status tick on player (DoT damage, regen, decay).
     const tick = tickEndOfPlayerTurn(this.state.player);
     this.state.player = tick.combatant;
+    // Mirror the per-status events emitted for enemies above so the UI can
+    // play the same animation sequence on the player frame.
+    if (tick.dotDamage > 0) {
+      const playerKilled = tick.combatant.currentHp === 0;
+      for (const s of ['burn', 'bleed', 'poison'] as const) {
+        const d = tick.dotBreakdown[s];
+        if (d > 0) {
+          this.resolveLog.push({
+            kind: 'status_dot',
+            targetKind: 'player',
+            status: s,
+            damage: d,
+            hpAfter: tick.combatant.currentHp,
+            killed: playerKilled,
+          });
+        }
+      }
+    }
     if (this.checkOutcome()) return this.state.outcome;
 
     // Stronghold Meditation: passive HP regen each turn.

@@ -109,7 +109,7 @@ export function TacticCard({
   const accent = RARITY_COLOR[card.rarity] ?? RARITY_COLOR.common;
 
   const stats: GameCardStat[] = [
-    { glyph: '◆', value: card.cost, color: '#86efac', title: 'COST' },
+    { glyph: '⚡', value: card.cost, color: '#86efac', title: 'COST' },
     ...(card.persistent ? [{ glyph: '∞', value: 'PERS', color: '#c4b5fd', title: 'PERSISTENT' }] : []),
   ];
 

@@ -3,8 +3,6 @@ import {
   allStages,
   allTalents,
   allEquipment,
-  allActions,
-  allTactics,
   emptyEquippedSet,
   equip,
   maxPerkSlots,
@@ -20,7 +18,8 @@ import { EnemyCard } from '@ui/components/EnemyCard';
 import { TalentCard } from '@ui/components/TalentCard';
 import { EquipmentCard } from '@ui/components/EquipmentCard';
 import { CardDetailModal } from '@ui/components/CardDetailBody';
-import { perkChargesAvailable, isStarterPerk } from '@storage/index';
+import DeckCarousel from '@ui/components/DeckCarousel';
+import { perkChargesAvailable, isStarterPerk, setEquippedPerks } from '@storage/index';
 import type { Profile } from '@storage/index';
 
 interface Props {
@@ -32,6 +31,8 @@ interface Props {
     hardmode?: boolean;
   }) => void;
   onBack: () => void;
+  onDeck?: () => void;
+  onProfileChange?: (next: Profile) => void;
   currentStage?: number;
   ownedUpgradeIds?: ReadonlyArray<string>;
   profile: Profile;
@@ -145,9 +146,23 @@ function EmptySlotCard({
   );
 }
 
-export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, ownedUpgradeIds = [], profile }: Props) {
+export default function CombatHomeScreen({ onBegin, onBack, onDeck, onProfileChange, currentStage = 100, ownedUpgradeIds = [], profile }: Props) {
   const [selectedStage, setSelectedStage] = useState<number>(currentStage);
-  const [equippedTalents, setEquippedTalents] = useState<(string | null)[]>([]);
+
+  // Restore the player's previous talent loadout from profile. Consumables
+  // whose charge count has dropped to 0 since the last time they equipped
+  // are filtered out so the slot opens up — the player isn't "stuck" with
+  // an empty consumable in their loadout. Starter talents always survive.
+  // The persisted list is flat (one id per slot), preserving slot order.
+  const initialEquippedTalents = useMemo<(string | null)[]>(() => {
+    return profile.perksEquipped
+      .map(id => {
+        if (isStarterPerk(id)) return id;
+        return perkChargesAvailable(profile, id) > 0 ? id : null;
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally a one-shot read at mount; later edits go through setEquippedTalents
+  const [equippedTalents, setEquippedTalents] = useState<(string | null)[]>(initialEquippedTalents);
   const [equippedGear, setEquippedGear] = useState<EquippedSet>(emptyEquippedSet());
   const [hardcore, setHardcore] = useState<boolean>(false);
   const [pickerSlot, setPickerSlot] = useState<EquipmentSlot | null>(null);
@@ -189,6 +204,20 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
       const def = allEq.find(e => e.id === equipmentId);
       if (!def) return prev;
       return equip(prev, def);
+    });
+  }
+
+  // Update the slot array AND persist the flat equipped list to the profile
+  // so the loadout survives leaving and re-entering this screen. The
+  // persisted list is the slot array with nulls dropped — order preserved.
+  function commitTalents(updater: (prev: (string | null)[]) => (string | null)[]) {
+    setEquippedTalents(prev => {
+      const next = updater(prev);
+      const flat = next.filter((id): id is string => id !== null);
+      if (onProfileChange) {
+        onProfileChange(setEquippedPerks(profile, flat));
+      }
+      return next;
     });
   }
 
@@ -348,8 +377,16 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
           boxShadow: '0 -2px 12px rgba(0,0,0,0.5)',
         }}
       >
-        {/* Deck HUD — inline compact strip */}
-        <CombatDeckStrip deck={profile.combatDeck} />
+        {/* Active deck — shared carousel design */}
+        {onProfileChange && onDeck && (
+          <div style={{ marginBottom: 8 }}>
+            <DeckCarousel
+              profile={profile}
+              onProfileChange={onProfileChange}
+              onOpenDeck={onDeck}
+            />
+          </div>
+        )}
         <button
           onClick={begin}
           className="sb-btn sb-pulse-crimson w-full"
@@ -394,7 +431,7 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
           maxSlots={talentSlotCount}
           profile={profile}
           onSelect={(talentId) => {
-            setEquippedTalents(prev => {
+            commitTalents(prev => {
               const next = [...prev];
               while (next.length <= talentPickerSlot) next.push(null);
               next[talentPickerSlot] = talentId;
@@ -404,7 +441,7 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
             setTalentPickerSlot(null);
           }}
           onUnequip={() => {
-            setEquippedTalents(prev => {
+            commitTalents(prev => {
               const next = [...prev];
               next[talentPickerSlot] = null;
               while (next.length > 0 && !next[next.length - 1]) next.pop();
@@ -424,86 +461,6 @@ export default function CombatHomeScreen({ onBegin, onBack, currentStage = 100, 
           target={detailTarget}
           onClose={() => setDetailTarget(null)}
         />
-      )}
-    </div>
-  );
-}
-
-/* ─── Compact deck strip for the begin-button area ──────────────────────── */
-
-const RARITY_PIPS_CM: Array<{ key: string; color: string }> = [
-  { key: 'common',    color: '#94a3b8' },
-  { key: 'uncommon',  color: '#4ade80' },
-  { key: 'rare',      color: '#60a5fa' },
-  { key: 'epic',      color: '#c084fc' },
-  { key: 'legendary', color: '#fbbf24' },
-  { key: 'mythic',    color: '#f87171' },
-];
-
-function CombatDeckStrip({ deck }: { deck: string[] }) {
-  const allCardDefs = useMemo(() => {
-    const actions = allActions();
-    const tactics = allTactics();
-    return new Map([...actions, ...tactics].map(c => [c.id, c]));
-  }, []);
-
-  const cards = deck.map(id => allCardDefs.get(id)).filter(Boolean) as Array<{ id: string; type: string; rarity: string; emoji?: string }>;
-  const totalCards = cards.length;
-  const actions = cards.filter(c => c.type === 'action').length;
-  const tactics = cards.filter(c => c.type === 'tactic').length;
-  const rarityCounts = cards.reduce<Record<string, number>>((acc, c) => {
-    acc[c.rarity] = (acc[c.rarity] ?? 0) + 1;
-    return acc;
-  }, {});
-  const previewEmojis = [...new Map(cards.filter(c => c.emoji).map(c => [c.id, c.emoji])).values()].slice(0, 6) as string[];
-
-  return (
-    <div
-      className="mb-2"
-      style={{
-        background: 'rgba(0,0,0,0.3)',
-        border: '1px solid rgba(255,235,180,0.1)',
-        borderRadius: 8,
-        padding: '6px 10px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-      }}
-    >
-      <span className="sb-display" style={{ fontSize: 8, color: 'var(--sb-gold)', letterSpacing: '0.18em', flexShrink: 0 }}>
-        🃏 DECK
-      </span>
-      <div style={{ width: 1, height: 14, background: 'rgba(255,235,180,0.12)', flexShrink: 0 }} />
-      {totalCards === 0 ? (
-        <span className="sb-display" style={{ fontSize: 8, color: 'rgba(255,235,180,0.25)', letterSpacing: '0.1em' }}>
-          NO DECK — DEFAULT LOADOUT USED
-        </span>
-      ) : (
-        <>
-          {/* Emoji previews */}
-          <div style={{ display: 'flex', gap: 3, alignItems: 'center', flex: 1, minWidth: 0 }}>
-            {previewEmojis.map((em, i) => (
-              <span key={i} style={{ fontSize: 13, lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }}>{em}</span>
-            ))}
-            {totalCards > previewEmojis.length && (
-              <span className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.35)' }}>+{totalCards - previewEmojis.length}</span>
-            )}
-          </div>
-          {/* Rarity pips */}
-          <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
-            {RARITY_PIPS_CM.filter(r => rarityCounts[r.key]).map(r => (
-              <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <div style={{ width: 5, height: 5, borderRadius: '50%', background: r.color, boxShadow: `0 0 3px ${r.color}80` }} />
-                <span className="sb-mono" style={{ fontSize: 7, color: r.color, opacity: 0.8 }}>{rarityCounts[r.key]}</span>
-              </div>
-            ))}
-          </div>
-          {/* Type split */}
-          <div style={{ width: 1, height: 14, background: 'rgba(255,235,180,0.12)', flexShrink: 0 }} />
-          <span className="sb-mono" style={{ fontSize: 8, color: 'rgba(255,235,180,0.5)', flexShrink: 0 }}>
-            {totalCards} · ⚔{actions} ✦{tactics}
-          </span>
-        </>
       )}
     </div>
   );

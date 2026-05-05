@@ -1,9 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Profile } from '@storage/index';
-import { setActiveCombatDeckSet } from '@storage/index';
-import { getStageDef, allActions, allTactics, MAX_STAGES, isHardmodeUnlocked } from '@engine/index';
-import type { ActionCardDef, TacticCardDef } from '@engine/index';
-import { CardDetailModal } from '../components/CardDetailBody';
+import { getStageDef, MAX_STAGES, isHardmodeUnlocked } from '@engine/index';
+import DeckCarousel from '@ui/components/DeckCarousel';
 
 interface Props {
   profile: Profile;
@@ -14,11 +12,6 @@ interface Props {
 }
 
 const PAGE_SIZE = 20;
-
-const RARITY_COLOR_SS: Record<string, string> = {
-  common: '#94a3b8', uncommon: '#4ade80', rare: '#60a5fa',
-  epic: '#c084fc', legendary: '#fbbf24', mythic: '#f87171',
-};
 
 export default function StageSelectScreen({ profile, onProfileChange, onPick, onBack, onDeck }: Props) {
   const unlockedThrough = profile.currentStage;
@@ -36,10 +29,7 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
     return arr;
   }, [startStage, endStage]);
 
-  const [deckExpanded, setDeckExpanded] = useState(false);
   const [mode, setMode] = useState<'normal' | 'hard'>('normal');
-  const [cardDetail, setCardDetail] = useState<ActionCardDef | TacticCardDef | null>(null);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Hardmode: only show stages that are unlocked
   const hardmodeUnlocked = profile.hardmodeUnlockedThrough ?? 0;
@@ -53,50 +43,6 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
   const visibleStages = isHardmodeTab
     ? stages.filter(s => isHardmodeUnlocked(s, hardmodeUnlocked))
     : stages;
-
-  function startCardLongPress(def: ActionCardDef | TacticCardDef) {
-    longPressTimer.current = setTimeout(() => {
-      longPressTimer.current = null;
-      setCardDetail(def);
-    }, 500);
-  }
-  function cancelCardLongPress() {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }
-
-  const allCardDefs = useMemo(() => {
-    const actions = allActions();
-    const tactics = allTactics();
-    return new Map([...actions, ...tactics].map(c => [c.id, c]));
-  }, []);
-
-  // Name → def lookup for long-press detail (cardNameCounts uses name, not id).
-  const cardDefByName = useMemo(() => {
-    const m = new Map<string, ActionCardDef | TacticCardDef>();
-    for (const [, def] of allCardDefs) m.set(def.name, def as ActionCardDef | TacticCardDef);
-    return m;
-  }, [allCardDefs]);
-
-  const activeSetIdx = profile.activeCombatDeckSet ?? 0;
-  const deckCards = (profile.combatDeck ?? [])
-    .map(id => allCardDefs.get(id))
-    .filter(Boolean) as Array<{ id: string; type: string; rarity: string; name: string }>;
-
-  const deckTotal = deckCards.length;
-  const deckActions = deckCards.filter(c => c.type === 'action').length;
-  const deckTactics = deckCards.filter(c => c.type === 'tactic').length;
-
-  const cardNameCounts = useMemo(() => {
-    const m = new Map<string, { name: string; rarity: string; type: string; count: number }>();
-    for (const c of deckCards) {
-      if (m.has(c.id)) { m.get(c.id)!.count++; }
-      else m.set(c.id, { name: c.name, rarity: c.rarity, type: c.type, count: 1 });
-    }
-    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [deckCards]);
 
   return (
     <div
@@ -201,122 +147,16 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
         </div>
       </div>
 
-      {/* ── Deck HUD strip ── */}
-      <div style={{
-        flexShrink: 0,
-        margin: '8px 16px 4px',
-        background: 'linear-gradient(180deg, rgba(44,24,16,0.88) 0%, rgba(20,12,8,0.93) 100%)',
-        border: '1.5px solid var(--sb-bronze-dark)',
-        borderRadius: 10,
-        overflow: 'hidden',
-        boxShadow: 'inset 0 1px 0 rgba(255,200,140,0.08)',
-      }}>
-        {/* Header row */}
-        <div
-          style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', cursor: 'pointer', gap: 10 }}
-          onClick={() => setDeckExpanded(v => !v)}
-        >
-          <span style={{ fontSize: 12 }}>🃏</span>
-          <span className="sb-display" style={{ fontSize: 8, letterSpacing: '0.2em', color: 'var(--sb-gold-light)', flex: 1 }}>
-            {(profile.combatDeckSets ?? [])[activeSetIdx]?.name?.toUpperCase() ?? 'ACTIVE DECK'}
-          </span>
-          {deckTotal > 0 && (
-            <>
-              <span className="sb-mono" style={{ fontSize: 9, color: '#94a3b8' }}>⚔ {deckActions}</span>
-              <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 8 }}>│</span>
-              <span className="sb-mono" style={{ fontSize: 9, color: '#c084fc' }}>✦ {deckTactics}</span>
-            </>
-          )}
-          <span className="sb-mono" style={{ fontSize: 9, color: 'var(--sb-gold)', opacity: 0.7 }}>
-            {deckTotal > 0 ? `${deckTotal}` : 'EMPTY'} {deckExpanded ? '▲' : '▼'}
-          </span>
+      {/* ── Active deck — shared carousel design ── */}
+      {onProfileChange && onDeck && (
+        <div style={{ flexShrink: 0, margin: '8px 16px 4px' }}>
+          <DeckCarousel
+            profile={profile}
+            onProfileChange={onProfileChange}
+            onOpenDeck={onDeck}
+          />
         </div>
-
-        {/* Expanded panel */}
-        {deckExpanded && (
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {/* Set switcher */}
-            {(profile.combatDeckSets ?? []).length > 0 && (
-              <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
-                {(profile.combatDeckSets ?? []).map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onProfileChange && onProfileChange(setActiveCombatDeckSet(profile, i))}
-                    disabled={!onProfileChange}
-                    style={{
-                      flexShrink: 0, padding: '3px 8px', borderRadius: 6,
-                      fontSize: 9, fontWeight: 800, fontFamily: "'Nunito', sans-serif",
-                      background: i === activeSetIdx ? 'rgba(196,146,42,0.22)' : 'rgba(0,0,0,0.2)',
-                      border: i === activeSetIdx ? '1.5px solid rgba(196,146,42,0.7)' : '1.5px solid rgba(120,80,30,0.2)',
-                      color: i === activeSetIdx ? '#c4922a' : '#8d6e3f',
-                      cursor: onProfileChange ? 'pointer' : 'default',
-                    }}
-                  >
-                    {s.name ?? `Deck ${i + 1}`}
-                    <span style={{ opacity: 0.6, marginLeft: 3 }}>({s.cards?.length ?? 0})</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Card list */}
-            {deckTotal === 0 ? (
-              <span className="sb-display" style={{ fontSize: 8, color: 'rgba(255,235,180,0.25)', letterSpacing: '0.12em', textAlign: 'center' }}>
-                — NO DECK CONFIGURED —
-              </span>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 160, overflowY: 'auto' }}>
-                {cardNameCounts.map((entry, i) => {
-                  const def = cardDefByName.get(entry.name);
-                  return (
-                    <div
-                      key={i}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, touchAction: 'none', userSelect: 'none' }}
-                      onPointerDown={() => def && startCardLongPress(def)}
-                      onPointerUp={cancelCardLongPress}
-                      onPointerLeave={cancelCardLongPress}
-                      onPointerCancel={cancelCardLongPress}
-                    >
-                      <div style={{
-                        width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                        background: RARITY_COLOR_SS[entry.rarity] ?? '#94a3b8',
-                        boxShadow: `0 0 4px ${RARITY_COLOR_SS[entry.rarity] ?? '#94a3b8'}80`,
-                      }} />
-                      <span className="sb-mono" style={{ fontSize: 9, color: '#e2d5b0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {entry.name}
-                      </span>
-                      <span style={{ fontSize: 8, color: entry.type === 'action' ? '#94a3b8' : '#c084fc', flexShrink: 0 }}>
-                        {entry.type === 'action' ? '⚔' : '✦'}
-                      </span>
-                      <span className="sb-mono" style={{ fontSize: 9, color: '#c4922a', flexShrink: 0, minWidth: 16, textAlign: 'right' }}>
-                        ×{entry.count}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Edit button */}
-            {onDeck && (
-              <button
-                onClick={onDeck}
-                style={{
-                  width: '100%', padding: '5px 0', borderRadius: 6,
-                  fontSize: 9, fontWeight: 800, letterSpacing: '0.15em',
-                  fontFamily: "'Nunito', sans-serif",
-                  background: 'rgba(196,146,42,0.15)',
-                  border: '1.5px solid rgba(196,146,42,0.4)',
-                  color: 'var(--sb-gold-light)',
-                  cursor: 'pointer',
-                }}
-              >
-                ✎ EDIT DECK
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* ── Stage grid ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 12px', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.08) transparent' }}>
@@ -334,14 +174,6 @@ export default function StageSelectScreen({ profile, onProfileChange, onPick, on
           ))}
         </div>
       </div>
-
-      {/* ── Card detail modal (long-press on deck card rows) ── */}
-      {cardDetail && (
-        <CardDetailModal
-          target={{ kind: 'battle', card: cardDetail }}
-          onClose={() => setCardDetail(null)}
-        />
-      )}
 
       {/* ── Pagination ── */}
       <div style={{

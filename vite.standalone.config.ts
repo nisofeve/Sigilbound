@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
+// @ts-expect-error — plain ESM file, no .d.ts
+import { compressImagesPlugin } from './scripts/vite-plugin-compress-images.mjs';
 
 // Standalone build — produces a single self-contained HTML file that opens
 // directly in a browser via file:// with no server required.
@@ -11,11 +13,17 @@ import path from 'node:path';
 //   · inlineDynamicImports — single JS bundle (no split chunks to fetch)
 //   · cssCodeSplit: false  — single CSS file
 //   · assetsInlineLimit    — images/fonts inlined as data URIs
+//   · compressImagesPlugin — PNG/JPG → WebP transcode at build time so the
+//                            inlined art bundle is 5–10× smaller
 //   · sourcemap: false     — keeps the output compact
 //   · outDir: dist-standalone — doesn't clobber the regular dist/
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    compressImagesPlugin({ quality: 75 }),
+    react(),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       '@app':          path.resolve(__dirname, 'src/app'),

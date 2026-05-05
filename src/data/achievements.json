@@ -1,10 +1,10 @@
 [
   {
-    "id": "ach.beg.first_run_1",
+    "id": "ach.beg.first_season",
     "category": "beginner",
     "rarity": "common",
-    "name": "First Steps",
-    "description": "Complete 1 season.",
+    "name": "First Sigil",
+    "description": "Complete your first stage.",
     "icon": "🌱",
     "predicate": {
       "type": "lifetime_seasons",
@@ -12,47 +12,11 @@
     }
   },
   {
-    "id": "ach.beg.first_run_3",
-    "category": "beginner",
-    "rarity": "common",
-    "name": "Sprouting",
-    "description": "Complete 3 seasons.",
-    "icon": "🌱",
-    "predicate": {
-      "type": "lifetime_seasons",
-      "min": 3
-    }
-  },
-  {
-    "id": "ach.beg.first_run_5",
-    "category": "beginner",
-    "rarity": "uncommon",
-    "name": "Taking Root",
-    "description": "Complete 5 seasons.",
-    "icon": "🌱",
-    "predicate": {
-      "type": "lifetime_seasons",
-      "min": 5
-    }
-  },
-  {
-    "id": "ach.beg.first_run_10",
-    "category": "beginner",
-    "rarity": "uncommon",
-    "name": "Acquainted",
-    "description": "Complete 10 seasons.",
-    "icon": "🌱",
-    "predicate": {
-      "type": "lifetime_seasons",
-      "min": 10
-    }
-  },
-  {
     "id": "ach.beg.first_combo",
     "category": "beginner",
     "rarity": "common",
     "name": "Combo Awakened",
-    "description": "Trigger any combo.",
+    "description": "Trigger your first Onslaught combo.",
     "icon": "✨",
     "predicate": {
       "type": "lifetime_combo",
@@ -61,11 +25,37 @@
     }
   },
   {
+    "id": "ach.beg.first_triadic",
+    "category": "beginner",
+    "rarity": "common",
+    "name": "Triple Strike",
+    "description": "Trigger your first Triadic combo.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 1
+    }
+  },
+  {
+    "id": "ach.beg.first_relentless",
+    "category": "beginner",
+    "rarity": "common",
+    "name": "Relentless Awakening",
+    "description": "Trigger your first Relentless combo.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 1
+    }
+  },
+  {
     "id": "ach.beg.first_upgrade",
     "category": "beginner",
     "rarity": "common",
-    "name": "Property Owner",
-    "description": "Buy your first farmstead upgrade.",
+    "name": "Forge Apprentice",
+    "description": "Buy your first Stronghold upgrade.",
     "icon": "🔨",
     "predicate": {
       "type": "upgrades_owned",
@@ -73,19 +63,43 @@
     }
   },
   {
+    "id": "ach.beg.first_perk",
+    "category": "beginner",
+    "rarity": "common",
+    "name": "Sigilbound",
+    "description": "Equip your first perk.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 1
+    }
+  },
+  {
     "id": "ach.beg.first_friend",
     "category": "beginner",
     "rarity": "common",
-    "name": "Hello, Neighbor",
+    "name": "Hailed Ally",
     "description": "Add your first friend.",
-    "icon": "👋",
+    "icon": "🤝",
     "predicate": {
       "type": "friends_count",
       "min": 1
     }
   },
   {
-    "id": "ach.har.lc_50",
+    "id": "ach.beg.first_bank",
+    "category": "beginner",
+    "rarity": "common",
+    "name": "First Hoard",
+    "description": "Hold 100 coins in the bank.",
+    "icon": "💰",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 100
+    }
+  },
+  {
+    "id": "ach.con.lc_50",
     "category": "harvest",
     "rarity": "common",
     "name": "Pocket Lint",
@@ -97,19 +111,31 @@
     }
   },
   {
-    "id": "ach.har.lc_200",
+    "id": "ach.con.lc_100",
     "category": "harvest",
     "rarity": "common",
-    "name": "Spare Change",
-    "description": "Earn 200 lifetime coins.",
+    "name": "Loose Change",
+    "description": "Earn 100 lifetime coins.",
     "icon": "💰",
     "predicate": {
       "type": "lifetime_coins",
-      "min": 200
+      "min": 100
     }
   },
   {
-    "id": "ach.har.lc_500",
+    "id": "ach.con.lc_250",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Coin Purse",
+    "description": "Earn 250 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 250
+    }
+  },
+  {
+    "id": "ach.con.lc_500",
     "category": "harvest",
     "rarity": "common",
     "name": "Penny Saver",
@@ -121,10 +147,22 @@
     }
   },
   {
-    "id": "ach.har.lc_1000",
+    "id": "ach.con.lc_750",
     "category": "harvest",
     "rarity": "common",
-    "name": "Thousandaire",
+    "name": "Petty Hoarder",
+    "description": "Earn 750 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 750
+    }
+  },
+  {
+    "id": "ach.con.lc_1000",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Sack of Silver",
     "description": "Earn 1,000 lifetime coins.",
     "icon": "💰",
     "predicate": {
@@ -133,10 +171,34 @@
     }
   },
   {
-    "id": "ach.har.lc_2500",
+    "id": "ach.con.lc_1500",
     "category": "harvest",
-    "rarity": "uncommon",
-    "name": "Comfortable",
+    "rarity": "common",
+    "name": "Modest Sum",
+    "description": "Earn 1,500 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 1500
+    }
+  },
+  {
+    "id": "ach.con.lc_2000",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Pouch Bearer",
+    "description": "Earn 2,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 2000
+    }
+  },
+  {
+    "id": "ach.con.lc_2500",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Steady Earner",
     "description": "Earn 2,500 lifetime coins.",
     "icon": "💰",
     "predicate": {
@@ -145,10 +207,70 @@
     }
   },
   {
-    "id": "ach.har.lc_5000",
+    "id": "ach.con.lc_2750",
     "category": "harvest",
-    "rarity": "uncommon",
-    "name": "Five Figures",
+    "rarity": "common",
+    "name": "Wage Bearer",
+    "description": "Earn 2,750 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 2750
+    }
+  },
+  {
+    "id": "ach.con.lc_3000",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Apprentice Saver",
+    "description": "Earn 3,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 3000
+    }
+  },
+  {
+    "id": "ach.con.lc_3500",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Sergeant's Cut",
+    "description": "Earn 3,500 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 3500
+    }
+  },
+  {
+    "id": "ach.con.lc_4000",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Coffer Filler",
+    "description": "Earn 4,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 4000
+    }
+  },
+  {
+    "id": "ach.con.lc_4500",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Captain's Pay",
+    "description": "Earn 4,500 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 4500
+    }
+  },
+  {
+    "id": "ach.con.lc_5000",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Bag of Gold",
     "description": "Earn 5,000 lifetime coins.",
     "icon": "💰",
     "predicate": {
@@ -157,10 +279,82 @@
     }
   },
   {
-    "id": "ach.har.lc_10000",
+    "id": "ach.con.lc_5500",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Lieutenant's Sum",
+    "description": "Earn 5,500 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 5500
+    }
+  },
+  {
+    "id": "ach.con.lc_6000",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Coin Collector",
+    "description": "Earn 6,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 6000
+    }
+  },
+  {
+    "id": "ach.con.lc_6500",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Banner Bearer",
+    "description": "Earn 6,500 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 6500
+    }
+  },
+  {
+    "id": "ach.con.lc_7500",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Rusted Treasure",
+    "description": "Earn 7,500 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 7500
+    }
+  },
+  {
+    "id": "ach.con.lc_8000",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Mercenary Hoard",
+    "description": "Earn 8,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 8000
+    }
+  },
+  {
+    "id": "ach.con.lc_9000",
+    "category": "harvest",
+    "rarity": "common",
+    "name": "Silver Streak",
+    "description": "Earn 9,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 9000
+    }
+  },
+  {
+    "id": "ach.con.lc_10000",
     "category": "harvest",
     "rarity": "uncommon",
-    "name": "Wealthy",
+    "name": "Modest Coffer",
     "description": "Earn 10,000 lifetime coins.",
     "icon": "💰",
     "predicate": {
@@ -169,10 +363,106 @@
     }
   },
   {
-    "id": "ach.har.lc_25000",
+    "id": "ach.con.lc_11000",
     "category": "harvest",
-    "rarity": "rare",
-    "name": "Affluent",
+    "rarity": "uncommon",
+    "name": "Coin Forager",
+    "description": "Earn 11,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 11000
+    }
+  },
+  {
+    "id": "ach.con.lc_12000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Coin Hawker",
+    "description": "Earn 12,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 12000
+    }
+  },
+  {
+    "id": "ach.con.lc_14000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Vault Initiate",
+    "description": "Earn 14,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 14000
+    }
+  },
+  {
+    "id": "ach.con.lc_15000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Vault Apprentice",
+    "description": "Earn 15,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 15000
+    }
+  },
+  {
+    "id": "ach.con.lc_16000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Stockpiler",
+    "description": "Earn 16,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 16000
+    }
+  },
+  {
+    "id": "ach.con.lc_18000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Steady Stream",
+    "description": "Earn 18,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 18000
+    }
+  },
+  {
+    "id": "ach.con.lc_20000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Iron Coffer",
+    "description": "Earn 20,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 20000
+    }
+  },
+  {
+    "id": "ach.con.lc_22000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Coin Prospector",
+    "description": "Earn 22,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 22000
+    }
+  },
+  {
+    "id": "ach.con.lc_25000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Trade Magnate",
     "description": "Earn 25,000 lifetime coins.",
     "icon": "💰",
     "predicate": {
@@ -181,10 +471,106 @@
     }
   },
   {
-    "id": "ach.har.lc_50000",
+    "id": "ach.con.lc_28000",
     "category": "harvest",
-    "rarity": "rare",
-    "name": "Six Figures",
+    "rarity": "uncommon",
+    "name": "Realm Banker",
+    "description": "Earn 28,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 28000
+    }
+  },
+  {
+    "id": "ach.con.lc_30000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Burgeoning Wealth",
+    "description": "Earn 30,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 30000
+    }
+  },
+  {
+    "id": "ach.con.lc_32000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Coin Shepherd",
+    "description": "Earn 32,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 32000
+    }
+  },
+  {
+    "id": "ach.con.lc_35000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Coin Conjurer",
+    "description": "Earn 35,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 35000
+    }
+  },
+  {
+    "id": "ach.con.lc_38000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Hoard Keeper",
+    "description": "Earn 38,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 38000
+    }
+  },
+  {
+    "id": "ach.con.lc_40000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Sterling Saver",
+    "description": "Earn 40,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 40000
+    }
+  },
+  {
+    "id": "ach.con.lc_42000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Vault Watcher",
+    "description": "Earn 42,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 42000
+    }
+  },
+  {
+    "id": "ach.con.lc_45000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Goldsmith Patron",
+    "description": "Earn 45,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 45000
+    }
+  },
+  {
+    "id": "ach.con.lc_50000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Silver Tide",
     "description": "Earn 50,000 lifetime coins.",
     "icon": "💰",
     "predicate": {
@@ -193,538 +579,1361 @@
     }
   },
   {
-    "id": "ach.har.lc_100000",
+    "id": "ach.con.lc_55000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Realm Steward",
+    "description": "Earn 55,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 55000
+    }
+  },
+  {
+    "id": "ach.con.lc_60000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Cradle of Coin",
+    "description": "Earn 60,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 60000
+    }
+  },
+  {
+    "id": "ach.con.lc_65000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Treasury Adept",
+    "description": "Earn 65,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 65000
+    }
+  },
+  {
+    "id": "ach.con.lc_75000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Wealthy Knight",
+    "description": "Earn 75,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 75000
+    }
+  },
+  {
+    "id": "ach.con.lc_90000",
+    "category": "harvest",
+    "rarity": "uncommon",
+    "name": "Treasury Steward",
+    "description": "Earn 90,000 lifetime coins.",
+    "icon": "💰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 90000
+    }
+  },
+  {
+    "id": "ach.con.lc_100000",
     "category": "harvest",
     "rarity": "rare",
-    "name": "Quarter Mill",
+    "name": "Hundred Thousand",
     "description": "Earn 100,000 lifetime coins.",
-    "icon": "💰",
+    "icon": "🏦",
     "predicate": {
       "type": "lifetime_coins",
       "min": 100000
     }
   },
   {
-    "id": "ach.har.lc_250000",
+    "id": "ach.con.lc_110000",
     "category": "harvest",
-    "rarity": "epic",
-    "name": "Half Mill",
+    "rarity": "rare",
+    "name": "Six-Figure Fighter",
+    "description": "Earn 110,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 110000
+    }
+  },
+  {
+    "id": "ach.con.lc_125000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Coin Baron",
+    "description": "Earn 125,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 125000
+    }
+  },
+  {
+    "id": "ach.con.lc_130000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Ledger Keeper",
+    "description": "Earn 130,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 130000
+    }
+  },
+  {
+    "id": "ach.con.lc_150000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Silver Earl",
+    "description": "Earn 150,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 150000
+    }
+  },
+  {
+    "id": "ach.con.lc_160000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Realm Notable",
+    "description": "Earn 160,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 160000
+    }
+  },
+  {
+    "id": "ach.con.lc_175000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Gilded Patron",
+    "description": "Earn 175,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 175000
+    }
+  },
+  {
+    "id": "ach.con.lc_200000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Quarter Million",
+    "description": "Earn 200,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 200000
+    }
+  },
+  {
+    "id": "ach.con.lc_220000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Coin Justiciar",
+    "description": "Earn 220,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 220000
+    }
+  },
+  {
+    "id": "ach.con.lc_250000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Vault Master",
     "description": "Earn 250,000 lifetime coins.",
-    "icon": "💰",
+    "icon": "🏦",
     "predicate": {
       "type": "lifetime_coins",
       "min": 250000
     }
   },
   {
-    "id": "ach.har.lc_500000",
+    "id": "ach.con.lc_275000",
     "category": "harvest",
-    "rarity": "epic",
-    "name": "Millionaire",
+    "rarity": "rare",
+    "name": "Vault Lord",
+    "description": "Earn 275,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 275000
+    }
+  },
+  {
+    "id": "ach.con.lc_300000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Treasury Lord",
+    "description": "Earn 300,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 300000
+    }
+  },
+  {
+    "id": "ach.con.lc_325000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Coin Sentinel",
+    "description": "Earn 325,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 325000
+    }
+  },
+  {
+    "id": "ach.con.lc_350000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Coin Marshal",
+    "description": "Earn 350,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 350000
+    }
+  },
+  {
+    "id": "ach.con.lc_375000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Sigil Banker",
+    "description": "Earn 375,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 375000
+    }
+  },
+  {
+    "id": "ach.con.lc_400000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Coffer Tyrant",
+    "description": "Earn 400,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 400000
+    }
+  },
+  {
+    "id": "ach.con.lc_425000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Realm Magnate",
+    "description": "Earn 425,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 425000
+    }
+  },
+  {
+    "id": "ach.con.lc_450000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Realm Trader",
+    "description": "Earn 450,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 450000
+    }
+  },
+  {
+    "id": "ach.con.lc_475000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Vault Champion",
+    "description": "Earn 475,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 475000
+    }
+  },
+  {
+    "id": "ach.con.lc_500000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Half Million",
     "description": "Earn 500,000 lifetime coins.",
-    "icon": "💰",
+    "icon": "🏦",
     "predicate": {
       "type": "lifetime_coins",
       "min": 500000
     }
   },
   {
-    "id": "ach.har.lc_1000000",
+    "id": "ach.con.lc_550000",
     "category": "harvest",
-    "rarity": "legendary",
-    "name": "Filthy Rich",
+    "rarity": "rare",
+    "name": "Coin Marshal",
+    "description": "Earn 550,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 550000
+    }
+  },
+  {
+    "id": "ach.con.lc_600000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Wealth Adept",
+    "description": "Earn 600,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 600000
+    }
+  },
+  {
+    "id": "ach.con.lc_650000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Treasury Earl",
+    "description": "Earn 650,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 650000
+    }
+  },
+  {
+    "id": "ach.con.lc_700000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Bullion Lord",
+    "description": "Earn 700,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 700000
+    }
+  },
+  {
+    "id": "ach.con.lc_800000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Realm of Riches",
+    "description": "Earn 800,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 800000
+    }
+  },
+  {
+    "id": "ach.con.lc_900000",
+    "category": "harvest",
+    "rarity": "rare",
+    "name": "Million Climber",
+    "description": "Earn 900,000 lifetime coins.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 900000
+    }
+  },
+  {
+    "id": "ach.con.lc_1000000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Millionaire",
     "description": "Earn 1,000,000 lifetime coins.",
-    "icon": "💰",
+    "icon": "💎",
     "predicate": {
       "type": "lifetime_coins",
       "min": 1000000
     }
   },
   {
-    "id": "ach.har.lc_2500000",
+    "id": "ach.con.lc_1250000",
     "category": "harvest",
-    "rarity": "legendary",
+    "rarity": "epic",
     "name": "Coin Tycoon",
-    "description": "Earn 2,500,000 lifetime coins.",
-    "icon": "💰",
+    "description": "Earn 1.25 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 1250000
+    }
+  },
+  {
+    "id": "ach.con.lc_1500000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Treasury Sigil",
+    "description": "Earn 1.5 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 1500000
+    }
+  },
+  {
+    "id": "ach.con.lc_1750000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Realm Shareholder",
+    "description": "Earn 1.75 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 1750000
+    }
+  },
+  {
+    "id": "ach.con.lc_2000000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Two Million",
+    "description": "Earn 2 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 2000000
+    }
+  },
+  {
+    "id": "ach.con.lc_2500000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Royal Treasurer",
+    "description": "Earn 2.5 million lifetime coins.",
+    "icon": "💎",
     "predicate": {
       "type": "lifetime_coins",
       "min": 2500000
     }
   },
   {
-    "id": "ach.har.lc_5000000",
+    "id": "ach.con.lc_3000000",
     "category": "harvest",
-    "rarity": "mythic",
-    "name": "Plutarch",
-    "description": "Earn 5,000,000 lifetime coins.",
-    "icon": "💰",
+    "rarity": "epic",
+    "name": "Three Million",
+    "description": "Earn 3 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 3000000
+    }
+  },
+  {
+    "id": "ach.con.lc_3500000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Magnate Reborn",
+    "description": "Earn 3.5 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 3500000
+    }
+  },
+  {
+    "id": "ach.con.lc_4000000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Four Million",
+    "description": "Earn 4 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 4000000
+    }
+  },
+  {
+    "id": "ach.con.lc_4500000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Coin Harvester",
+    "description": "Earn 4.5 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 4500000
+    }
+  },
+  {
+    "id": "ach.con.lc_5000000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Five Million",
+    "description": "Earn 5 million lifetime coins.",
+    "icon": "💎",
     "predicate": {
       "type": "lifetime_coins",
       "min": 5000000
     }
   },
   {
-    "id": "ach.har.run_50",
+    "id": "ach.con.lc_6000000",
     "category": "harvest",
-    "rarity": "common",
-    "name": "First Sale",
-    "description": "Earn 50 coins in a single season.",
-    "icon": "🌾",
+    "rarity": "epic",
+    "name": "Six Million",
+    "description": "Earn 6 million lifetime coins.",
+    "icon": "💎",
     "predicate": {
-      "type": "single_run_coins",
+      "type": "lifetime_coins",
+      "min": 6000000
+    }
+  },
+  {
+    "id": "ach.con.lc_7000000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Seven Million",
+    "description": "Earn 7 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 7000000
+    }
+  },
+  {
+    "id": "ach.con.lc_8000000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Eight Million",
+    "description": "Earn 8 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 8000000
+    }
+  },
+  {
+    "id": "ach.con.lc_9000000",
+    "category": "harvest",
+    "rarity": "epic",
+    "name": "Nine Million",
+    "description": "Earn 9 million lifetime coins.",
+    "icon": "💎",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 9000000
+    }
+  },
+  {
+    "id": "ach.con.lc_10000000",
+    "category": "harvest",
+    "rarity": "legendary",
+    "name": "Ten Million",
+    "description": "Earn 10 million lifetime coins.",
+    "icon": "🏰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 10000000
+    }
+  },
+  {
+    "id": "ach.con.lc_12500000",
+    "category": "harvest",
+    "rarity": "legendary",
+    "name": "Coin Lord",
+    "description": "Earn 12.5 million lifetime coins.",
+    "icon": "🏰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 12500000
+    }
+  },
+  {
+    "id": "ach.con.lc_15000000",
+    "category": "harvest",
+    "rarity": "legendary",
+    "name": "Treasury Titan",
+    "description": "Earn 15 million lifetime coins.",
+    "icon": "🏰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 15000000
+    }
+  },
+  {
+    "id": "ach.con.lc_20000000",
+    "category": "harvest",
+    "rarity": "legendary",
+    "name": "Realm Sovereign",
+    "description": "Earn 20 million lifetime coins.",
+    "icon": "🏰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 20000000
+    }
+  },
+  {
+    "id": "ach.con.lc_25000000",
+    "category": "harvest",
+    "rarity": "legendary",
+    "name": "Quarter Hundred Mil",
+    "description": "Earn 25 million lifetime coins.",
+    "icon": "🏰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 25000000
+    }
+  },
+  {
+    "id": "ach.cb.ons_5",
+    "category": "combo_master",
+    "rarity": "common",
+    "name": "Tide of Strikes",
+    "description": "Trigger 5 Onslaught combos.",
+    "icon": "🌊",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 5
+    }
+  },
+  {
+    "id": "ach.cb.ons_10",
+    "category": "combo_master",
+    "rarity": "common",
+    "name": "Onslaught Adept",
+    "description": "Trigger 10 Onslaught combos.",
+    "icon": "🌊",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 10
+    }
+  },
+  {
+    "id": "ach.cb.ons_25",
+    "category": "combo_master",
+    "rarity": "common",
+    "name": "Onslaught Apprentice",
+    "description": "Trigger 25 Onslaught combos.",
+    "icon": "🌊",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 25
+    }
+  },
+  {
+    "id": "ach.cb.ons_50",
+    "category": "combo_master",
+    "rarity": "uncommon",
+    "name": "Onslaught Veteran",
+    "description": "Trigger 50 Onslaught combos.",
+    "icon": "🌊",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "onslaught",
       "min": 50
     }
   },
   {
-    "id": "ach.har.run_150",
-    "category": "harvest",
-    "rarity": "common",
-    "name": "Honest Work",
-    "description": "Earn 150 coins in a single season.",
-    "icon": "🌾",
-    "predicate": {
-      "type": "single_run_coins",
-      "min": 150
-    }
-  },
-  {
-    "id": "ach.har.run_300",
-    "category": "harvest",
+    "id": "ach.cb.ons_100",
+    "category": "combo_master",
     "rarity": "uncommon",
-    "name": "Half Grand",
-    "description": "Earn 300 coins in a single season.",
-    "icon": "🌾",
+    "name": "Onslaught Knight",
+    "description": "Trigger 100 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
-      "type": "single_run_coins",
-      "min": 300
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 100
     }
   },
   {
-    "id": "ach.har.run_500",
-    "category": "harvest",
+    "id": "ach.cb.ons_175",
+    "category": "combo_master",
     "rarity": "uncommon",
-    "name": "Big Day",
-    "description": "Earn 500 coins in a single season.",
-    "icon": "🌾",
+    "name": "Onslaught Champion",
+    "description": "Trigger 175 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
-      "type": "single_run_coins",
-      "min": 500
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 175
     }
   },
   {
-    "id": "ach.har.run_800",
-    "category": "harvest",
+    "id": "ach.cb.ons_250",
+    "category": "combo_master",
     "rarity": "uncommon",
-    "name": "Bumper Day",
-    "description": "Earn 800 coins in a single season.",
-    "icon": "🌾",
+    "name": "Onslaught Master",
+    "description": "Trigger 250 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
-      "type": "single_run_coins",
-      "min": 800
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 250
     }
   },
   {
-    "id": "ach.har.run_1200",
-    "category": "harvest",
+    "id": "ach.cb.ons_400",
+    "category": "combo_master",
     "rarity": "rare",
-    "name": "Banner Run",
-    "description": "Earn 1200 coins in a single season.",
-    "icon": "🌾",
+    "name": "Onslaught Vanguard",
+    "description": "Trigger 400 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
-      "type": "single_run_coins",
-      "min": 1200
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 400
     }
   },
   {
-    "id": "ach.har.run_1800",
-    "category": "harvest",
+    "id": "ach.cb.ons_600",
+    "category": "combo_master",
     "rarity": "rare",
-    "name": "Record Run",
-    "description": "Earn 1800 coins in a single season.",
-    "icon": "🌾",
+    "name": "Onslaught Lord",
+    "description": "Trigger 600 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
-      "type": "single_run_coins",
-      "min": 1800
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 600
     }
   },
   {
-    "id": "ach.har.run_2500",
-    "category": "harvest",
+    "id": "ach.cb.ons_900",
+    "category": "combo_master",
     "rarity": "rare",
-    "name": "Peak Form",
-    "description": "Earn 2500 coins in a single season.",
-    "icon": "🌾",
+    "name": "Onslaught Tyrant",
+    "description": "Trigger 900 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
-      "type": "single_run_coins",
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 900
+    }
+  },
+  {
+    "id": "ach.cb.ons_1250",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Onslaught Marshal",
+    "description": "Trigger 1,250 Onslaught combos.",
+    "icon": "🌊",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 1250
+    }
+  },
+  {
+    "id": "ach.cb.ons_1750",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Onslaught Sovereign",
+    "description": "Trigger 1,750 Onslaught combos.",
+    "icon": "🌊",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 1750
+    }
+  },
+  {
+    "id": "ach.cb.ons_2500",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Onslaught Sigil",
+    "description": "Trigger 2,500 Onslaught combos.",
+    "icon": "🌊",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "onslaught",
       "min": 2500
     }
   },
   {
-    "id": "ach.har.run_3500",
-    "category": "harvest",
+    "id": "ach.cb.ons_3500",
+    "category": "combo_master",
     "rarity": "epic",
-    "name": "Master Class",
-    "description": "Earn 3500 coins in a single season.",
-    "icon": "🌾",
+    "name": "Onslaught Reborn",
+    "description": "Trigger 3,500 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
-      "type": "single_run_coins",
+      "type": "lifetime_combo",
+      "combo": "onslaught",
       "min": 3500
     }
   },
   {
-    "id": "ach.har.run_5000",
-    "category": "harvest",
-    "rarity": "legendary",
-    "name": "Apex Run",
-    "description": "Earn 5000 coins in a single season.",
-    "icon": "🌾",
+    "id": "ach.cb.ons_5000",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Onslaught Avatar",
+    "description": "Trigger 5,000 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
-      "type": "single_run_coins",
+      "type": "lifetime_combo",
+      "combo": "onslaught",
       "min": 5000
     }
   },
   {
-    "id": "ach.com.abundance_1",
-    "category": "combo_master",
-    "rarity": "common",
-    "name": "Abundance",
-    "description": "Trigger 1 Abundance Bonus lifetime.",
-    "icon": "🌽",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "onslaught",
-      "min": 1
-    }
-  },
-  {
-    "id": "ach.com.abundance_5",
-    "category": "combo_master",
-    "rarity": "common",
-    "name": "Abundance ×5",
-    "description": "Trigger 5 Abundance Bonuss lifetime.",
-    "icon": "🌽",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "onslaught",
-      "min": 5
-    }
-  },
-  {
-    "id": "ach.com.abundance_10",
-    "category": "combo_master",
-    "rarity": "common",
-    "name": "Abundance ×10",
-    "description": "Trigger 10 Abundance Bonuss lifetime.",
-    "icon": "🌽",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "onslaught",
-      "min": 10
-    }
-  },
-  {
-    "id": "ach.com.abundance_25",
-    "category": "combo_master",
-    "rarity": "uncommon",
-    "name": "Abundance ×25",
-    "description": "Trigger 25 Abundance Bonuss lifetime.",
-    "icon": "🌽",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "onslaught",
-      "min": 25
-    }
-  },
-  {
-    "id": "ach.com.abundance_50",
-    "category": "combo_master",
-    "rarity": "uncommon",
-    "name": "Abundance ×50",
-    "description": "Trigger 50 Abundance Bonuss lifetime.",
-    "icon": "🌽",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "onslaught",
-      "min": 50
-    }
-  },
-  {
-    "id": "ach.com.abundance_100",
-    "category": "combo_master",
-    "rarity": "rare",
-    "name": "Abundance ×100",
-    "description": "Trigger 100 Abundance Bonuss lifetime.",
-    "icon": "🌽",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "onslaught",
-      "min": 100
-    }
-  },
-  {
-    "id": "ach.com.abundance_250",
+    "id": "ach.cb.ons_7500",
     "category": "combo_master",
     "rarity": "epic",
-    "name": "Abundance ×250",
-    "description": "Trigger 250 Abundance Bonuss lifetime.",
-    "icon": "🌽",
+    "name": "Onslaught Embodiment",
+    "description": "Trigger 7,500 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
       "type": "lifetime_combo",
       "combo": "onslaught",
-      "min": 250
+      "min": 7500
     }
   },
   {
-    "id": "ach.com.abundance_500",
+    "id": "ach.cb.ons_10000",
     "category": "combo_master",
     "rarity": "legendary",
-    "name": "Abundance ×500",
-    "description": "Trigger 500 Abundance Bonuss lifetime.",
-    "icon": "🌽",
+    "name": "Onslaught Apex",
+    "description": "Trigger 10,000 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
       "type": "lifetime_combo",
       "combo": "onslaught",
-      "min": 500
+      "min": 10000
     }
   },
   {
-    "id": "ach.com.gardenVariety_1",
-    "category": "combo_master",
-    "rarity": "common",
-    "name": "Variety",
-    "description": "Trigger 1 Garden Variety lifetime.",
-    "icon": "🌈",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "triadic",
-      "min": 1
-    }
-  },
-  {
-    "id": "ach.com.gardenVariety_5",
-    "category": "combo_master",
-    "rarity": "common",
-    "name": "Variety ×5",
-    "description": "Trigger 5 Garden Varietys lifetime.",
-    "icon": "🌈",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "triadic",
-      "min": 5
-    }
-  },
-  {
-    "id": "ach.com.gardenVariety_10",
-    "category": "combo_master",
-    "rarity": "common",
-    "name": "Variety ×10",
-    "description": "Trigger 10 Garden Varietys lifetime.",
-    "icon": "🌈",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "triadic",
-      "min": 10
-    }
-  },
-  {
-    "id": "ach.com.gardenVariety_25",
-    "category": "combo_master",
-    "rarity": "uncommon",
-    "name": "Variety ×25",
-    "description": "Trigger 25 Garden Varietys lifetime.",
-    "icon": "🌈",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "triadic",
-      "min": 25
-    }
-  },
-  {
-    "id": "ach.com.gardenVariety_50",
-    "category": "combo_master",
-    "rarity": "uncommon",
-    "name": "Variety ×50",
-    "description": "Trigger 50 Garden Varietys lifetime.",
-    "icon": "🌈",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "triadic",
-      "min": 50
-    }
-  },
-  {
-    "id": "ach.com.gardenVariety_100",
-    "category": "combo_master",
-    "rarity": "rare",
-    "name": "Variety ×100",
-    "description": "Trigger 100 Garden Varietys lifetime.",
-    "icon": "🌈",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "triadic",
-      "min": 100
-    }
-  },
-  {
-    "id": "ach.com.gardenVariety_250",
-    "category": "combo_master",
-    "rarity": "epic",
-    "name": "Variety ×250",
-    "description": "Trigger 250 Garden Varietys lifetime.",
-    "icon": "🌈",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "triadic",
-      "min": 250
-    }
-  },
-  {
-    "id": "ach.com.gardenVariety_500",
+    "id": "ach.cb.ons_15000",
     "category": "combo_master",
     "rarity": "legendary",
-    "name": "Variety ×500",
-    "description": "Trigger 500 Garden Varietys lifetime.",
-    "icon": "🌈",
+    "name": "Onslaught Eternal",
+    "description": "Trigger 15,000 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
       "type": "lifetime_combo",
-      "combo": "triadic",
-      "min": 500
+      "combo": "onslaught",
+      "min": 15000
     }
   },
   {
-    "id": "ach.com.loyal_1",
-    "category": "combo_master",
-    "rarity": "common",
-    "name": "Loyalist",
-    "description": "Trigger 1 Loyal Harvest lifetime.",
-    "icon": "🔁",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "relentless",
-      "min": 1
-    }
-  },
-  {
-    "id": "ach.com.loyal_5",
-    "category": "combo_master",
-    "rarity": "common",
-    "name": "Loyalist ×5",
-    "description": "Trigger 5 Loyal Harvests lifetime.",
-    "icon": "🔁",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "relentless",
-      "min": 5
-    }
-  },
-  {
-    "id": "ach.com.loyal_10",
-    "category": "combo_master",
-    "rarity": "common",
-    "name": "Loyalist ×10",
-    "description": "Trigger 10 Loyal Harvests lifetime.",
-    "icon": "🔁",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "relentless",
-      "min": 10
-    }
-  },
-  {
-    "id": "ach.com.loyal_25",
-    "category": "combo_master",
-    "rarity": "uncommon",
-    "name": "Loyalist ×25",
-    "description": "Trigger 25 Loyal Harvests lifetime.",
-    "icon": "🔁",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "relentless",
-      "min": 25
-    }
-  },
-  {
-    "id": "ach.com.loyal_50",
-    "category": "combo_master",
-    "rarity": "uncommon",
-    "name": "Loyalist ×50",
-    "description": "Trigger 50 Loyal Harvests lifetime.",
-    "icon": "🔁",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "relentless",
-      "min": 50
-    }
-  },
-  {
-    "id": "ach.com.loyal_100",
-    "category": "combo_master",
-    "rarity": "rare",
-    "name": "Loyalist ×100",
-    "description": "Trigger 100 Loyal Harvests lifetime.",
-    "icon": "🔁",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "relentless",
-      "min": 100
-    }
-  },
-  {
-    "id": "ach.com.loyal_250",
-    "category": "combo_master",
-    "rarity": "epic",
-    "name": "Loyalist ×250",
-    "description": "Trigger 250 Loyal Harvests lifetime.",
-    "icon": "🔁",
-    "predicate": {
-      "type": "lifetime_combo",
-      "combo": "relentless",
-      "min": 250
-    }
-  },
-  {
-    "id": "ach.com.loyal_500",
+    "id": "ach.cb.ons_25000",
     "category": "combo_master",
     "rarity": "legendary",
-    "name": "Loyalist ×500",
-    "description": "Trigger 500 Loyal Harvests lifetime.",
-    "icon": "🔁",
+    "name": "Onslaught Mythic",
+    "description": "Trigger 25,000 Onslaught combos.",
+    "icon": "🌊",
     "predicate": {
       "type": "lifetime_combo",
-      "combo": "relentless",
-      "min": 500
+      "combo": "onslaught",
+      "min": 25000
     }
   },
   {
-    "id": "ach.com.triple",
+    "id": "ach.cb.ons_50000",
     "category": "combo_master",
-    "rarity": "epic",
+    "rarity": "mythic",
+    "name": "Onslaught Godhead",
+    "description": "Trigger 50,000 Onslaught combos.",
+    "icon": "🌊",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 50000
+    }
+  },
+  {
+    "id": "ach.cb.tri_3",
+    "category": "combo_master",
+    "rarity": "common",
     "name": "Triple Threat",
-    "description": "Trigger all 3 combos in one season.",
-    "icon": "✨",
+    "description": "Trigger 3 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 3
+    }
+  },
+  {
+    "id": "ach.cb.tri_10",
+    "category": "combo_master",
+    "rarity": "common",
+    "name": "Triadic Apprentice",
+    "description": "Trigger 10 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 10
+    }
+  },
+  {
+    "id": "ach.cb.tri_25",
+    "category": "combo_master",
+    "rarity": "common",
+    "name": "Triadic Adept",
+    "description": "Trigger 25 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 25
+    }
+  },
+  {
+    "id": "ach.cb.tri_50",
+    "category": "combo_master",
+    "rarity": "uncommon",
+    "name": "Triadic Knight",
+    "description": "Trigger 50 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 50
+    }
+  },
+  {
+    "id": "ach.cb.tri_100",
+    "category": "combo_master",
+    "rarity": "uncommon",
+    "name": "Triadic Veteran",
+    "description": "Trigger 100 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 100
+    }
+  },
+  {
+    "id": "ach.cb.tri_175",
+    "category": "combo_master",
+    "rarity": "uncommon",
+    "name": "Triadic Champion",
+    "description": "Trigger 175 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 175
+    }
+  },
+  {
+    "id": "ach.cb.tri_250",
+    "category": "combo_master",
+    "rarity": "uncommon",
+    "name": "Triadic Master",
+    "description": "Trigger 250 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 250
+    }
+  },
+  {
+    "id": "ach.cb.tri_400",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Triadic Vanguard",
+    "description": "Trigger 400 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 400
+    }
+  },
+  {
+    "id": "ach.cb.tri_600",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Triadic Lord",
+    "description": "Trigger 600 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 600
+    }
+  },
+  {
+    "id": "ach.cb.tri_900",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Triadic Tyrant",
+    "description": "Trigger 900 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 900
+    }
+  },
+  {
+    "id": "ach.cb.tri_1250",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Triadic Marshal",
+    "description": "Trigger 1,250 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 1250
+    }
+  },
+  {
+    "id": "ach.cb.tri_1750",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Triadic Sovereign",
+    "description": "Trigger 1,750 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 1750
+    }
+  },
+  {
+    "id": "ach.cb.tri_2500",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Triadic Sigil",
+    "description": "Trigger 2,500 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 2500
+    }
+  },
+  {
+    "id": "ach.cb.tri_3500",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Triadic Reborn",
+    "description": "Trigger 3,500 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 3500
+    }
+  },
+  {
+    "id": "ach.cb.tri_5000",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Triadic Avatar",
+    "description": "Trigger 5,000 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 5000
+    }
+  },
+  {
+    "id": "ach.cb.tri_7500",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Triadic Embodiment",
+    "description": "Trigger 7,500 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 7500
+    }
+  },
+  {
+    "id": "ach.cb.tri_10000",
+    "category": "combo_master",
+    "rarity": "legendary",
+    "name": "Triadic Apex",
+    "description": "Trigger 10,000 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 10000
+    }
+  },
+  {
+    "id": "ach.cb.tri_15000",
+    "category": "combo_master",
+    "rarity": "legendary",
+    "name": "Triadic Eternal",
+    "description": "Trigger 15,000 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 15000
+    }
+  },
+  {
+    "id": "ach.cb.tri_25000",
+    "category": "combo_master",
+    "rarity": "legendary",
+    "name": "Triadic Mythic",
+    "description": "Trigger 25,000 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 25000
+    }
+  },
+  {
+    "id": "ach.cb.tri_50000",
+    "category": "combo_master",
+    "rarity": "mythic",
+    "name": "Triadic Godhead",
+    "description": "Trigger 50,000 Triadic combos.",
+    "icon": "⚡",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "triadic",
+      "min": 50000
+    }
+  },
+  {
+    "id": "ach.cb.rel_3",
+    "category": "combo_master",
+    "rarity": "common",
+    "name": "Unbroken",
+    "description": "Trigger 3 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 3
+    }
+  },
+  {
+    "id": "ach.cb.rel_10",
+    "category": "combo_master",
+    "rarity": "common",
+    "name": "Relentless Apprentice",
+    "description": "Trigger 10 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 10
+    }
+  },
+  {
+    "id": "ach.cb.rel_25",
+    "category": "combo_master",
+    "rarity": "common",
+    "name": "Relentless Adept",
+    "description": "Trigger 25 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 25
+    }
+  },
+  {
+    "id": "ach.cb.rel_50",
+    "category": "combo_master",
+    "rarity": "uncommon",
+    "name": "Relentless Knight",
+    "description": "Trigger 50 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 50
+    }
+  },
+  {
+    "id": "ach.cb.rel_100",
+    "category": "combo_master",
+    "rarity": "uncommon",
+    "name": "Relentless Veteran",
+    "description": "Trigger 100 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 100
+    }
+  },
+  {
+    "id": "ach.cb.rel_175",
+    "category": "combo_master",
+    "rarity": "uncommon",
+    "name": "Relentless Champion",
+    "description": "Trigger 175 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 175
+    }
+  },
+  {
+    "id": "ach.cb.rel_300",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Relentless Master",
+    "description": "Trigger 300 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 300
+    }
+  },
+  {
+    "id": "ach.cb.rel_500",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Relentless Vanguard",
+    "description": "Trigger 500 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 500
+    }
+  },
+  {
+    "id": "ach.cb.rel_800",
+    "category": "combo_master",
+    "rarity": "rare",
+    "name": "Relentless Lord",
+    "description": "Trigger 800 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 800
+    }
+  },
+  {
+    "id": "ach.cb.rel_1250",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Relentless Tyrant",
+    "description": "Trigger 1,250 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 1250
+    }
+  },
+  {
+    "id": "ach.cb.rel_2000",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Relentless Sovereign",
+    "description": "Trigger 2,000 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 2000
+    }
+  },
+  {
+    "id": "ach.cb.rel_3500",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Relentless Sigil",
+    "description": "Trigger 3,500 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 3500
+    }
+  },
+  {
+    "id": "ach.cb.rel_6000",
+    "category": "combo_master",
+    "rarity": "legendary",
+    "name": "Relentless Apex",
+    "description": "Trigger 6,000 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 6000
+    }
+  },
+  {
+    "id": "ach.cb.rel_12000",
+    "category": "combo_master",
+    "rarity": "legendary",
+    "name": "Relentless Eternal",
+    "description": "Trigger 12,000 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 12000
+    }
+  },
+  {
+    "id": "ach.cb.rel_30000",
+    "category": "combo_master",
+    "rarity": "mythic",
+    "name": "Relentless Godhead",
+    "description": "Trigger 30,000 Relentless combos.",
+    "icon": "🔁",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "relentless",
+      "min": 30000
+    }
+  },
+  {
+    "id": "ach.cb.triple_run",
+    "category": "combo_master",
+    "rarity": "epic",
+    "name": "Trifecta of Sigils",
+    "description": "Trigger Onslaught, Triadic, and Relentless in one run.",
+    "icon": "🎯",
     "predicate": {
       "type": "triple_combo_in_run"
     }
   },
   {
-    "id": "ach.tyc.bank_100",
+    "id": "ach.tre.bank_250",
     "category": "tycoon",
     "rarity": "common",
-    "name": "Piggy Bank",
-    "description": "Hold 100 bank coins.",
+    "name": "Pouch Bearer",
+    "description": "Hold 250 coins in the bank.",
     "icon": "🏦",
     "predicate": {
       "type": "bank_coins_at_least",
-      "min": 100
+      "min": 250
     }
   },
   {
-    "id": "ach.tyc.bank_500",
+    "id": "ach.tre.bank_500",
     "category": "tycoon",
     "rarity": "common",
-    "name": "Saver",
-    "description": "Hold 500 bank coins.",
+    "name": "Coin Holder",
+    "description": "Hold 500 coins in the bank.",
     "icon": "🏦",
     "predicate": {
       "type": "bank_coins_at_least",
@@ -732,11 +1941,23 @@
     }
   },
   {
-    "id": "ach.tyc.bank_2500",
+    "id": "ach.tre.bank_1000",
     "category": "tycoon",
-    "rarity": "uncommon",
-    "name": "Vault",
-    "description": "Hold 2,500 bank coins.",
+    "rarity": "common",
+    "name": "Sacker",
+    "description": "Hold 1,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 1000
+    }
+  },
+  {
+    "id": "ach.tre.bank_2500",
+    "category": "tycoon",
+    "rarity": "common",
+    "name": "Cofferer",
+    "description": "Hold 2,500 coins in the bank.",
     "icon": "🏦",
     "predicate": {
       "type": "bank_coins_at_least",
@@ -744,11 +1965,35 @@
     }
   },
   {
-    "id": "ach.tyc.bank_10000",
+    "id": "ach.tre.bank_5000",
+    "category": "tycoon",
+    "rarity": "common",
+    "name": "Stash Keeper",
+    "description": "Hold 5,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 5000
+    }
+  },
+  {
+    "id": "ach.tre.bank_7500",
+    "category": "tycoon",
+    "rarity": "common",
+    "name": "Vault Watcher",
+    "description": "Hold 7,500 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 7500
+    }
+  },
+  {
+    "id": "ach.tre.bank_10000",
     "category": "tycoon",
     "rarity": "uncommon",
-    "name": "Wealth",
-    "description": "Hold 10,000 bank coins.",
+    "name": "Hoarder",
+    "description": "Hold 10,000 coins in the bank.",
     "icon": "🏦",
     "predicate": {
       "type": "bank_coins_at_least",
@@ -756,11 +2001,59 @@
     }
   },
   {
-    "id": "ach.tyc.bank_50000",
+    "id": "ach.tre.bank_15000",
     "category": "tycoon",
-    "rarity": "rare",
-    "name": "Treasury",
-    "description": "Hold 50,000 bank coins.",
+    "rarity": "uncommon",
+    "name": "Coin Sentinel",
+    "description": "Hold 15,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 15000
+    }
+  },
+  {
+    "id": "ach.tre.bank_20000",
+    "category": "tycoon",
+    "rarity": "uncommon",
+    "name": "Vault Marshal",
+    "description": "Hold 20,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 20000
+    }
+  },
+  {
+    "id": "ach.tre.bank_30000",
+    "category": "tycoon",
+    "rarity": "uncommon",
+    "name": "Realm Banker",
+    "description": "Hold 30,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 30000
+    }
+  },
+  {
+    "id": "ach.tre.bank_40000",
+    "category": "tycoon",
+    "rarity": "uncommon",
+    "name": "Treasury Reeve",
+    "description": "Hold 40,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 40000
+    }
+  },
+  {
+    "id": "ach.tre.bank_50000",
+    "category": "tycoon",
+    "rarity": "uncommon",
+    "name": "Vaultlord",
+    "description": "Hold 50,000 coins in the bank.",
     "icon": "🏦",
     "predicate": {
       "type": "bank_coins_at_least",
@@ -768,23 +2061,107 @@
     }
   },
   {
-    "id": "ach.tyc.bank_250000",
+    "id": "ach.tre.bank_75000",
     "category": "tycoon",
     "rarity": "rare",
-    "name": "Fortune",
-    "description": "Hold 250,000 bank coins.",
+    "name": "Treasury Earl",
+    "description": "Hold 75,000 coins in the bank.",
     "icon": "🏦",
     "predicate": {
       "type": "bank_coins_at_least",
-      "min": 250000
+      "min": 75000
     }
   },
   {
-    "id": "ach.tyc.bank_1000000",
+    "id": "ach.tre.bank_100000",
+    "category": "tycoon",
+    "rarity": "rare",
+    "name": "Coin Baron",
+    "description": "Hold 100,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 100000
+    }
+  },
+  {
+    "id": "ach.tre.bank_150000",
+    "category": "tycoon",
+    "rarity": "rare",
+    "name": "Sigil Banker",
+    "description": "Hold 150,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 150000
+    }
+  },
+  {
+    "id": "ach.tre.bank_200000",
+    "category": "tycoon",
+    "rarity": "rare",
+    "name": "Vault Marquis",
+    "description": "Hold 200,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 200000
+    }
+  },
+  {
+    "id": "ach.tre.bank_300000",
+    "category": "tycoon",
+    "rarity": "rare",
+    "name": "Treasury Duke",
+    "description": "Hold 300,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 300000
+    }
+  },
+  {
+    "id": "ach.tre.bank_450000",
+    "category": "tycoon",
+    "rarity": "rare",
+    "name": "Coin Magnate",
+    "description": "Hold 450,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 450000
+    }
+  },
+  {
+    "id": "ach.tre.bank_600000",
+    "category": "tycoon",
+    "rarity": "rare",
+    "name": "Realm Treasurer",
+    "description": "Hold 600,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 600000
+    }
+  },
+  {
+    "id": "ach.tre.bank_800000",
+    "category": "tycoon",
+    "rarity": "rare",
+    "name": "Million Climber",
+    "description": "Hold 800,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 800000
+    }
+  },
+  {
+    "id": "ach.tre.bank_1000000",
     "category": "tycoon",
     "rarity": "epic",
-    "name": "Magnate",
-    "description": "Hold 1,000,000 bank coins.",
+    "name": "Millionaire",
+    "description": "Hold 1,000,000 coins in the bank.",
     "icon": "🏦",
     "predicate": {
       "type": "bank_coins_at_least",
@@ -792,11 +2169,59 @@
     }
   },
   {
-    "id": "ach.tyc.bank_5000000",
+    "id": "ach.tre.bank_1500000",
     "category": "tycoon",
-    "rarity": "legendary",
-    "name": "Dynasty",
-    "description": "Hold 5,000,000 bank coins.",
+    "rarity": "epic",
+    "name": "Coin Tycoon",
+    "description": "Hold 1.5 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 1500000
+    }
+  },
+  {
+    "id": "ach.tre.bank_2000000",
+    "category": "tycoon",
+    "rarity": "epic",
+    "name": "Treasury Sigil",
+    "description": "Hold 2 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 2000000
+    }
+  },
+  {
+    "id": "ach.tre.bank_3000000",
+    "category": "tycoon",
+    "rarity": "epic",
+    "name": "Vault Sovereign",
+    "description": "Hold 3 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 3000000
+    }
+  },
+  {
+    "id": "ach.tre.bank_4000000",
+    "category": "tycoon",
+    "rarity": "epic",
+    "name": "Coin Hierarch",
+    "description": "Hold 4 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 4000000
+    }
+  },
+  {
+    "id": "ach.tre.bank_5000000",
+    "category": "tycoon",
+    "rarity": "epic",
+    "name": "Royal Treasurer",
+    "description": "Hold 5 million coins in the bank.",
     "icon": "🏦",
     "predicate": {
       "type": "bank_coins_at_least",
@@ -804,227 +2229,408 @@
     }
   },
   {
-    "id": "ach.tyc.upg_1",
+    "id": "ach.tre.bank_7500000",
     "category": "tycoon",
-    "rarity": "common",
-    "name": "Builder Tier 1",
-    "description": "Own 1 farmstead upgrade.",
-    "icon": "🏗",
+    "rarity": "epic",
+    "name": "Realm Banker Royal",
+    "description": "Hold 7.5 million coins in the bank.",
+    "icon": "🏦",
     "predicate": {
-      "type": "upgrades_owned",
-      "min": 1
+      "type": "bank_coins_at_least",
+      "min": 7500000
     }
   },
   {
-    "id": "ach.tyc.upg_3",
+    "id": "ach.tre.bank_10000000",
+    "category": "tycoon",
+    "rarity": "legendary",
+    "name": "Treasury Titan",
+    "description": "Hold 10 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 10000000
+    }
+  },
+  {
+    "id": "ach.tre.bank_15000000",
+    "category": "tycoon",
+    "rarity": "legendary",
+    "name": "Coin Lord",
+    "description": "Hold 15 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 15000000
+    }
+  },
+  {
+    "id": "ach.tre.bank_20000000",
+    "category": "tycoon",
+    "rarity": "legendary",
+    "name": "Vault Sigil",
+    "description": "Hold 20 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 20000000
+    }
+  },
+  {
+    "id": "ach.tre.bank_30000000",
+    "category": "tycoon",
+    "rarity": "legendary",
+    "name": "Realm Sovereign",
+    "description": "Hold 30 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 30000000
+    }
+  },
+  {
+    "id": "ach.tre.bank_50000000",
+    "category": "tycoon",
+    "rarity": "legendary",
+    "name": "Boundless Vault",
+    "description": "Hold 50 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 50000000
+    }
+  },
+  {
+    "id": "ach.tre.bank_100000000",
+    "category": "tycoon",
+    "rarity": "mythic",
+    "name": "Hundredfold Hoard",
+    "description": "Hold 100 million coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 100000000
+    }
+  },
+  {
+    "id": "ach.tre.run_500",
     "category": "tycoon",
     "rarity": "common",
-    "name": "Builder Tier 3",
-    "description": "Own 3 farmstead upgrades.",
-    "icon": "🏗",
+    "name": "Quick Pay",
+    "description": "Earn 500 coins in a single run.",
+    "icon": "💸",
     "predicate": {
-      "type": "upgrades_owned",
+      "type": "single_run_coins",
+      "min": 500
+    }
+  },
+  {
+    "id": "ach.tre.run_1500",
+    "category": "tycoon",
+    "rarity": "common",
+    "name": "Profitable Run",
+    "description": "Earn 1,500 coins in a single run.",
+    "icon": "💸",
+    "predicate": {
+      "type": "single_run_coins",
+      "min": 1500
+    }
+  },
+  {
+    "id": "ach.tre.run_5000",
+    "category": "tycoon",
+    "rarity": "uncommon",
+    "name": "Lucrative Sortie",
+    "description": "Earn 5,000 coins in a single run.",
+    "icon": "💸",
+    "predicate": {
+      "type": "single_run_coins",
+      "min": 5000
+    }
+  },
+  {
+    "id": "ach.tre.run_15000",
+    "category": "tycoon",
+    "rarity": "rare",
+    "name": "Plundering Hero",
+    "description": "Earn 15,000 coins in a single run.",
+    "icon": "💸",
+    "predicate": {
+      "type": "single_run_coins",
+      "min": 15000
+    }
+  },
+  {
+    "id": "ach.tre.run_50000",
+    "category": "tycoon",
+    "rarity": "epic",
+    "name": "Run Magnate",
+    "description": "Earn 50,000 coins in a single run.",
+    "icon": "💸",
+    "predicate": {
+      "type": "single_run_coins",
+      "min": 50000
+    }
+  },
+  {
+    "id": "ach.tre.run_150000",
+    "category": "tycoon",
+    "rarity": "legendary",
+    "name": "Endless Loot",
+    "description": "Earn 150,000 coins in a single run.",
+    "icon": "💸",
+    "predicate": {
+      "type": "single_run_coins",
+      "min": 150000
+    }
+  },
+  {
+    "id": "ach.tre.run_500000",
+    "category": "tycoon",
+    "rarity": "mythic",
+    "name": "Mythic Pillage",
+    "description": "Earn 500,000 coins in a single run.",
+    "icon": "💸",
+    "predicate": {
+      "type": "single_run_coins",
+      "min": 500000
+    }
+  },
+  {
+    "id": "ach.vet.seasons_3",
+    "category": "veteran",
+    "rarity": "common",
+    "name": "Sprout",
+    "description": "Complete 3 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
       "min": 3
     }
   },
   {
-    "id": "ach.tyc.upg_5",
-    "category": "tycoon",
-    "rarity": "uncommon",
-    "name": "Builder Tier 5",
-    "description": "Own 5 farmstead upgrades.",
-    "icon": "🏗",
+    "id": "ach.vet.seasons_5",
+    "category": "veteran",
+    "rarity": "common",
+    "name": "Taking Root",
+    "description": "Complete 5 stages.",
+    "icon": "⚔",
     "predicate": {
-      "type": "upgrades_owned",
+      "type": "lifetime_seasons",
       "min": 5
-    }
-  },
-  {
-    "id": "ach.tyc.upg_8",
-    "category": "tycoon",
-    "rarity": "uncommon",
-    "name": "Builder Tier 8",
-    "description": "Own 8 farmstead upgrades.",
-    "icon": "🏗",
-    "predicate": {
-      "type": "upgrades_owned",
-      "min": 8
-    }
-  },
-  {
-    "id": "ach.tyc.upg_10",
-    "category": "tycoon",
-    "rarity": "rare",
-    "name": "Builder Tier 10",
-    "description": "Own 10 farmstead upgrades.",
-    "icon": "🏗",
-    "predicate": {
-      "type": "upgrades_owned",
-      "min": 10
-    }
-  },
-  {
-    "id": "ach.tyc.upg_12",
-    "category": "tycoon",
-    "rarity": "rare",
-    "name": "Builder Tier 12",
-    "description": "Own 12 farmstead upgrades.",
-    "icon": "🏗",
-    "predicate": {
-      "type": "upgrades_owned",
-      "min": 12
-    }
-  },
-  {
-    "id": "ach.tyc.upg_15",
-    "category": "tycoon",
-    "rarity": "epic",
-    "name": "Builder Tier 15",
-    "description": "Own 15 farmstead upgrades.",
-    "icon": "🏗",
-    "predicate": {
-      "type": "upgrades_owned",
-      "min": 15
-    }
-  },
-  {
-    "id": "ach.tyc.upg_18",
-    "category": "tycoon",
-    "rarity": "epic",
-    "name": "Builder Tier 18",
-    "description": "Own 18 farmstead upgrades.",
-    "icon": "🏗",
-    "predicate": {
-      "type": "upgrades_owned",
-      "min": 18
-    }
-  },
-  {
-    "id": "ach.tyc.upg_20",
-    "category": "tycoon",
-    "rarity": "legendary",
-    "name": "Builder Tier 20",
-    "description": "Own 20 farmstead upgrades.",
-    "icon": "🏗",
-    "predicate": {
-      "type": "upgrades_owned",
-      "min": 20
-    }
-  },
-  {
-    "id": "ach.tyc.bp_premium",
-    "category": "tycoon",
-    "rarity": "rare",
-    "name": "Pass Holder",
-    "description": "Own the Premium Battle Pass.",
-    "icon": "🎫",
-    "predicate": {
-      "type": "bp_premium"
     }
   },
   {
     "id": "ach.vet.seasons_10",
     "category": "veteran",
     "rarity": "common",
-    "name": "Regular",
-    "description": "Complete 10 seasons.",
-    "icon": "🎖",
+    "name": "Acquainted",
+    "description": "Complete 10 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
       "min": 10
     }
   },
   {
+    "id": "ach.vet.seasons_15",
+    "category": "veteran",
+    "rarity": "common",
+    "name": "Ten and Five",
+    "description": "Complete 15 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 15
+    }
+  },
+  {
+    "id": "ach.vet.seasons_20",
+    "category": "veteran",
+    "rarity": "common",
+    "name": "Field Veteran",
+    "description": "Complete 20 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 20
+    }
+  },
+  {
     "id": "ach.vet.seasons_25",
     "category": "veteran",
     "rarity": "common",
-    "name": "Steady Hand",
-    "description": "Complete 25 seasons.",
-    "icon": "🎖",
+    "name": "Quarter Hundred",
+    "description": "Complete 25 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
       "min": 25
     }
   },
   {
+    "id": "ach.vet.seasons_35",
+    "category": "veteran",
+    "rarity": "common",
+    "name": "Seasoned Warrior",
+    "description": "Complete 35 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 35
+    }
+  },
+  {
     "id": "ach.vet.seasons_50",
     "category": "veteran",
     "rarity": "uncommon",
-    "name": "Half Century",
-    "description": "Complete 50 seasons.",
-    "icon": "🎖",
+    "name": "Half-Century",
+    "description": "Complete 50 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
       "min": 50
     }
   },
   {
+    "id": "ach.vet.seasons_75",
+    "category": "veteran",
+    "rarity": "uncommon",
+    "name": "Veteran Initiate",
+    "description": "Complete 75 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 75
+    }
+  },
+  {
     "id": "ach.vet.seasons_100",
     "category": "veteran",
-    "rarity": "rare",
+    "rarity": "uncommon",
     "name": "Centurion",
-    "description": "Complete 100 seasons.",
-    "icon": "🎖",
+    "description": "Complete 100 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
       "min": 100
     }
   },
   {
+    "id": "ach.vet.seasons_125",
+    "category": "veteran",
+    "rarity": "uncommon",
+    "name": "Seasoned Hand",
+    "description": "Complete 125 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 125
+    }
+  },
+  {
+    "id": "ach.vet.seasons_150",
+    "category": "veteran",
+    "rarity": "uncommon",
+    "name": "Hardened Soul",
+    "description": "Complete 150 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 150
+    }
+  },
+  {
     "id": "ach.vet.seasons_200",
     "category": "veteran",
-    "rarity": "rare",
-    "name": "Devoted",
-    "description": "Complete 200 seasons.",
-    "icon": "🎖",
+    "rarity": "uncommon",
+    "name": "Battle-Worn",
+    "description": "Complete 200 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
       "min": 200
     }
   },
   {
-    "id": "ach.vet.seasons_350",
+    "id": "ach.vet.seasons_250",
     "category": "veteran",
-    "rarity": "epic",
-    "name": "Veteran",
-    "description": "Complete 350 seasons.",
-    "icon": "🎖",
+    "rarity": "rare",
+    "name": "Veteran Knight",
+    "description": "Complete 250 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
-      "min": 350
+      "min": 250
+    }
+  },
+  {
+    "id": "ach.vet.seasons_300",
+    "category": "veteran",
+    "rarity": "rare",
+    "name": "Stalwart",
+    "description": "Complete 300 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 300
+    }
+  },
+  {
+    "id": "ach.vet.seasons_400",
+    "category": "veteran",
+    "rarity": "rare",
+    "name": "Old Guard",
+    "description": "Complete 400 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 400
     }
   },
   {
     "id": "ach.vet.seasons_500",
     "category": "veteran",
-    "rarity": "epic",
-    "name": "Lifetime",
-    "description": "Complete 500 seasons.",
-    "icon": "🎖",
+    "rarity": "rare",
+    "name": "Half-Thousand",
+    "description": "Complete 500 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
       "min": 500
     }
   },
   {
-    "id": "ach.vet.seasons_750",
+    "id": "ach.vet.seasons_650",
     "category": "veteran",
-    "rarity": "legendary",
-    "name": "Storied",
-    "description": "Complete 750 seasons.",
-    "icon": "🎖",
+    "rarity": "rare",
+    "name": "War Sage",
+    "description": "Complete 650 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
-      "min": 750
+      "min": 650
+    }
+  },
+  {
+    "id": "ach.vet.seasons_800",
+    "category": "veteran",
+    "rarity": "rare",
+    "name": "Eternal Soldier",
+    "description": "Complete 800 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 800
     }
   },
   {
     "id": "ach.vet.seasons_1000",
     "category": "veteran",
-    "rarity": "legendary",
-    "name": "Legend",
-    "description": "Complete 1,000 seasons.",
-    "icon": "🎖",
+    "rarity": "epic",
+    "name": "Thousandfold",
+    "description": "Complete 1,000 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
       "min": 1000
@@ -1033,465 +2639,105 @@
   {
     "id": "ach.vet.seasons_1500",
     "category": "veteran",
-    "rarity": "mythic",
-    "name": "Mythic Veteran",
-    "description": "Complete 1,500 seasons.",
-    "icon": "🎖",
+    "rarity": "epic",
+    "name": "Era Spanner",
+    "description": "Complete 1,500 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
       "min": 1500
     }
   },
   {
-    "id": "ach.vet.seasons_2500",
+    "id": "ach.vet.seasons_2000",
     "category": "veteran",
-    "rarity": "mythic",
-    "name": "Eternal",
-    "description": "Complete 2,500 seasons.",
-    "icon": "🎖",
+    "rarity": "epic",
+    "name": "Season Lord",
+    "description": "Complete 2,000 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
-      "min": 2500
+      "min": 2000
+    }
+  },
+  {
+    "id": "ach.vet.seasons_3000",
+    "category": "veteran",
+    "rarity": "epic",
+    "name": "Realm Veteran",
+    "description": "Complete 3,000 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 3000
     }
   },
   {
     "id": "ach.vet.seasons_5000",
     "category": "veteran",
-    "rarity": "mythic",
-    "name": "Ascendant",
-    "description": "Complete 5,000 seasons.",
-    "icon": "🎖",
+    "rarity": "legendary",
+    "name": "Five Thousand",
+    "description": "Complete 5,000 stages.",
+    "icon": "⚔",
     "predicate": {
       "type": "lifetime_seasons",
       "min": 5000
     }
   },
   {
-    "id": "ach.deck.perks_1",
-    "category": "deck_builder",
-    "rarity": "common",
-    "name": "Perk Set 1",
-    "description": "Own 1 perk.",
-    "icon": "💎",
-    "predicate": {
-      "type": "perks_owned",
-      "min": 1
-    }
-  },
-  {
-    "id": "ach.deck.perks_3",
-    "category": "deck_builder",
-    "rarity": "common",
-    "name": "Perk Set 3",
-    "description": "Own 3 perks.",
-    "icon": "💎",
-    "predicate": {
-      "type": "perks_owned",
-      "min": 3
-    }
-  },
-  {
-    "id": "ach.deck.perks_5",
-    "category": "deck_builder",
-    "rarity": "uncommon",
-    "name": "Perk Set 5",
-    "description": "Own 5 perks.",
-    "icon": "💎",
-    "predicate": {
-      "type": "perks_owned",
-      "min": 5
-    }
-  },
-  {
-    "id": "ach.deck.perks_8",
-    "category": "deck_builder",
-    "rarity": "uncommon",
-    "name": "Perk Set 8",
-    "description": "Own 8 perks.",
-    "icon": "💎",
-    "predicate": {
-      "type": "perks_owned",
-      "min": 8
-    }
-  },
-  {
-    "id": "ach.deck.perks_10",
-    "category": "deck_builder",
-    "rarity": "rare",
-    "name": "Perk Set 10",
-    "description": "Own 10 perks.",
-    "icon": "💎",
-    "predicate": {
-      "type": "perks_owned",
-      "min": 10
-    }
-  },
-  {
-    "id": "ach.deck.perks_13",
-    "category": "deck_builder",
-    "rarity": "rare",
-    "name": "Perk Set 13",
-    "description": "Own 13 perks.",
-    "icon": "💎",
-    "predicate": {
-      "type": "perks_owned",
-      "min": 13
-    }
-  },
-  {
-    "id": "ach.deck.perks_15",
-    "category": "deck_builder",
-    "rarity": "epic",
-    "name": "Perk Set 15",
-    "description": "Own 15 perks.",
-    "icon": "💎",
-    "predicate": {
-      "type": "perks_owned",
-      "min": 15
-    }
-  },
-  {
-    "id": "ach.deck.perks_18",
-    "category": "deck_builder",
-    "rarity": "epic",
-    "name": "Perk Set 18",
-    "description": "Own 18 perks.",
-    "icon": "💎",
-    "predicate": {
-      "type": "perks_owned",
-      "min": 18
-    }
-  },
-  {
-    "id": "ach.deck.perks_20",
-    "category": "deck_builder",
+    "id": "ach.vet.seasons_7500",
+    "category": "veteran",
     "rarity": "legendary",
-    "name": "Perk Set 20",
-    "description": "Own 20 perks.",
-    "icon": "💎",
+    "name": "Eternity Walker",
+    "description": "Complete 7,500 stages.",
+    "icon": "⚔",
     "predicate": {
-      "type": "perks_owned",
-      "min": 20
+      "type": "lifetime_seasons",
+      "min": 7500
     }
   },
   {
-    "id": "ach.deck.perks_25",
-    "category": "deck_builder",
+    "id": "ach.vet.seasons_10000",
+    "category": "veteran",
     "rarity": "legendary",
-    "name": "Perk Set 25",
-    "description": "Own 25 perks.",
-    "icon": "💎",
+    "name": "Mythic Veteran",
+    "description": "Complete 10,000 stages.",
+    "icon": "⚔",
     "predicate": {
-      "type": "perks_owned",
-      "min": 25
+      "type": "lifetime_seasons",
+      "min": 10000
     }
   },
   {
-    "id": "ach.deck.bp_5",
-    "category": "deck_builder",
-    "rarity": "common",
-    "name": "Pass Tier 5",
-    "description": "Reach Battle Pass tier 5.",
-    "icon": "🎫",
-    "predicate": {
-      "type": "bp_tier",
-      "min": 5
-    }
-  },
-  {
-    "id": "ach.deck.bp_10",
-    "category": "deck_builder",
-    "rarity": "common",
-    "name": "Pass Tier 10",
-    "description": "Reach Battle Pass tier 10.",
-    "icon": "🎫",
-    "predicate": {
-      "type": "bp_tier",
-      "min": 10
-    }
-  },
-  {
-    "id": "ach.deck.bp_15",
-    "category": "deck_builder",
-    "rarity": "uncommon",
-    "name": "Pass Tier 15",
-    "description": "Reach Battle Pass tier 15.",
-    "icon": "🎫",
-    "predicate": {
-      "type": "bp_tier",
-      "min": 15
-    }
-  },
-  {
-    "id": "ach.deck.bp_20",
-    "category": "deck_builder",
-    "rarity": "uncommon",
-    "name": "Pass Tier 20",
-    "description": "Reach Battle Pass tier 20.",
-    "icon": "🎫",
-    "predicate": {
-      "type": "bp_tier",
-      "min": 20
-    }
-  },
-  {
-    "id": "ach.deck.bp_25",
-    "category": "deck_builder",
-    "rarity": "rare",
-    "name": "Pass Tier 25",
-    "description": "Reach Battle Pass tier 25.",
-    "icon": "🎫",
-    "predicate": {
-      "type": "bp_tier",
-      "min": 25
-    }
-  },
-  {
-    "id": "ach.deck.bp_30",
-    "category": "deck_builder",
-    "rarity": "rare",
-    "name": "Pass Tier 30",
-    "description": "Reach Battle Pass tier 30.",
-    "icon": "🎫",
-    "predicate": {
-      "type": "bp_tier",
-      "min": 30
-    }
-  },
-  {
-    "id": "ach.deck.bp_35",
-    "category": "deck_builder",
-    "rarity": "epic",
-    "name": "Pass Tier 35",
-    "description": "Reach Battle Pass tier 35.",
-    "icon": "🎫",
-    "predicate": {
-      "type": "bp_tier",
-      "min": 35
-    }
-  },
-  {
-    "id": "ach.deck.bp_40",
-    "category": "deck_builder",
-    "rarity": "epic",
-    "name": "Pass Tier 40",
-    "description": "Reach Battle Pass tier 40.",
-    "icon": "🎫",
-    "predicate": {
-      "type": "bp_tier",
-      "min": 40
-    }
-  },
-  {
-    "id": "ach.soc.pvp_1",
-    "category": "social",
-    "rarity": "common",
-    "name": "Duelist 1",
-    "description": "Win 1 PvP match.",
-    "icon": "⚔️",
-    "predicate": {
-      "type": "pvp_wins",
-      "min": 1
-    }
-  },
-  {
-    "id": "ach.soc.pvp_3",
-    "category": "social",
-    "rarity": "common",
-    "name": "Duelist 3",
-    "description": "Win 3 PvP matches.",
-    "icon": "⚔️",
-    "predicate": {
-      "type": "pvp_wins",
-      "min": 3
-    }
-  },
-  {
-    "id": "ach.soc.pvp_5",
-    "category": "social",
-    "rarity": "uncommon",
-    "name": "Duelist 5",
-    "description": "Win 5 PvP matches.",
-    "icon": "⚔️",
-    "predicate": {
-      "type": "pvp_wins",
-      "min": 5
-    }
-  },
-  {
-    "id": "ach.soc.pvp_10",
-    "category": "social",
-    "rarity": "uncommon",
-    "name": "Duelist 10",
-    "description": "Win 10 PvP matches.",
-    "icon": "⚔️",
-    "predicate": {
-      "type": "pvp_wins",
-      "min": 10
-    }
-  },
-  {
-    "id": "ach.soc.pvp_25",
-    "category": "social",
-    "rarity": "rare",
-    "name": "Duelist 25",
-    "description": "Win 25 PvP matches.",
-    "icon": "⚔️",
-    "predicate": {
-      "type": "pvp_wins",
-      "min": 25
-    }
-  },
-  {
-    "id": "ach.soc.pvp_50",
-    "category": "social",
-    "rarity": "rare",
-    "name": "Duelist 50",
-    "description": "Win 50 PvP matches.",
-    "icon": "⚔️",
-    "predicate": {
-      "type": "pvp_wins",
-      "min": 50
-    }
-  },
-  {
-    "id": "ach.soc.pvp_100",
-    "category": "social",
-    "rarity": "epic",
-    "name": "Duelist 100",
-    "description": "Win 100 PvP matches.",
-    "icon": "⚔️",
-    "predicate": {
-      "type": "pvp_wins",
-      "min": 100
-    }
-  },
-  {
-    "id": "ach.soc.pvp_250",
-    "category": "social",
-    "rarity": "legendary",
-    "name": "Duelist 250",
-    "description": "Win 250 PvP matches.",
-    "icon": "⚔️",
-    "predicate": {
-      "type": "pvp_wins",
-      "min": 250
-    }
-  },
-  {
-    "id": "ach.soc.pvp_500",
-    "category": "social",
-    "rarity": "legendary",
-    "name": "Duelist 500",
-    "description": "Win 500 PvP matches.",
-    "icon": "⚔️",
-    "predicate": {
-      "type": "pvp_wins",
-      "min": 500
-    }
-  },
-  {
-    "id": "ach.soc.pvp_1000",
-    "category": "social",
+    "id": "ach.vet.seasons_25000",
+    "category": "veteran",
     "rarity": "mythic",
-    "name": "Duelist 1000",
-    "description": "Win 1000 PvP matches.",
-    "icon": "⚔️",
+    "name": "Endless War",
+    "description": "Complete 25,000 stages.",
+    "icon": "⚔",
     "predicate": {
-      "type": "pvp_wins",
-      "min": 1000
+      "type": "lifetime_seasons",
+      "min": 25000
     }
   },
   {
-    "id": "ach.soc.friends_1",
-    "category": "social",
-    "rarity": "common",
-    "name": "Friend Count 1",
-    "description": "Have 1 friend.",
-    "icon": "👥",
-    "predicate": {
-      "type": "friends_count",
-      "min": 1
-    }
-  },
-  {
-    "id": "ach.soc.friends_5",
-    "category": "social",
-    "rarity": "common",
-    "name": "Friend Count 5",
-    "description": "Have 5 friends.",
-    "icon": "👥",
-    "predicate": {
-      "type": "friends_count",
-      "min": 5
-    }
-  },
-  {
-    "id": "ach.soc.friends_10",
-    "category": "social",
-    "rarity": "uncommon",
-    "name": "Friend Count 10",
-    "description": "Have 10 friends.",
-    "icon": "👥",
-    "predicate": {
-      "type": "friends_count",
-      "min": 10
-    }
-  },
-  {
-    "id": "ach.soc.friends_25",
-    "category": "social",
-    "rarity": "rare",
-    "name": "Friend Count 25",
-    "description": "Have 25 friends.",
-    "icon": "👥",
-    "predicate": {
-      "type": "friends_count",
-      "min": 25
-    }
-  },
-  {
-    "id": "ach.soc.friends_50",
-    "category": "social",
-    "rarity": "epic",
-    "name": "Friend Count 50",
-    "description": "Have 50 friends.",
-    "icon": "👥",
-    "predicate": {
-      "type": "friends_count",
-      "min": 50
-    }
-  },
-  {
-    "id": "ach.soc.friends_100",
-    "category": "social",
-    "rarity": "legendary",
-    "name": "Friend Count 100",
-    "description": "Have 100 friends.",
-    "icon": "👥",
-    "predicate": {
-      "type": "friends_count",
-      "min": 100
-    }
-  },
-  {
-    "id": "ach.myt.rating_survive",
-    "category": "mythic",
+    "id": "ach.vet.r_survive",
+    "category": "veteran",
     "rarity": "common",
     "name": "Survivor",
-    "description": "Earn a Survivor rating in any season.",
-    "icon": "🌱",
+    "description": "Achieve a Survive rating.",
+    "icon": "🛡",
     "predicate": {
       "type": "best_rating",
       "min": "survive"
     }
   },
   {
-    "id": "ach.myt.rating_bronze",
-    "category": "mythic",
+    "id": "ach.vet.r_bronze",
+    "category": "veteran",
     "rarity": "uncommon",
     "name": "Bronze Tier",
-    "description": "Earn a Bronze Tier rating in any season.",
+    "description": "Achieve a Bronze rating.",
     "icon": "🥉",
     "predicate": {
       "type": "best_rating",
@@ -1499,11 +2745,11 @@
     }
   },
   {
-    "id": "ach.myt.rating_silver",
-    "category": "mythic",
+    "id": "ach.vet.r_silver",
+    "category": "veteran",
     "rarity": "rare",
     "name": "Silver Tier",
-    "description": "Earn a Silver Tier rating in any season.",
+    "description": "Achieve a Silver rating.",
     "icon": "🥈",
     "predicate": {
       "type": "best_rating",
@@ -1511,11 +2757,11 @@
     }
   },
   {
-    "id": "ach.myt.rating_gold",
-    "category": "mythic",
-    "rarity": "legendary",
-    "name": "Gold Standard",
-    "description": "Earn a Gold Standard rating in any season.",
+    "id": "ach.vet.r_gold",
+    "category": "veteran",
+    "rarity": "epic",
+    "name": "Gold Tier",
+    "description": "Achieve a Gold rating.",
     "icon": "🥇",
     "predicate": {
       "type": "best_rating",
@@ -1523,15 +2769,1287 @@
     }
   },
   {
-    "id": "ach.myt.rating_mythic",
-    "category": "mythic",
-    "rarity": "mythic",
-    "name": "Plotbound Master",
-    "description": "Earn a Plotbound Master rating in any season.",
+    "id": "ach.vet.r_mythic",
+    "category": "veteran",
+    "rarity": "legendary",
+    "name": "Mythic Tier",
+    "description": "Achieve a Mythic rating.",
     "icon": "👑",
     "predicate": {
       "type": "best_rating",
       "min": "mythic"
+    }
+  },
+  {
+    "id": "ach.vet.r_fail",
+    "category": "veteran",
+    "rarity": "common",
+    "name": "First Defeat",
+    "description": "Endure your first fail.",
+    "icon": "💀",
+    "predicate": {
+      "type": "best_rating",
+      "min": "fail"
+    }
+  },
+  {
+    "id": "ach.vet.seasons_40",
+    "category": "veteran",
+    "rarity": "common",
+    "name": "Fortress Builder",
+    "description": "Complete 40 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 40
+    }
+  },
+  {
+    "id": "ach.vet.seasons_60",
+    "category": "veteran",
+    "rarity": "uncommon",
+    "name": "Sixty Stages",
+    "description": "Complete 60 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 60
+    }
+  },
+  {
+    "id": "ach.vet.seasons_90",
+    "category": "veteran",
+    "rarity": "uncommon",
+    "name": "Ninety Stages",
+    "description": "Complete 90 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 90
+    }
+  },
+  {
+    "id": "ach.vet.seasons_175",
+    "category": "veteran",
+    "rarity": "uncommon",
+    "name": "Ranger Lord",
+    "description": "Complete 175 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 175
+    }
+  },
+  {
+    "id": "ach.vet.seasons_350",
+    "category": "veteran",
+    "rarity": "rare",
+    "name": "Old Knight",
+    "description": "Complete 350 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 350
+    }
+  },
+  {
+    "id": "ach.vet.seasons_1250",
+    "category": "veteran",
+    "rarity": "epic",
+    "name": "Era of Combat",
+    "description": "Complete 1,250 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 1250
+    }
+  },
+  {
+    "id": "ach.vet.seasons_1750",
+    "category": "veteran",
+    "rarity": "epic",
+    "name": "Endless Path",
+    "description": "Complete 1,750 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 1750
+    }
+  },
+  {
+    "id": "ach.sig.upg_1",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Forge Spark",
+    "description": "Own 1 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 1
+    }
+  },
+  {
+    "id": "ach.sig.upg_3",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Apprentice Smith",
+    "description": "Own 3 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 3
+    }
+  },
+  {
+    "id": "ach.sig.upg_5",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Initial Ascent",
+    "description": "Own 5 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 5
+    }
+  },
+  {
+    "id": "ach.sig.upg_10",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Ten Forged",
+    "description": "Own 10 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 10
+    }
+  },
+  {
+    "id": "ach.sig.upg_15",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Sigil Crafter",
+    "description": "Own 15 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 15
+    }
+  },
+  {
+    "id": "ach.sig.upg_20",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Twenty Forged",
+    "description": "Own 20 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 20
+    }
+  },
+  {
+    "id": "ach.sig.upg_25",
+    "category": "deck_builder",
+    "rarity": "uncommon",
+    "name": "Forge Adept",
+    "description": "Own 25 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 25
+    }
+  },
+  {
+    "id": "ach.sig.upg_30",
+    "category": "deck_builder",
+    "rarity": "uncommon",
+    "name": "Thirty Forged",
+    "description": "Own 30 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 30
+    }
+  },
+  {
+    "id": "ach.sig.upg_40",
+    "category": "deck_builder",
+    "rarity": "uncommon",
+    "name": "Stronghold Smith",
+    "description": "Own 40 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 40
+    }
+  },
+  {
+    "id": "ach.sig.upg_50",
+    "category": "deck_builder",
+    "rarity": "uncommon",
+    "name": "Half-Hundred",
+    "description": "Own 50 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 50
+    }
+  },
+  {
+    "id": "ach.sig.upg_60",
+    "category": "deck_builder",
+    "rarity": "uncommon",
+    "name": "Forge Master",
+    "description": "Own 60 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 60
+    }
+  },
+  {
+    "id": "ach.sig.upg_75",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Sigil Architect",
+    "description": "Own 75 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 75
+    }
+  },
+  {
+    "id": "ach.sig.upg_90",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Stronghold Builder",
+    "description": "Own 90 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 90
+    }
+  },
+  {
+    "id": "ach.sig.upg_100",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Centurion Forge",
+    "description": "Own 100 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 100
+    }
+  },
+  {
+    "id": "ach.sig.upg_125",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Sigil Lord",
+    "description": "Own 125 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 125
+    }
+  },
+  {
+    "id": "ach.sig.upg_150",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Forge Sovereign",
+    "description": "Own 150 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 150
+    }
+  },
+  {
+    "id": "ach.sig.upg_175",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Stronghold Vanguard",
+    "description": "Own 175 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 175
+    }
+  },
+  {
+    "id": "ach.sig.upg_200",
+    "category": "deck_builder",
+    "rarity": "epic",
+    "name": "Two Hundred",
+    "description": "Own 200 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 200
+    }
+  },
+  {
+    "id": "ach.sig.upg_225",
+    "category": "deck_builder",
+    "rarity": "epic",
+    "name": "Forge Tyrant",
+    "description": "Own 225 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 225
+    }
+  },
+  {
+    "id": "ach.sig.upg_250",
+    "category": "deck_builder",
+    "rarity": "epic",
+    "name": "Quarter Path",
+    "description": "Own 250 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 250
+    }
+  },
+  {
+    "id": "ach.sig.upg_275",
+    "category": "deck_builder",
+    "rarity": "epic",
+    "name": "Sigil Reborn",
+    "description": "Own 275 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 275
+    }
+  },
+  {
+    "id": "ach.sig.upg_300",
+    "category": "deck_builder",
+    "rarity": "epic",
+    "name": "Forge Avatar",
+    "description": "Own 300 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 300
+    }
+  },
+  {
+    "id": "ach.sig.upg_325",
+    "category": "deck_builder",
+    "rarity": "epic",
+    "name": "Stronghold Embodiment",
+    "description": "Own 325 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 325
+    }
+  },
+  {
+    "id": "ach.sig.upg_350",
+    "category": "deck_builder",
+    "rarity": "legendary",
+    "name": "Forge Sage",
+    "description": "Own 350 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 350
+    }
+  },
+  {
+    "id": "ach.sig.upg_375",
+    "category": "deck_builder",
+    "rarity": "legendary",
+    "name": "Apex Smith",
+    "description": "Own 375 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 375
+    }
+  },
+  {
+    "id": "ach.sig.upg_399",
+    "category": "deck_builder",
+    "rarity": "mythic",
+    "name": "Boundless Forge",
+    "description": "Own 399 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 399
+    }
+  },
+  {
+    "id": "ach.sig.perks_2",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Two Perks",
+    "description": "Own 2 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 2
+    }
+  },
+  {
+    "id": "ach.sig.perks_3",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Three Perks",
+    "description": "Own 3 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 3
+    }
+  },
+  {
+    "id": "ach.sig.perks_5",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Five Perks",
+    "description": "Own 5 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 5
+    }
+  },
+  {
+    "id": "ach.sig.perks_8",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Perk Adept",
+    "description": "Own 8 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 8
+    }
+  },
+  {
+    "id": "ach.sig.perks_10",
+    "category": "deck_builder",
+    "rarity": "uncommon",
+    "name": "Perk Initiate",
+    "description": "Own 10 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 10
+    }
+  },
+  {
+    "id": "ach.sig.perks_12",
+    "category": "deck_builder",
+    "rarity": "uncommon",
+    "name": "Talent Weaver",
+    "description": "Own 12 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 12
+    }
+  },
+  {
+    "id": "ach.sig.perks_15",
+    "category": "deck_builder",
+    "rarity": "uncommon",
+    "name": "Perk Marshal",
+    "description": "Own 15 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 15
+    }
+  },
+  {
+    "id": "ach.sig.perks_18",
+    "category": "deck_builder",
+    "rarity": "uncommon",
+    "name": "Talent Veteran",
+    "description": "Own 18 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 18
+    }
+  },
+  {
+    "id": "ach.sig.perks_20",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Perk Lord",
+    "description": "Own 20 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 20
+    }
+  },
+  {
+    "id": "ach.sig.perks_25",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Sigil Tactician",
+    "description": "Own 25 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 25
+    }
+  },
+  {
+    "id": "ach.sig.perks_30",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Talent Reborn",
+    "description": "Own 30 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 30
+    }
+  },
+  {
+    "id": "ach.sig.perks_35",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Perk Vanguard",
+    "description": "Own 35 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 35
+    }
+  },
+  {
+    "id": "ach.sig.perks_40",
+    "category": "deck_builder",
+    "rarity": "epic",
+    "name": "Talent Sovereign",
+    "description": "Own 40 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 40
+    }
+  },
+  {
+    "id": "ach.sig.perks_50",
+    "category": "deck_builder",
+    "rarity": "epic",
+    "name": "Perk Apex",
+    "description": "Own 50 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 50
+    }
+  },
+  {
+    "id": "ach.sig.perks_60",
+    "category": "deck_builder",
+    "rarity": "epic",
+    "name": "Sigil Tactician Master",
+    "description": "Own 60 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 60
+    }
+  },
+  {
+    "id": "ach.sig.perks_75",
+    "category": "deck_builder",
+    "rarity": "legendary",
+    "name": "Talent Eternal",
+    "description": "Own 75 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 75
+    }
+  },
+  {
+    "id": "ach.sig.perks_100",
+    "category": "deck_builder",
+    "rarity": "legendary",
+    "name": "Perk Deity",
+    "description": "Own 100 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 100
+    }
+  },
+  {
+    "id": "ach.sig.perks_150",
+    "category": "deck_builder",
+    "rarity": "mythic",
+    "name": "Boundless Talent",
+    "description": "Own 150 perks.",
+    "icon": "🎯",
+    "predicate": {
+      "type": "perks_owned",
+      "min": 150
+    }
+  },
+  {
+    "id": "ach.sig.upg_2",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Forge Initiate",
+    "description": "Own 2 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 2
+    }
+  },
+  {
+    "id": "ach.sig.upg_4",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Forge Hand",
+    "description": "Own 4 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 4
+    }
+  },
+  {
+    "id": "ach.sig.upg_8",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Eight Upgrades",
+    "description": "Own 8 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 8
+    }
+  },
+  {
+    "id": "ach.sig.upg_12",
+    "category": "deck_builder",
+    "rarity": "common",
+    "name": "Dozen Forged",
+    "description": "Own 12 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 12
+    }
+  },
+  {
+    "id": "ach.sig.upg_110",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Forge Pillar",
+    "description": "Own 110 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 110
+    }
+  },
+  {
+    "id": "ach.sig.upg_135",
+    "category": "deck_builder",
+    "rarity": "rare",
+    "name": "Forge Bastion",
+    "description": "Own 135 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 135
+    }
+  },
+  {
+    "id": "ach.van.pvp_1",
+    "category": "social",
+    "rarity": "common",
+    "name": "First Duel",
+    "description": "Win 1 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 1
+    }
+  },
+  {
+    "id": "ach.van.pvp_3",
+    "category": "social",
+    "rarity": "common",
+    "name": "Three Duels",
+    "description": "Win 3 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 3
+    }
+  },
+  {
+    "id": "ach.van.pvp_5",
+    "category": "social",
+    "rarity": "common",
+    "name": "Five Wins",
+    "description": "Win 5 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 5
+    }
+  },
+  {
+    "id": "ach.van.pvp_10",
+    "category": "social",
+    "rarity": "common",
+    "name": "Duelist",
+    "description": "Win 10 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 10
+    }
+  },
+  {
+    "id": "ach.van.pvp_20",
+    "category": "social",
+    "rarity": "uncommon",
+    "name": "Vanguard Veteran",
+    "description": "Win 20 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 20
+    }
+  },
+  {
+    "id": "ach.van.pvp_35",
+    "category": "social",
+    "rarity": "uncommon",
+    "name": "Arena Knight",
+    "description": "Win 35 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 35
+    }
+  },
+  {
+    "id": "ach.van.pvp_50",
+    "category": "social",
+    "rarity": "uncommon",
+    "name": "Half-Hundred Wins",
+    "description": "Win 50 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 50
+    }
+  },
+  {
+    "id": "ach.van.pvp_75",
+    "category": "social",
+    "rarity": "rare",
+    "name": "Arena Champion",
+    "description": "Win 75 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 75
+    }
+  },
+  {
+    "id": "ach.van.pvp_100",
+    "category": "social",
+    "rarity": "rare",
+    "name": "Hundred Duels",
+    "description": "Win 100 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 100
+    }
+  },
+  {
+    "id": "ach.van.pvp_150",
+    "category": "social",
+    "rarity": "rare",
+    "name": "Arena Lord",
+    "description": "Win 150 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 150
+    }
+  },
+  {
+    "id": "ach.van.pvp_250",
+    "category": "social",
+    "rarity": "epic",
+    "name": "Vanguard Master",
+    "description": "Win 250 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 250
+    }
+  },
+  {
+    "id": "ach.van.pvp_500",
+    "category": "social",
+    "rarity": "epic",
+    "name": "Arena Sovereign",
+    "description": "Win 500 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 500
+    }
+  },
+  {
+    "id": "ach.van.pvp_1000",
+    "category": "social",
+    "rarity": "legendary",
+    "name": "Thousand Wins",
+    "description": "Win 1,000 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 1000
+    }
+  },
+  {
+    "id": "ach.van.pvp_2500",
+    "category": "social",
+    "rarity": "legendary",
+    "name": "Arena Avatar",
+    "description": "Win 2,500 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 2500
+    }
+  },
+  {
+    "id": "ach.van.pvp_10000",
+    "category": "social",
+    "rarity": "mythic",
+    "name": "Arena Godhead",
+    "description": "Win 10,000 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 10000
+    }
+  },
+  {
+    "id": "ach.van.friends_3",
+    "category": "social",
+    "rarity": "common",
+    "name": "Three Allies",
+    "description": "Forge bonds with 3 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 3
+    }
+  },
+  {
+    "id": "ach.van.friends_5",
+    "category": "social",
+    "rarity": "common",
+    "name": "Small Circle",
+    "description": "Forge bonds with 5 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 5
+    }
+  },
+  {
+    "id": "ach.van.friends_10",
+    "category": "social",
+    "rarity": "uncommon",
+    "name": "Ten Allies",
+    "description": "Forge bonds with 10 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 10
+    }
+  },
+  {
+    "id": "ach.van.friends_20",
+    "category": "social",
+    "rarity": "uncommon",
+    "name": "Vanguard Network",
+    "description": "Forge bonds with 20 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 20
+    }
+  },
+  {
+    "id": "ach.van.friends_35",
+    "category": "social",
+    "rarity": "rare",
+    "name": "Realm Diplomat",
+    "description": "Forge bonds with 35 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 35
+    }
+  },
+  {
+    "id": "ach.van.friends_50",
+    "category": "social",
+    "rarity": "rare",
+    "name": "Sigil Council",
+    "description": "Forge bonds with 50 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 50
+    }
+  },
+  {
+    "id": "ach.van.friends_75",
+    "category": "social",
+    "rarity": "epic",
+    "name": "Banner Lord",
+    "description": "Forge bonds with 75 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 75
+    }
+  },
+  {
+    "id": "ach.van.friends_100",
+    "category": "social",
+    "rarity": "epic",
+    "name": "Vanguard Lord",
+    "description": "Forge bonds with 100 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 100
+    }
+  },
+  {
+    "id": "ach.van.friends_150",
+    "category": "social",
+    "rarity": "legendary",
+    "name": "Realm Friend",
+    "description": "Forge bonds with 150 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 150
+    }
+  },
+  {
+    "id": "ach.van.friends_300",
+    "category": "social",
+    "rarity": "mythic",
+    "name": "Boundless Bonds",
+    "description": "Forge bonds with 300 allies.",
+    "icon": "🤝",
+    "predicate": {
+      "type": "friends_count",
+      "min": 300
+    }
+  },
+  {
+    "id": "ach.myth.mythic_run",
+    "category": "mythic",
+    "rarity": "mythic",
+    "name": "Apex Sigilbound",
+    "description": "Achieve Mythic rating in any run.",
+    "icon": "👑",
+    "predicate": {
+      "type": "best_rating",
+      "min": "mythic"
+    }
+  },
+  {
+    "id": "ach.myth.lc_bil",
+    "category": "mythic",
+    "rarity": "mythic",
+    "name": "Realm Sovereign",
+    "description": "Earn 100,000,000 lifetime coins.",
+    "icon": "🏰",
+    "predicate": {
+      "type": "lifetime_coins",
+      "min": 100000000
+    }
+  },
+  {
+    "id": "ach.myth.bank_bil",
+    "category": "mythic",
+    "rarity": "mythic",
+    "name": "Vault Eternal",
+    "description": "Hold 500,000,000 coins in the bank.",
+    "icon": "🏦",
+    "predicate": {
+      "type": "bank_coins_at_least",
+      "min": 500000000
+    }
+  },
+  {
+    "id": "ach.myth.seasons_50k",
+    "category": "mythic",
+    "rarity": "mythic",
+    "name": "Endless Sigil",
+    "description": "Complete 50,000 stages.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "lifetime_seasons",
+      "min": 50000
+    }
+  },
+  {
+    "id": "ach.myth.upgrades_full",
+    "category": "mythic",
+    "rarity": "mythic",
+    "name": "Forge Complete",
+    "description": "Own all 400 Stronghold upgrades.",
+    "icon": "🔨",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 400
+    }
+  },
+  {
+    "id": "ach.myth.pvp_godhead",
+    "category": "mythic",
+    "rarity": "mythic",
+    "name": "Arena Godhead",
+    "description": "Win 25,000 PvP duels.",
+    "icon": "⚔",
+    "predicate": {
+      "type": "pvp_wins",
+      "min": 25000
+    }
+  },
+  {
+    "id": "ach.myth.combo_godhead",
+    "category": "mythic",
+    "rarity": "mythic",
+    "name": "Combo Godhead",
+    "description": "Trigger 100,000 Onslaught combos.",
+    "icon": "🌊",
+    "predicate": {
+      "type": "lifetime_combo",
+      "combo": "onslaught",
+      "min": 100000
+    }
+  },
+  {
+    "id": "ach.myth.run_godhead",
+    "category": "mythic",
+    "rarity": "mythic",
+    "name": "Pillage Godhead",
+    "description": "Earn 1,000,000 coins in a single run.",
+    "icon": "💸",
+    "predicate": {
+      "type": "single_run_coins",
+      "min": 1000000
+    }
+  },
+  {
+    "id": "ach.bp.tier_5",
+    "category": "tool_wizard",
+    "rarity": "common",
+    "name": "Pass Initiate",
+    "description": "Reach Battle Pass tier 5.",
+    "icon": "🎖",
+    "predicate": {
+      "type": "bp_tier",
+      "min": 5
+    }
+  },
+  {
+    "id": "ach.bp.tier_10",
+    "category": "tool_wizard",
+    "rarity": "common",
+    "name": "Pass Adept",
+    "description": "Reach Battle Pass tier 10.",
+    "icon": "🎖",
+    "predicate": {
+      "type": "bp_tier",
+      "min": 10
+    }
+  },
+  {
+    "id": "ach.bp.tier_15",
+    "category": "tool_wizard",
+    "rarity": "uncommon",
+    "name": "Pass Veteran",
+    "description": "Reach Battle Pass tier 15.",
+    "icon": "🎖",
+    "predicate": {
+      "type": "bp_tier",
+      "min": 15
+    }
+  },
+  {
+    "id": "ach.bp.tier_20",
+    "category": "tool_wizard",
+    "rarity": "uncommon",
+    "name": "Pass Champion",
+    "description": "Reach Battle Pass tier 20.",
+    "icon": "🎖",
+    "predicate": {
+      "type": "bp_tier",
+      "min": 20
+    }
+  },
+  {
+    "id": "ach.bp.tier_25",
+    "category": "tool_wizard",
+    "rarity": "rare",
+    "name": "Pass Lord",
+    "description": "Reach Battle Pass tier 25.",
+    "icon": "🎖",
+    "predicate": {
+      "type": "bp_tier",
+      "min": 25
+    }
+  },
+  {
+    "id": "ach.bp.tier_30",
+    "category": "tool_wizard",
+    "rarity": "rare",
+    "name": "Pass Sovereign",
+    "description": "Reach Battle Pass tier 30.",
+    "icon": "🎖",
+    "predicate": {
+      "type": "bp_tier",
+      "min": 30
+    }
+  },
+  {
+    "id": "ach.bp.tier_35",
+    "category": "tool_wizard",
+    "rarity": "epic",
+    "name": "Pass Eternal",
+    "description": "Reach Battle Pass tier 35.",
+    "icon": "🎖",
+    "predicate": {
+      "type": "bp_tier",
+      "min": 35
+    }
+  },
+  {
+    "id": "ach.bp.tier_40",
+    "category": "tool_wizard",
+    "rarity": "legendary",
+    "name": "Pass Apex",
+    "description": "Reach Battle Pass tier 40.",
+    "icon": "🎖",
+    "predicate": {
+      "type": "bp_tier",
+      "min": 40
+    }
+  },
+  {
+    "id": "ach.bp.premium",
+    "category": "tool_wizard",
+    "rarity": "rare",
+    "name": "Premium Patron",
+    "description": "Activate the Premium Battle Pass.",
+    "icon": "✨",
+    "predicate": {
+      "type": "bp_premium"
+    }
+  },
+  {
+    "id": "ach.bp.tier1",
+    "category": "tool_wizard",
+    "rarity": "common",
+    "name": "First Tier",
+    "description": "Reach Battle Pass tier 1.",
+    "icon": "🎖",
+    "predicate": {
+      "type": "bp_tier",
+      "min": 1
+    }
+  },
+  {
+    "id": "ach.str.upg_50",
+    "category": "farmstead",
+    "rarity": "uncommon",
+    "name": "Stronghold Risen",
+    "description": "Own 50 Stronghold upgrades.",
+    "icon": "🏯",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 50
+    }
+  },
+  {
+    "id": "ach.str.upg_100",
+    "category": "farmstead",
+    "rarity": "rare",
+    "name": "Stronghold Forged",
+    "description": "Own 100 Stronghold upgrades.",
+    "icon": "🏯",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 100
+    }
+  },
+  {
+    "id": "ach.str.upg_200",
+    "category": "farmstead",
+    "rarity": "epic",
+    "name": "Stronghold Built",
+    "description": "Own 200 Stronghold upgrades.",
+    "icon": "🏯",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 200
+    }
+  },
+  {
+    "id": "ach.str.upg_300",
+    "category": "farmstead",
+    "rarity": "legendary",
+    "name": "Stronghold Apex",
+    "description": "Own 300 Stronghold upgrades.",
+    "icon": "🏯",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 300
+    }
+  },
+  {
+    "id": "ach.str.upg_350",
+    "category": "farmstead",
+    "rarity": "legendary",
+    "name": "Stronghold Eternal",
+    "description": "Own 350 Stronghold upgrades.",
+    "icon": "🏯",
+    "predicate": {
+      "type": "upgrades_owned",
+      "min": 350
     }
   }
 ]

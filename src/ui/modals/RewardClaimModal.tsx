@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAction, getTactic, type CardId } from '@engine/index';
+import { CombatCard } from '@ui/components/CombatCard';
 
 // Single shared reward shape across all claim sources (level-up, battle pass,
 // daily quest). The modal renders one chip per reward.
@@ -39,33 +40,11 @@ export default function RewardClaimModal({ source, subtitle, rewards, onClose }:
   }, [revealed, rewards.length]);
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/65 backdrop-blur-sm overflow-y-auto p-4 safe-top safe-bottom">
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/65 backdrop-blur-sm p-4 safe-top safe-bottom">
       <div
-        className="pb-panel max-w-md w-full p-5 sm:p-6 my-auto pb-pop-in relative overflow-hidden"
+        className="pb-panel max-w-md w-full p-5 sm:p-6 pb-pop-in relative"
         style={{ color: '#3e2723' }}
       >
-        {/* Confetti-ish dots strewn behind the content for a celebratory feel.
-            Pure CSS, no per-frame React work. */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
-          {Array.from({ length: 14 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute pb-bob"
-              style={{
-                top: `${(i * 13) % 100}%`,
-                left: `${(i * 27) % 100}%`,
-                fontSize: 14 + (i % 3) * 4,
-                opacity: 0.5,
-                animationDelay: `${i * 0.2}s`,
-                animationDuration: `${3 + (i % 4) * 0.6}s`,
-                filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))',
-              }}
-            >
-              {['✨', '⭐', '🌟', '🎉'][i % 4]}
-            </div>
-          ))}
-        </div>
-
         <div className="relative">
           <div className="text-center mb-4">
             <div
@@ -169,13 +148,22 @@ function RewardChip({ reward, visible }: { reward: ClaimableReward; visible: boo
   if (reward.type === 'card') {
     const def = getAction(reward.cardId) ?? getTactic(reward.cardId);
     return (
-      <div className="rounded-lg px-3 py-2 flex items-center gap-2" style={baseStyle}>
-        <span className="text-2xl" style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.25))' }}>
-          {def?.emoji ?? '🃏'}
-        </span>
-        <div className="flex flex-col items-start leading-tight">
-          <span className="font-extrabold text-[12px]">{def?.name ?? reward.cardId}</span>
-          <span className="text-[10px] opacity-75 font-bold">×{reward.count}</span>
+      <div
+        className="flex flex-col items-center gap-1"
+        style={{
+          transition: 'opacity 220ms ease-out, transform 220ms cubic-bezier(0.2,0.8,0.2,1)',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'scale(1)' : 'scale(0.6)',
+        }}
+      >
+        {def ? (
+          <CombatCard card={def} size="sm" />
+        ) : (
+          <span className="text-4xl">🃏</span>
+        )}
+        <div className="flex flex-col items-center leading-tight" style={{ color: '#3e2723' }}>
+          <span className="font-extrabold text-[11px]">{def?.name ?? reward.cardId}</span>
+          {reward.count > 1 && <span className="text-[10px] opacity-75 font-bold">×{reward.count}</span>}
         </div>
       </div>
     );

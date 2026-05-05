@@ -32,6 +32,13 @@ export interface Profile {
   gems: number;
   todayQuestsISO: string | null;          // YYYY-MM-DD; resets daily.
   todayQuestsState: Record<string, { progress: number; claimed: boolean }>;
+  // Battle Pass weekly + monthly challenge state. Each carries its own period
+  // key (ISO week "YYYY-WNN" / month "YYYY-MM"). When the key advances, the
+  // state object is wiped and the next period's quests are seeded.
+  weekQuestsISO: string | null;
+  weekQuestsState: Record<string, { progress: number; claimed: boolean }>;
+  monthQuestsISO: string | null;
+  monthQuestsState: Record<string, { progress: number; claimed: boolean }>;
 
   // Phase 4: social + PvP.
   farmCode: string | null;                // 6-char shareable code (assigned cloud-side).
@@ -51,7 +58,8 @@ export interface Profile {
   rejectedRunCount: number;               // Anti-cheat: runs the cloud rejected.
 
   // Phase 6: achievements.
-  achievementsUnlocked: string[];         // IDs from data/achievements.json that are claimed.
+  achievementsUnlocked: string[];         // IDs that have been earned (predicate satisfied).
+  achievementsClaimed: string[];          // IDs whose reward has been manually collected.
 
   // Phase 7: tutorial / onboarding.
   tutorialSeen: boolean;                  // Welcome modal dismissed at least once.

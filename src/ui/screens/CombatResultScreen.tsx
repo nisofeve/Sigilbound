@@ -14,9 +14,27 @@
 //   │ [HOME] [REPLAY] [▶ NEXT]           │  ← sticky CTA dock
 //   └────────────────────────────────────┘
 
+import { useEffect, useRef, useState } from 'react';
 import type { BattleRunner, CombatStageDef, ItemDrop } from '@engine/index';
 import { allActions, allTactics, allEquipment, allTalents } from '@engine/index';
 import type { CombatClearOutcome } from '@storage/index';
+import { CombatCard } from '@ui/components/CombatCard';
+import { EquipmentCard } from '@ui/components/EquipmentCard';
+import { TalentCard } from '@ui/components/TalentCard';
+import { CardDetailModal } from '@ui/components/CardDetailBody';
+import type { ActionCardDef, TacticCardDef, EquipmentDef, Perk } from '@engine/index';
+import { sfx } from '@game/sfx';
+
+// Shape consumed by CardDetailModal. Mirrored locally so this file stays
+// self-contained for the long-press drill-down on item drops.
+type DetailTarget =
+  | { kind: 'battle'; card: ActionCardDef | TacticCardDef }
+  | { kind: 'equipment'; eq: EquipmentDef }
+  | { kind: 'talent'; perk: Perk };
+
+// 500ms hold to commit a long-press. Cancels on any pointer move/leave/up so
+// scrolling the rewards list never accidentally pops the detail.
+const LONG_PRESS_MS = 500;
 
 interface Props {
   outcome: 'cleared' | 'defeated';
@@ -109,6 +127,11 @@ export default function CombatResultScreen({ outcome, stage, runner, clearOutcom
         {/* Item drops — only on first-clear */}
         {clearOutcome && clearOutcome.itemDrops && clearOutcome.itemDrops.length > 0 && (
           <ItemDropsPanel drops={clearOutcome.itemDrops} />
+        )}
+
+        {/* Newly unlocked achievements */}
+        {clearOutcome && clearOutcome.achievementsUnlocked && clearOutcome.achievementsUnlocked.length > 0 && (
+          <AchievementsUnlockedPanel achievements={clearOutcome.achievementsUnlocked} />
         )}
 
         {/* Damage breakdown */}
@@ -222,6 +245,23 @@ function RewardChest({ rewards, firstClear }: { rewards: ReadonlyArray<{ type: s
       default:       return '#fbbf24';
     }
   };
+
+  // Stagger the reveal so the eye walks across each chip, with a chime per
+  // pop-in and a chest-open swell on mount (fanfare for first-clear).
+  const [revealed, setRevealed] = useState(0);
+  useEffect(() => {
+    if (firstClear) sfx.fanfare();
+    else            sfx.rewardOpen();
+  }, [firstClear]);
+  useEffect(() => {
+    if (revealed >= rewards.length) return;
+    const id = window.setTimeout(() => {
+      setRevealed(n => Math.min(rewards.length, n + 1));
+      sfx.rewardChipCommon();
+    }, revealed === 0 ? 350 : 200);
+    return () => window.clearTimeout(id);
+  }, [revealed, rewards.length]);
+
   return (
     <div
       className="sb-parchment p-3 mb-3 sb-fade-up relative"
@@ -248,36 +288,122 @@ function RewardChest({ rewards, firstClear }: { rewards: ReadonlyArray<{ type: s
         )}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        {rewards.map((r, i) => (
-          <div
-            key={`${r.type}-${i}`}
-            className="flex items-center gap-2"
-            style={{
-              background: 'rgba(74,50,28,0.45)',
-              border: '1.5px solid var(--sb-parchment-edge)',
-              borderRadius: 4,
-              padding: '6px 8px',
-            }}
-          >
-            <div style={{ fontSize: 22, lineHeight: 1, filter: `drop-shadow(0 0 6px ${colorFor(r.type)}aa)` }}>
-              {iconFor(r.type)}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="sb-display text-[8px] tracking-[0.2em] opacity-70" style={{ color: '#3d2810' }}>
-                {labelFor(r.type)}
+        {rewards.map((r, i) => {
+          const visible = i < revealed;
+          const accent = colorFor(r.type);
+          return (
+            <div
+              key={`${r.type}-${i}`}
+              className={visible ? 'sb-reward-pop' : ''}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'rgba(74,50,28,0.45)',
+                border: '1.5px solid var(--sb-parchment-edge)',
+                borderRadius: 4,
+                padding: '6px 8px',
+                opacity: visible ? 1 : 0,
+              }}
+            >
+              <div style={{ fontSize: 22, lineHeight: 1, filter: `drop-shadow(0 0 6px ${accent}aa)` }}>
+                {iconFor(r.type)}
               </div>
-              <div className="sb-mono text-base font-bold" style={{ color: '#2c1810' }}>
-                +{r.value.toLocaleString()}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="sb-display text-[8px] tracking-[0.2em] opacity-70" style={{ color: '#3d2810' }}>
+                  {labelFor(r.type)}
+                </div>
+                <div className="sb-mono text-base font-bold" style={{ color: '#2c1810' }}>
+                  +{r.value.toLocaleString()}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {!firstClear && (
         <div className="sb-mono text-[9px] opacity-65 mt-2 text-center" style={{ color: '#3d2810' }}>
           Replay payout — first-clear chest already claimed at this star tier.
         </div>
       )}
+    </div>
+  );
+}
+
+// Map rarity → SFX intensity. Common/uncommon = soft chime; rare = two-tone;
+// epic/legendary/mythic = sparkly arpeggio so big drops actually feel big.
+function rarityChipSfx(rarity: string) {
+  if (rarity === 'epic' || rarity === 'legendary' || rarity === 'mythic') {
+    sfx.rewardChipEpic();
+  } else if (rarity === 'rare') {
+    sfx.rewardChipRare();
+  } else {
+    sfx.rewardChipCommon();
+  }
+}
+
+// Newly-unlocked achievements panel — celebratory list with the rarity
+// color rim, icon, name, and the coins/gems each one paid out.
+function AchievementsUnlockedPanel({
+  achievements,
+}: {
+  achievements: ReadonlyArray<{ id: string; rarity: string; name: string; icon: string; rewardCoins: number; rewardGems: number }>;
+}) {
+  const rarityColor: Record<string, string> = {
+    common: '#94a3b8', uncommon: '#4ade80', rare: '#60a5fa',
+    epic: '#c084fc', legendary: '#fbbf24', mythic: '#f87171',
+  };
+  return (
+    <div
+      className="mb-3 p-3"
+      style={{
+        background: 'linear-gradient(180deg, rgba(251,191,36,0.10) 0%, rgba(15,10,7,0.6) 100%)',
+        border: '1.5px solid rgba(251,191,36,0.5)',
+        borderRadius: 6,
+        boxShadow: '0 0 14px rgba(251,191,36,0.2), inset 0 1px 0 rgba(253,230,138,0.15)',
+      }}
+    >
+      <div
+        className="sb-display"
+        style={{ fontSize: 10, letterSpacing: '0.25em', color: '#fde68a', marginBottom: 8, textShadow: '0 0 8px rgba(251,191,36,0.5)' }}
+      >
+        🏆 ACHIEVEMENT{achievements.length > 1 ? 'S' : ''} UNLOCKED · {achievements.length}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {achievements.map(a => {
+          const accent = rarityColor[a.rarity] ?? '#94a3b8';
+          return (
+            <div
+              key={a.id}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '6px 8px',
+                background: 'rgba(0,0,0,0.35)',
+                border: `1.5px solid ${accent}66`,
+                borderRadius: 4,
+                boxShadow: `0 0 6px ${accent}33`,
+              }}
+            >
+              <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{a.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  className="sb-display"
+                  style={{ fontSize: 11, color: accent, letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
+                  {a.name}
+                </div>
+                <div className="sb-mono" style={{ fontSize: 9, opacity: 0.7, color: 'var(--sb-parchment)', letterSpacing: '0.1em' }}>
+                  {a.rarity.toUpperCase()}
+                </div>
+              </div>
+              <div className="sb-mono flex-shrink-0" style={{ fontSize: 10, fontWeight: 700, display: 'flex', gap: 6 }}>
+                <span style={{ color: 'var(--sb-gold)' }}>💰{a.rewardCoins}</span>
+                <span style={{ color: '#7dd3fc' }}>💎{a.rewardGems}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -293,6 +419,79 @@ function ItemDropsPanel({ drops }: { drops: ReadonlyArray<ItemDrop> }) {
     epic: '#c084fc', legendary: '#fbbf24', mythic: '#ec4899',
   };
 
+  // Resolve each drop up-front so we can drive the staggered reveal off rarity
+  // and forward a DetailTarget into the long-press popup.
+  const resolved = drops.map((drop, i) => {
+    let name = '?', rarity = 'common', subtitle = '';
+    let visual: React.ReactNode = <div style={{ fontSize: 28 }}>📦</div>;
+    let detail: DetailTarget | null = null;
+    if (drop.kind === 'combat_card') {
+      const card = actionsMap.get(drop.cardId) ?? tacticsMap.get(drop.cardId);
+      name     = card?.name ?? drop.cardId;
+      rarity   = card?.rarity ?? 'common';
+      subtitle = `×${drop.count} ${drop.count > 1 ? 'copies' : 'copy'}`;
+      if (card) {
+        visual = <CombatCard card={card} size="xs" />;
+        detail = { kind: 'battle', card };
+      }
+    } else if (drop.kind === 'equipment') {
+      const eq = equipMap.get(drop.equipmentId);
+      name     = eq?.name ?? drop.equipmentId;
+      rarity   = eq?.rarity ?? 'common';
+      subtitle = 'Equipment';
+      if (eq) {
+        visual = <EquipmentCard equipment={eq} size="xs" />;
+        detail = { kind: 'equipment', eq };
+      }
+    } else if (drop.kind === 'talent') {
+      const t = talentMap.get(drop.talentId);
+      name     = t?.name ?? drop.talentId;
+      rarity   = t?.rarity ?? 'common';
+      subtitle = `×${drop.count} talent charge${drop.count > 1 ? 's' : ''}`;
+      if (t) {
+        visual = <TalentCard talent={t} size="xs" />;
+        detail = { kind: 'talent', perk: t };
+      }
+    }
+    return { key: i, name, rarity, subtitle, visual, detail };
+  });
+
+  // Long-press popup state. A single timer is reused across rows; pressing on
+  // a new row before the first commit cancels and restarts the countdown.
+  const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
+  const pressTimer = useRef<number | null>(null);
+
+  function clearPress() {
+    if (pressTimer.current !== null) {
+      window.clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  }
+  function startPress(target: DetailTarget | null) {
+    clearPress();
+    if (!target) return;
+    pressTimer.current = window.setTimeout(() => {
+      setDetailTarget(target);
+      sfx.cardLift();
+      pressTimer.current = null;
+    }, LONG_PRESS_MS);
+  }
+  useEffect(() => () => clearPress(), []);
+
+  // Reveal one drop at a time. Bigger gap before first drop so the player's
+  // attention transitions cleanly from the chest panel above.
+  const [revealed, setRevealed] = useState(0);
+  useEffect(() => {
+    if (revealed >= resolved.length) return;
+    const delay = revealed === 0 ? 700 : 380;
+    const id = window.setTimeout(() => {
+      const next = resolved[revealed];
+      if (next) rarityChipSfx(next.rarity);
+      setRevealed(n => Math.min(resolved.length, n + 1));
+    }, delay);
+    return () => window.clearTimeout(id);
+  }, [revealed, resolved]);
+
   return (
     <div
       className="sb-parchment p-3 mb-3 sb-fade-up"
@@ -304,47 +503,42 @@ function ItemDropsPanel({ drops }: { drops: ReadonlyArray<ItemDrop> }) {
         🎁 ITEMS FOUND
       </div>
       <div className="flex flex-col gap-2">
-        {drops.map((drop, i) => {
-          let name = '?', emoji = '📦', rarity = 'common', subtitle = '';
-          if (drop.kind === 'combat_card') {
-            const card = actionsMap.get(drop.cardId) ?? tacticsMap.get(drop.cardId);
-            name    = card?.name ?? drop.cardId;
-            emoji   = card && 'damageType' in card ? '⚔' : '📜';
-            rarity  = card?.rarity ?? 'common';
-            subtitle = `×${drop.count} ${drop.count > 1 ? 'copies' : 'copy'}`;
-          } else if (drop.kind === 'equipment') {
-            const eq = equipMap.get(drop.equipmentId);
-            name    = eq?.name ?? drop.equipmentId;
-            emoji   = '🛡';
-            rarity  = eq?.rarity ?? 'common';
-            subtitle = 'Equipment';
-          } else if (drop.kind === 'talent') {
-            const t = talentMap.get(drop.talentId);
-            name    = t?.name ?? drop.talentId;
-            emoji   = '💎';
-            rarity  = t?.rarity ?? 'common';
-            subtitle = `×${drop.count} talent charge${drop.count > 1 ? 's' : ''}`;
-          }
-          const accent = rarityColor[rarity] ?? '#94a3b8';
+        {resolved.map((d, i) => {
+          const accent = rarityColor[d.rarity] ?? '#94a3b8';
+          const visible = i < revealed;
+          const interactive = visible && d.detail !== null;
           return (
             <div
-              key={i}
-              className="flex items-center gap-3 rounded px-3 py-2"
+              key={d.key}
+              className={visible ? 'sb-reward-pop' : ''}
               style={{
-                background: `linear-gradient(135deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.2) 100%)`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                borderRadius: 4,
+                padding: '8px 10px',
+                background: `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.22) 100%)`,
                 border: `1.5px solid ${accent}40`,
-                boxShadow: `0 0 8px ${accent}18`,
+                boxShadow: visible ? `0 0 8px ${accent}28` : '0 0 4px rgba(0,0,0,0.4)',
+                opacity: visible ? 1 : 0,
+                cursor: interactive ? 'pointer' : 'default',
+                userSelect: 'none',
+                touchAction: 'manipulation',
               }}
+              onPointerDown={interactive ? () => startPress(d.detail) : undefined}
+              onPointerUp={clearPress}
+              onPointerLeave={clearPress}
+              onPointerCancel={clearPress}
+              onPointerMove={clearPress}
+              onContextMenu={interactive ? (e) => { e.preventDefault(); setDetailTarget(d.detail); sfx.cardLift(); } : undefined}
             >
-              <div style={{ fontSize: 28, lineHeight: 1, filter: `drop-shadow(0 0 6px ${accent}88)` }}>
-                {emoji}
-              </div>
+              <div style={{ flexShrink: 0 }}>{d.visual}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="font-extrabold truncate" style={{ color: accent, fontSize: '0.82rem' }}>
-                  {name}
+                <div className="font-extrabold truncate" style={{ color: accent, fontSize: '0.86rem' }}>
+                  {d.name}
                 </div>
                 <div className="sb-display text-[9px] tracking-[0.15em] opacity-70" style={{ color: '#3d2810' }}>
-                  {subtitle.toUpperCase()}
+                  {d.subtitle.toUpperCase()}
                 </div>
               </div>
               <div
@@ -355,12 +549,23 @@ function ItemDropsPanel({ drops }: { drops: ReadonlyArray<ItemDrop> }) {
                   color: accent,
                 }}
               >
-                {rarity.toUpperCase()}
+                {d.rarity.toUpperCase()}
               </div>
             </div>
           );
         })}
       </div>
+      {/* Footer hint so the gesture is discoverable. */}
+      <div className="sb-mono text-[9px] opacity-55 mt-2 text-center" style={{ color: '#3d2810' }}>
+        Hold a reward to inspect
+      </div>
+
+      {detailTarget && (
+        <CardDetailModal
+          target={detailTarget}
+          onClose={() => setDetailTarget(null)}
+        />
+      )}
     </div>
   );
 }

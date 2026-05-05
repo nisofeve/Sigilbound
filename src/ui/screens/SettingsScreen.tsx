@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { sfx } from '@game/sfx';
-import { resetProfile, saveProfile, type Profile } from '@storage/index';
+import { saveProfile, type Profile } from '@storage/index';
+import { useFullscreen } from '@ui/hooks/useFullscreen';
 
 interface Props {
   profile: Profile;
@@ -62,11 +63,11 @@ export default function SettingsScreen({ profile, onProfileChange, onBack }: Pro
     sfx.setMuted(m);
     return m;
   });
-  const [confirmReset, setConfirmReset] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [codeInput, setCodeInput] = useState('');
   const [codeNotif, setCodeNotif] = useState<CodeResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fs = useFullscreen();
 
   // Focus input when modal opens so mobile virtual keyboard appears
   useEffect(() => {
@@ -82,12 +83,6 @@ export default function SettingsScreen({ profile, onProfileChange, onBack }: Pro
     sfx.setMuted(next);
     saveSfxMuted(next);
     if (!next) sfx.activate();
-  }
-
-  function doReset() {
-    const fresh = resetProfile();
-    onProfileChange(fresh);
-    setConfirmReset(false);
   }
 
   function redeemCode() {
@@ -142,6 +137,15 @@ export default function SettingsScreen({ profile, onProfileChange, onBack }: Pro
           </h1>
         </div>
 
+        <Section title="Display">
+          <Row
+            label="Fullscreen"
+            hint={fs.supported ? (fs.isFullscreen ? 'On' : 'Off') : 'Not available in this browser'}
+          >
+            <Toggle on={fs.isFullscreen} onClick={fs.toggle} />
+          </Row>
+        </Section>
+
         <Section title="Audio">
           <Row label="Sound Effects" hint={sfxMuted ? 'Muted' : 'On'}>
             <Toggle on={!sfxMuted} onClick={toggleSfx} />
@@ -168,63 +172,6 @@ export default function SettingsScreen({ profile, onProfileChange, onBack }: Pro
           >
             🔑 ENTER CODE
           </button>
-        </Section>
-
-        <Section title="Danger Zone">
-          {!confirmReset ? (
-            <button
-              onClick={() => setConfirmReset(true)}
-              className="sb-btn"
-              style={{
-                fontSize: '12px',
-                padding: '10px 16px',
-                background: 'linear-gradient(180deg, #b91c1c 0%, #5b0e0e 100%)',
-              }}
-            >
-              🗑 RESET ALL PROGRESS
-            </button>
-          ) : (
-            <div
-              className="p-3"
-              style={{
-                background: 'linear-gradient(180deg, rgba(220,38,38,0.25) 0%, rgba(127,29,29,0.25) 100%)',
-                border: '2px solid var(--sb-crimson)',
-                borderRadius: '4px',
-                color: 'var(--sb-gold-light)',
-                boxShadow: '0 0 14px rgba(220,38,38,0.35)',
-              }}
-            >
-              <div className="sb-display mb-2" style={{ color: '#fecaca', letterSpacing: '0.15em' }}>
-                ⚠ START OVER FROM SCRATCH?
-              </div>
-              <div className="mb-3 text-[12px] leading-snug" style={{ color: 'var(--sb-parchment)' }}>
-                This wipes <b>everything</b>: stage progress &amp; stars, player level &amp; XP, gold, crystals,
-                shards, cards owned, deck presets, upgrades, talents (owned and equipped), achievements,
-                daily quests, and battle pass.
-                <span className="block mt-1 opacity-80">Your starter deck and starter talents will be restored. This cannot be undone.</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={doReset}
-                  className="sb-btn"
-                  style={{
-                    fontSize: '11px',
-                    padding: '8px 14px',
-                    background: 'linear-gradient(180deg, #dc2626 0%, #7f1d1d 100%)',
-                  }}
-                >
-                  YES, RESET
-                </button>
-                <button
-                  onClick={() => setConfirmReset(false)}
-                  className="sb-btn sb-btn-steel"
-                  style={{ fontSize: '11px', padding: '8px 14px' }}
-                >
-                  CANCEL
-                </button>
-              </div>
-            </div>
-          )}
         </Section>
 
         <p

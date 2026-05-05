@@ -15,23 +15,26 @@ import StageSelectScreen from '@ui/screens/StageSelectScreen';
 import WelcomeModal from '@ui/modals/WelcomeModal';
 // Sigilbound combat flow (Phase 5).
 import CombatHomeScreen from '@ui/screens/CombatHomeScreen';
+import StageIntroScreen from '@ui/screens/StageIntroScreen';
+import StageInfoScreen from '@ui/screens/StageInfoScreen';
 import CombatResultScreen from '@ui/screens/CombatResultScreen';
 import CombatView from '@ui/components/CombatView';
 import SigilboundHubScreen from '@ui/screens/SigilboundHubScreen';
 import CombatDeckScreen from '@ui/screens/CombatDeckScreen';
 import CombatShopScreen from '@ui/screens/CombatShopScreen';
-import BestiaryScreen from '@ui/screens/BestiaryScreen';
 import CardEncyclopediaScreen from '@ui/screens/CardEncyclopediaScreen';
 import LeaderboardScreen from '@ui/screens/LeaderboardScreen';
-import LoreJournalScreen from '@ui/screens/LoreJournalScreen';
+import LoreCardUnlockModal from '@ui/modals/LoreCardUnlockModal';
 import CardUpgradeScreen from '@ui/screens/CardUpgradeScreen';
 import {
   applyStageOutcomeToProfile,
   applyCombatClearToProfile,
+  applyQuestActionToProfile,
   consumeEquippedPerksForRun,
   loadProfile,
   presetToStartingDeck,
   recordRun,
+  saveProfile,
   setProfile,
   type Profile,
   type StageRunOutcome,
@@ -67,6 +70,18 @@ export default function App() {
     });
   }, []);
 
+  // Fire open_app quest progress once per session — guarded by todayQuestsISO
+  // so the increment is harmless if it fires twice in the same UTC day.
+  useEffect(() => {
+    setProfileState(prev => {
+      const next = applyQuestActionToProfile(prev, { kind: 'open_app' });
+      if (next === prev) return prev;
+      saveProfile(next);
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function persistProfile(next: Profile) {
     setProfileState(next);
     if (auth.kind === 'signed_in') {
@@ -87,8 +102,10 @@ export default function App() {
   // through the perk loadout into the game with that stage's fixed orders.
   const [stageInfoOpen, setStageInfoOpen] = useState<number | { stage: number; hardmode?: boolean } | null>(null);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
-  const [loreOpen, setLoreOpen] = useState(false);
   const [cardUpgradeOpen, setCardUpgradeOpen] = useState(false);
+  // Stage numbers of lore milestones unlocked by the just-finished combat run.
+  // Drives the post-result LoreCardUnlockModal.
+  const [pendingLoreUnlocks, setPendingLoreUnlocks] = useState<number[]>([]);
 
   function startCombatRun(stage: number, hardmode?: boolean) {
     setScreen({
@@ -186,7 +203,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-full w-full overflow-hidden">
+    <div className="sb-app-frame h-full w-full overflow-hidden">
       {!profile.tutorialSeen && (
         <WelcomeModal
           onDismiss={() => persistProfile({ ...profile, tutorialSeen: true })}
@@ -205,11 +222,9 @@ export default function App() {
           onSettings={() => setScreen({ kind: 'settings' })}
           onDeck={() => setScreen({ kind: 'deck' })}
           onShop={() => setScreen({ kind: 'shop' })}
-          onBestiary={() => setScreen({ kind: 'bestiary' })}
           onEncyclopedia={() => setScreen({ kind: 'encyclopedia' })}
+          onBattlePass={() => setScreen({ kind: 'battlepass' })}
           onLeaderboard={() => setLeaderboardOpen(true)}
-          onLore={() => setLoreOpen(true)}
-          onCardUpgrade={() => setCardUpgradeOpen(true)}
         />
       )}
       {screen.kind === 'home' && (
@@ -258,16 +273,17 @@ export default function App() {
           onClose={() => setLeaderboardOpen(false)}
         />
       )}
-      {loreOpen && (
-        <LoreJournalScreen
-          profile={profile}
-          onClose={() => setLoreOpen(false)}
+      {pendingLoreUnlocks.length > 0 && screen.kind !== 'combat_result' && (
+        <LoreCardUnlockModal
+          stageNumbers={pendingLoreUnlocks}
+          onClose={() => setPendingLoreUnlocks([])}
         />
       )}
       {cardUpgradeOpen && (
         <CardUpgradeScreen
           profile={profile}
           onClose={() => setCardUpgradeOpen(false)}
+          onProfileChange={persistProfile}
         />
       )}
       {screen.kind === 'profile' && (
@@ -291,7 +307,7 @@ export default function App() {
           profile={profile}
           auth={auth}
           onProfileChange={persistProfile}
-          onBack={() => setScreen({ kind: 'home' })}
+          onBack={() => setScreen({ kind: 'sigilbound_hub' })}
         />
       )}
       {/* Sigilbound combat shop — Phase 7. */}
@@ -328,6 +344,7 @@ export default function App() {
         <AchievementsScreen
           profile={profile}
           onBack={() => setScreen({ kind: 'settings' })}
+          onProfileChange={persistProfile}
         />
       )}
       {screen.kind === 'social' && (
@@ -401,7 +418,7 @@ export default function App() {
             if (next >= 1) setStageInfoOpen(next);
             setScreen({ kind: 'home' });
           }}
-          onHome={() => setScreen({ kind: 'home' })}
+          onHome={() => setScreen({ kind: 'sigilbound_hub' })}
         />
       )}
 
@@ -422,6 +439,8 @@ export default function App() {
             })
           }
           onBack={() => setScreen({ kind: 'sigilbound_hub' })}
+          onDeck={() => setScreen({ kind: 'deck' })}
+          onProfileChange={persistProfile}
         />
       )}
       {screen.kind === 'combat' && (
@@ -452,11 +471,17 @@ export default function App() {
                 currentHp: runner.state.player.currentHp,
                 maxHp: runner.state.player.stats.maxHp,
                 hardcore: screen.hardcore,
+                combosTriggered: runner.state.combosTriggeredThisStage.element_chain,
               },
             );
             if (nextProfile !== profile) {
               persistProfile(nextProfile);
               setProfileState(nextProfile);
+            }
+            // Queue any newly-unlocked lore so the unlock modal fires after
+            // the player closes the result screen.
+            if (clearOutcome.loreUnlocked.length > 0) {
+              setPendingLoreUnlocks(clearOutcome.loreUnlocked);
             }
             setScreen({
               kind: 'combat_result',
@@ -471,14 +496,14 @@ export default function App() {
               clearOutcome,
             });
           }}
-          onExit={() => setScreen({ kind: 'combat_home' })}
+          onExit={() => setScreen({ kind: 'sigilbound_hub' })}
         />
       )}
       {screen.kind === 'bestiary' && (
-        <BestiaryScreen onBack={() => setScreen({ kind: 'sigilbound_hub' })} />
+        <CardEncyclopediaScreen profile={profile} initialTab="bestiary" onBack={() => setScreen({ kind: 'sigilbound_hub' })} />
       )}
       {screen.kind === 'encyclopedia' && (
-        <CardEncyclopediaScreen onBack={() => setScreen({ kind: 'sigilbound_hub' })} />
+        <CardEncyclopediaScreen profile={profile} initialTab={screen.initialTab} onBack={() => setScreen({ kind: 'sigilbound_hub' })} />
       )}
       {screen.kind === 'combat_result' && (
         <CombatResultScreen
@@ -497,17 +522,59 @@ export default function App() {
             // Hardcore replays start at full HP — replays reset the arc.
           })}
           onNext={() => setScreen({
-            kind: 'combat',
+            kind: 'stage_intro',
             stageNumber: screen.stage.number + 1,
             talents: screen.talents,
             equipment: screen.equipment,
             hardcore: screen.hardcore,
             customDeck: screen.customDeck,
             ownedUpgradeIds: screen.ownedUpgradeIds,
-            // Hardcore: carry HP forward to the next stage.
-            carryHp: screen.hardcore ? screen.runner.state.player.currentHp : undefined,
           })}
-          onHome={() => setScreen({ kind: 'combat_home' })}
+          onHome={() => setScreen({ kind: 'sigilbound_hub' })}
+        />
+      )}
+      {screen.kind === 'stage_intro' && (
+        <StageIntroScreen
+          stageNumber={screen.stageNumber}
+          onContinue={() => setScreen({
+            kind: 'stage_info',
+            stageNumber: screen.stageNumber,
+            talents: screen.talents,
+            equipment: screen.equipment,
+            hardcore: screen.hardcore,
+            customDeck: screen.customDeck,
+            ownedUpgradeIds: screen.ownedUpgradeIds,
+          })}
+          onSkip={() => setScreen({
+            kind: 'stage_info',
+            stageNumber: screen.stageNumber,
+            talents: screen.talents,
+            equipment: screen.equipment,
+            hardcore: screen.hardcore,
+            customDeck: screen.customDeck,
+            ownedUpgradeIds: screen.ownedUpgradeIds,
+          })}
+        />
+      )}
+      {screen.kind === 'stage_info' && (
+        <StageInfoScreen
+          stageNumber={screen.stageNumber}
+          profile={profile}
+          ownedUpgradeIds={profile.upgradesOwned}
+          onBegin={({ stageNumber, talents, equipment, hardcore }) =>
+            setScreen({
+              kind: 'combat',
+              stageNumber,
+              talents,
+              equipment,
+              hardcore,
+              customDeck: profile.combatDeck,
+              ownedUpgradeIds: profile.upgradesOwned,
+            })
+          }
+          onQuit={() => setScreen({ kind: 'sigilbound_hub' })}
+          onDeck={() => setScreen({ kind: 'deck' })}
+          onProfileChange={persistProfile}
         />
       )}
     </div>

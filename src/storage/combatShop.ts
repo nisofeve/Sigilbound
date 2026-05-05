@@ -18,6 +18,7 @@ import {
 } from '@engine/index';
 import { MAX_COMBAT_DECK_SETS } from './types';
 import type { Profile } from './types';
+import { applyQuestActionToProfile } from './profile';
 
 // === Daily rollover ===
 
@@ -103,7 +104,9 @@ export function buyCombatShopEntry(
     }
   }
 
-  return { ok: true, profile: next };
+  // Roll buy_shop_item progress through daily/weekly/monthly buckets.
+  const withQuest = applyQuestActionToProfile(next, { kind: 'buy_shop_item', count: quantity });
+  return { ok: true, profile: withQuest };
 }
 
 // === Reroll ===
@@ -310,6 +313,8 @@ export function upgradeCombatCard(profile: Profile, cardId: string): CombatBuyRe
     next.combatDeckSets = sets;
   }
 
-  return { ok: true, profile: next };
+  // Daily/weekly/monthly: card-upgrade quests progress.
+  const withQuest = applyQuestActionToProfile(next, { kind: 'upgrade_card' });
+  return { ok: true, profile: withQuest };
 }
 

@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
 import type { Profile } from '@storage/index';
-import { setActiveCombatDeckSet } from '@storage/index';
-import { allActions, allTactics, bpTierFromXp } from '@engine/index';
-import DailyChallengesPanel from '@ui/components/DailyChallengesPanel';
+import { bpTierFromXp } from '@engine/index';
+import DeckCarousel from '@ui/components/DeckCarousel';
+import { useFullscreen } from '@ui/hooks/useFullscreen';
 
 interface Props {
   profile: Profile;
@@ -13,18 +12,17 @@ interface Props {
   onSettings: () => void;
   onDeck: () => void;
   onShop: () => void;
-  onBestiary: () => void;
   onEncyclopedia: () => void;
+  onBattlePass?: () => void;
   onLeaderboard?: () => void;
-  onLore?: () => void;
-  onCardUpgrade?: () => void;
 }
 
 export default function SigilboundHubScreen({
-  profile, onProfileChange, onCombat, onStronghold, onProfile, onSettings, onDeck, onShop, onBestiary, onEncyclopedia, onLeaderboard, onLore, onCardUpgrade,
+  profile, onProfileChange, onCombat, onStronghold, onProfile, onSettings, onDeck, onShop, onEncyclopedia, onBattlePass, onLeaderboard,
 }: Props) {
   const stage = profile.currentStage ?? 1;
   const stageStars = profile.stageStars[stage] ?? 0;
+  const fs = useFullscreen();
 
   return (
     <div className="sb-bg sb-bg-stone relative h-full w-full overflow-hidden flex flex-col safe-top safe-bottom">
@@ -66,6 +64,26 @@ export default function SigilboundHubScreen({
           <CurrencyChip icon="💰" value={profile.bankCoins} accent="var(--sb-gold)" />
           <CurrencyChip icon="💎" value={profile.gems} accent="#93c5fd" />
           <CurrencyChip icon="✨" value={profile.perkShards} accent="#c4b5fd" />
+          {fs.supported && (
+            <button
+              onClick={fs.toggle}
+              aria-label={fs.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+              title={fs.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+              className="ml-0.5 flex items-center justify-center flex-shrink-0"
+              style={{
+                width: 36, height: 36,
+                borderRadius: '50%',
+                background: 'linear-gradient(180deg, #2c1810 0%, var(--sb-leather-dark) 100%)',
+                border: '2px solid var(--sb-bronze)',
+                color: 'var(--sb-gold-light)',
+                fontSize: 14,
+                cursor: 'pointer',
+                boxShadow: 'inset 0 1px 0 rgba(255,200,140,0.18), var(--sb-shadow-sm)',
+              }}
+            >
+              {fs.isFullscreen ? '🗗' : '⛶'}
+            </button>
+          )}
           <button
             onClick={onSettings}
             aria-label="Settings"
@@ -123,7 +141,7 @@ export default function SigilboundHubScreen({
               opacity: 0.85,
             }}
           >
-            BIND · STRIKE · CONQUER
+            ROGUELITE · DECKBUILDING · BATTLE
           </div>
         </div>
 
@@ -139,22 +157,26 @@ export default function SigilboundHubScreen({
         {/* Battle Pass Progress */}
         {profile.bpXp !== undefined && (
           <div className="w-full max-w-sm pointer-events-auto">
-            <BpProgressBar profile={profile} />
+            <BpProgressBar profile={profile} onOpen={onBattlePass} />
           </div>
         )}
 
-        {/* Daily Challenges */}
+        {/* Active deck — carousel with archetype + showcase + swipe / arrows */}
         <div className="w-full max-w-sm pointer-events-auto">
-          <DailyChallengesPanel profile={profile} />
+          <DeckCarousel
+            profile={profile}
+            onProfileChange={onProfileChange}
+            onOpenDeck={onDeck}
+          />
         </div>
 
-        {/* Active deck HUD */}
-        <div className="w-full max-w-sm pointer-events-auto">
-          <DeckHud profile={profile} onProfileChange={onProfileChange} onDeckPress={onDeck} />
-        </div>
-
-        {/* Primary CTA + secondary row */}
-        <div className="w-full max-w-sm flex flex-col gap-1.5 pointer-events-auto mt-2 mb-1">
+        {/* Primary CTA + bottom group — shifted up 12px (was mt-2 / 8px,
+            now -4px) so it sits closer to the deck carousel above. The
+            parent flex column handles narrow-screen overflow gracefully. */}
+        <div
+          className="w-full max-w-sm flex flex-col gap-1.5 pointer-events-auto mb-1"
+          style={{ marginTop: '-4px' }}
+        >
           <button
             onClick={onCombat}
             className="sb-btn sb-pulse-crimson w-full"
@@ -174,8 +196,11 @@ export default function SigilboundHubScreen({
       </div>
 
       {/* === BOTTOM DOCK === */}
+      {/* Lifted 12px on screens taller than 600px so the dock sits closer to
+          the action; on shorter screens we let the safe-bottom area handle it
+          to avoid overlap with home-indicator gestures. */}
       <nav
-        className="relative z-20 flex items-stretch justify-around gap-1 px-2 pb-3 pt-2 pointer-events-auto overflow-x-auto"
+        className="relative z-20 flex items-stretch justify-around gap-1 px-2 pb-3 pt-2 pointer-events-auto overflow-x-auto sb-bottom-dock"
         style={{
           background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(15,10,7,0.85) 30%, rgba(15,10,7,0.95) 100%)',
           borderTop: '2px solid var(--sb-bronze-dark)',
@@ -185,11 +210,8 @@ export default function SigilboundHubScreen({
         <DockButton onClick={onDeck}         icon="🃏" label="Deck" />
         <DockButton onClick={onShop}         icon="⚜" label="Shop" />
         <DockButton onClick={onStronghold}   icon="🏰" label="Stronghold" />
-        <DockButton onClick={onBestiary}     icon="📖" label="Bestiary" />
         <DockButton onClick={onEncyclopedia} icon="📚" label="Cards" />
         {onLeaderboard && <DockButton onClick={onLeaderboard} icon="🏆" label="Scores" />}
-        {onLore && <DockButton onClick={onLore} icon="📜" label="Lore" />}
-        {onCardUpgrade && <DockButton onClick={onCardUpgrade} icon="⚙" label="Upgrades" />}
       </nav>
 
       {/* version mark */}
@@ -205,196 +227,60 @@ export default function SigilboundHubScreen({
 
 // ─── Battle Pass Progress ──────────────────────────────────────────────────
 
-function BpProgressBar({ profile }: { profile: Profile }) {
+function BpProgressBar({ profile, onOpen }: { profile: Profile; onOpen?: () => void }) {
   const currentXp = profile.bpXp ?? 0;
   const currentTier = bpTierFromXp(currentXp);
-  const seasonNum = profile.bpSeasonNumber ?? 1;
+  const seasonNum = profile.bpSeasonNumber || 1;
+  const TOTAL_TIERS = 60;
+  const pct = Math.min(100, (currentTier / TOTAL_TIERS) * 100);
 
   return (
-    <div
-      className="rounded-lg p-3"
+    <button
+      onClick={onOpen}
+      disabled={!onOpen}
+      className="w-full rounded-lg p-3 text-left"
       style={{
-        background: 'linear-gradient(135deg, rgba(255,193,7,0.08) 0%, rgba(255,152,0,0.04) 100%)',
-        border: '1.5px solid rgba(255,193,7,0.2)',
+        background: 'linear-gradient(135deg, rgba(167,139,250,0.15) 0%, rgba(76,29,149,0.18) 100%)',
+        border: '1.5px solid rgba(167,139,250,0.4)',
+        cursor: onOpen ? 'pointer' : 'default',
+        boxShadow: 'inset 0 1px 0 rgba(196,181,253,0.12)',
+        transition: 'all 200ms ease',
       }}
     >
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-base">🎖️</span>
+        <span className="text-base">{profile.bpPremium ? '👑' : '🎖️'}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-extrabold">Battle Pass S{seasonNum}</div>
-          <div className="text-[10px] opacity-60">Tier {currentTier} / 40</div>
+          <div
+            className="sb-display"
+            style={{ fontSize: 11, color: '#e9d5ff', letterSpacing: '0.18em' }}
+          >
+            BATTLE PASS · S{seasonNum}
+          </div>
+          <div
+            className="sb-mono"
+            style={{ fontSize: 9, color: '#a78bfa', letterSpacing: '0.1em', opacity: 0.85 }}
+          >
+            TIER {currentTier} / {TOTAL_TIERS}
+          </div>
         </div>
+        {onOpen && (
+          <span style={{ fontSize: 12, color: '#c4b5fd', opacity: 0.7 }}>›</span>
+        )}
       </div>
-      <div className="w-full bg-gray-700 rounded-full h-2">
+      <div
+        className="h-2 rounded-full overflow-hidden"
+        style={{ background: 'rgba(0,0,0,0.5)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.6)' }}
+      >
         <div
           className="h-full rounded-full transition-all"
           style={{
-            width: `${(currentTier / 40) * 100}%`,
-            background: 'linear-gradient(90deg, #ffd54f 0%, #ff9800 100%)',
+            width: `${pct}%`,
+            background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 50%, #fbbf24 100%)',
+            boxShadow: '0 0 6px rgba(251,191,36,0.5)',
           }}
         />
       </div>
-    </div>
-  );
-}
-
-// ─── Deck HUD ────────────────────────────────────────────────────────────────
-
-const RARITY_COLOR_MAP: Record<string, string> = {
-  common: '#94a3b8', uncommon: '#4ade80', rare: '#60a5fa',
-  epic: '#c084fc', legendary: '#fbbf24', mythic: '#f87171',
-};
-
-function DeckHud({
-  profile,
-  onProfileChange,
-  onDeckPress,
-}: {
-  profile: Profile;
-  onProfileChange: (next: Profile) => void;
-  onDeckPress: () => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  const allCardDefs = useMemo(() => {
-    const actions = allActions();
-    const tactics = allTactics();
-    return new Map([...actions, ...tactics].map(c => [c.id, c]));
-  }, []);
-
-  const activeSetIdx = profile.activeCombatDeckSet ?? 0;
-  const deck = profile.combatDeck ?? [];
-  const sets = profile.combatDeckSets ?? [];
-
-  const cards = deck.map(id => allCardDefs.get(id)).filter(Boolean) as Array<{ id: string; type: string; rarity: string; name: string }>;
-  const totalCards = cards.length;
-  const actionCount = cards.filter(c => c.type === 'action').length;
-  const tacticCount = cards.filter(c => c.type === 'tactic').length;
-  const isEmpty = totalCards === 0;
-
-  // Unique card name counts for the list
-  const cardNameCounts = useMemo(() => {
-    const m = new Map<string, { name: string; rarity: string; type: string; count: number }>();
-    for (const c of cards) {
-      if (m.has(c.id)) { m.get(c.id)!.count++; }
-      else m.set(c.id, { name: c.name, rarity: c.rarity, type: c.type, count: 1 });
-    }
-    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [cards]);
-
-  return (
-    <div style={{
-      width: '100%',
-      background: 'linear-gradient(180deg, rgba(44,24,16,0.88) 0%, rgba(20,12,8,0.93) 100%)',
-      border: '1.5px solid var(--sb-bronze-dark)',
-      borderRadius: 10,
-      overflow: 'hidden',
-      boxShadow: 'inset 0 1px 0 rgba(255,200,140,0.1), var(--sb-shadow-sm)',
-    }}>
-      {/* Header row — always visible */}
-      <div
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', cursor: 'pointer' }}
-        onClick={() => setExpanded(v => !v)}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 13 }}>🃏</span>
-          <span className="sb-display" style={{ fontSize: 9, letterSpacing: '0.2em', color: 'var(--sb-gold-light)' }}>
-            {sets[activeSetIdx]?.name?.toUpperCase() ?? 'ACTIVE DECK'}
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {!isEmpty && (
-            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-              <span className="sb-mono" style={{ fontSize: 10, color: '#94a3b8' }}>⚔ {actionCount}</span>
-              <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 9 }}>│</span>
-              <span className="sb-mono" style={{ fontSize: 10, color: '#c084fc' }}>✦ {tacticCount}</span>
-            </div>
-          )}
-          <span className="sb-mono" style={{ fontSize: 9, color: 'var(--sb-gold)', opacity: 0.7, letterSpacing: '0.1em' }}>
-            {isEmpty ? 'EMPTY' : `${totalCards}`} {expanded ? '▲' : '▼'}
-          </span>
-        </div>
-      </div>
-
-      {/* Expanded content */}
-      {expanded && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* Set switcher */}
-          <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
-            {sets.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => onProfileChange(setActiveCombatDeckSet(profile, i))}
-                style={{
-                  flexShrink: 0,
-                  padding: '3px 8px',
-                  borderRadius: 6,
-                  fontSize: 9,
-                  fontWeight: 800,
-                  fontFamily: "'Nunito', sans-serif",
-                  letterSpacing: '0.05em',
-                  background: i === activeSetIdx ? 'rgba(196,146,42,0.22)' : 'rgba(0,0,0,0.2)',
-                  border: i === activeSetIdx ? '1.5px solid rgba(196,146,42,0.7)' : '1.5px solid rgba(120,80,30,0.2)',
-                  color: i === activeSetIdx ? '#c4922a' : '#8d6e3f',
-                  cursor: 'pointer',
-                }}
-              >
-                {s.name ?? `Deck ${i + 1}`}
-                <span style={{ opacity: 0.6, marginLeft: 3 }}>({s.cards?.length ?? 0})</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Card list */}
-          {isEmpty ? (
-            <div style={{ textAlign: 'center', padding: '4px 0' }}>
-              <span className="sb-display" style={{ fontSize: 9, color: 'rgba(255,235,180,0.3)', letterSpacing: '0.15em' }}>— NO CARDS —</span>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 180, overflowY: 'auto' }}>
-              {cardNameCounts.map((entry, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{
-                    width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                    background: RARITY_COLOR_MAP[entry.rarity] ?? '#94a3b8',
-                    boxShadow: `0 0 4px ${RARITY_COLOR_MAP[entry.rarity] ?? '#94a3b8'}80`,
-                  }} />
-                  <span className="sb-mono" style={{ fontSize: 9, color: '#e2d5b0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {entry.name}
-                  </span>
-                  <span style={{ fontSize: 8, color: entry.type === 'action' ? '#94a3b8' : '#c084fc', flexShrink: 0 }}>
-                    {entry.type === 'action' ? '⚔' : '✦'}
-                  </span>
-                  <span className="sb-mono" style={{ fontSize: 9, color: '#c4922a', flexShrink: 0, minWidth: 16, textAlign: 'right' }}>
-                    ×{entry.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Edit button */}
-          <button
-            onClick={onDeckPress}
-            style={{
-              width: '100%',
-              padding: '5px 0',
-              borderRadius: 6,
-              fontSize: 9,
-              fontWeight: 800,
-              letterSpacing: '0.15em',
-              fontFamily: "'Nunito', sans-serif",
-              background: 'rgba(196,146,42,0.15)',
-              border: '1.5px solid rgba(196,146,42,0.4)',
-              color: 'var(--sb-gold-light)',
-              cursor: 'pointer',
-            }}
-          >
-            ✎ EDIT DECK
-          </button>
-        </div>
-      )}
-    </div>
+    </button>
   );
 }
 

@@ -1,10 +1,12 @@
-// Sigilbound Stronghold — visual upgrade tree screen.
-// 5 zone columns side by side, T1→T5 nodes with connector lines.
-// Locked nodes are dimmed; owned nodes glow with zone accent color.
+// Sigilbound Stronghold — tabbed list of permanent upgrades.
+// One tab per zone (Armory / Sanctum / Library / Forge / Shrine). Active
+// tab shows a uniform vertical list of upgrade rows ordered by chain →
+// tier so prerequisites flow top-down.
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { allUpgrades, canBuy, type Upgrade, type UpgradeZone } from '@engine/index';
 import { buyUpgrade, type Profile } from '@storage/index';
+import { sfx } from '@game/sfx';
 
 interface Props {
   profile: Profile;
@@ -50,29 +52,73 @@ const zoneMeta: Record<string, {
   },
 };
 
-// Build prerequisite chains within a zone: map each upgrade id to its chain
-// predecessor. Returns ordered tiers per chain (root at index 0).
-function buildChains(upgrades: Upgrade[]): Upgrade[][] {
+// Build prerequisite-rooted display order: walk roots, then their children
+// in chain sequence. This preserves the "tier 1 of chain A, then tier 2 of
+// chain A, …, then chain B" reading order so a list view groups related
+// upgrades naturally.
+function chainOrderedUpgrades(upgrades: Upgrade[]): Upgrade[] {
   const byId = new Map(upgrades.map(u => [u.id, u]));
-  // Roots: no prerequisite OR prerequisite is in another zone
   const roots = upgrades.filter(u => !u.prerequisite || !byId.has(u.prerequisite!));
-  const chains: Upgrade[][] = [];
+  const out: Upgrade[] = [];
   for (const root of roots) {
-    const chain: Upgrade[] = [root];
-    let cur: Upgrade = root;
-    // Follow the single child (linear chains only)
-    let next = upgrades.find(u => u.prerequisite === cur.id);
-    while (next) {
-      chain.push(next);
-      cur = next;
-      next = upgrades.find(u => u.prerequisite === cur.id);
+    let cur: Upgrade | undefined = root;
+    while (cur) {
+      out.push(cur);
+      cur = upgrades.find(u => u.prerequisite === cur!.id);
     }
-    chains.push(chain);
   }
-  return chains;
+  // Append any orphans that weren't reached (shouldn't happen but defensive).
+  for (const u of upgrades) if (!out.includes(u)) out.push(u);
+  return out;
 }
 
-interface NodeProps {
+// ─── Zone list — uniform vertical list of upgrade rows ─────────────────────
+
+function ZoneList({
+  zone, upgrades, ownedSet, bankCoins, onBuy, onInfo,
+}: {
+  zone: UpgradeZone;
+  upgrades: Upgrade[];
+  ownedSet: Set<string>;
+  bankCoins: number;
+  onBuy: (u: Upgrade) => void;
+  onInfo: (u: Upgrade) => void;
+}) {
+  const meta = zoneMeta[zone];
+  const sorted = useMemo(() => chainOrderedUpgrades(upgrades), [upgrades]);
+  return (
+    <div
+      style={{
+        display: 'flex', flexDirection: 'column', gap: 6,
+        padding: '6px 0 4px',
+      }}
+    >
+      {sorted.map(upg => {
+        const owned = ownedSet.has(upg.id);
+        const locked = !!(upg.prerequisite && !ownedSet.has(upg.prerequisite));
+        const buyable = !owned && !locked && bankCoins >= upg.cost;
+        return (
+          <UpgradeRow
+            key={upg.id}
+            upg={upg}
+            owned={owned}
+            buyable={buyable}
+            locked={locked}
+            accent={meta.accent}
+            accentDim={meta.accentDim}
+            tintStrong={meta.tintStrong}
+            onBuy={() => onBuy(upg)}
+            onInfo={() => onInfo(upg)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── UpgradeRow — one uniform list entry ───────────────────────────────────
+
+interface RowProps {
   upg: Upgrade;
   owned: boolean;
   buyable: boolean;
@@ -81,152 +127,137 @@ interface NodeProps {
   accentDim: string;
   tintStrong: string;
   onBuy: () => void;
-  onInfo: (upg: Upgrade) => void;
+  onInfo: () => void;
 }
 
-function UpgradeNode({ upg, owned, buyable, locked, accent, accentDim, tintStrong, onBuy, onInfo }: NodeProps) {
+function UpgradeRow({ upg, owned, buyable, locked, accent, accentDim, tintStrong, onBuy, onInfo }: RowProps) {
   const isNoOp = upg.effect.type === 'noop';
-
   const borderColor = owned ? accent : buyable ? accent + 'aa' : locked ? accentDim : 'rgba(120,100,80,0.35)';
   const bgColor = owned
     ? tintStrong
     : buyable
       ? 'rgba(0,0,0,0.55)'
-      : 'rgba(0,0,0,0.45)';
-  const opacity = locked && !owned ? 0.38 : 1;
-  const glowColor = owned ? accent : buyable ? accent + '55' : 'transparent';
-
+      : 'rgba(0,0,0,0.42)';
+  const opacity = locked && !owned ? 0.5 : 1;
   return (
     <div
+      onClick={onInfo}
       style={{
-        position: 'relative',
+        display: 'grid',
+        gridTemplateColumns: '36px 1fr auto',
+        alignItems: 'center',
+        gap: 10,
         background: bgColor,
         border: `1.5px solid ${borderColor}`,
         borderRadius: 6,
-        padding: '8px 9px',
+        padding: '8px 10px',
         opacity,
+        cursor: 'pointer',
         boxShadow: owned
-          ? `0 0 14px ${glowColor}, inset 0 1px 0 rgba(255,235,180,0.12)`
+          ? `0 0 8px ${accent}66, inset 0 1px 0 rgba(255,235,180,0.1)`
           : buyable
-            ? `0 0 8px ${glowColor}, inset 0 1px 0 rgba(255,235,180,0.06)`
+            ? `0 0 6px ${accent}33, inset 0 1px 0 rgba(255,235,180,0.06)`
             : 'inset 0 1px 0 rgba(255,235,180,0.04)',
-        cursor: locked || owned ? 'default' : 'pointer',
-        transition: 'box-shadow 0.2s, border-color 0.2s',
+        transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
       }}
-      onClick={() => !locked && !owned && onInfo(upg)}
     >
       {/* Tier pip */}
-      <div style={{
-        position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
-        width: 18, height: 18,
-        background: owned ? accent : buyable ? accent + 'cc' : accentDim,
-        border: `1.5px solid ${owned ? '#fff8' : 'rgba(255,255,255,0.2)'}`,
-        borderRadius: '50%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 9, fontWeight: 700,
-        color: '#1a0f0a',
-        fontFamily: 'var(--sb-font-display)',
-        boxShadow: owned ? `0 0 8px ${accent}` : 'none',
-        zIndex: 2,
-      }}>
+      <div
+        style={{
+          width: 32, height: 32,
+          borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: owned
+            ? `linear-gradient(180deg, ${accent} 0%, ${accentDim} 100%)`
+            : buyable
+              ? `linear-gradient(180deg, ${accent}aa 0%, ${accentDim} 100%)`
+              : 'linear-gradient(180deg, rgba(60,40,20,0.8) 0%, rgba(30,20,10,0.9) 100%)',
+          border: `1.5px solid ${owned ? '#fff7' : accent + '55'}`,
+          color: owned || buyable ? '#1a0f0a' : '#94896f',
+          fontFamily: 'var(--sb-font-display)',
+          fontSize: 12, fontWeight: 700,
+          boxShadow: owned ? `0 0 10px ${accent}aa` : 'none',
+        }}
+      >
         {upg.tier}
       </div>
 
-      {/* Name row */}
-      <div style={{
-        fontFamily: 'var(--sb-font-display)',
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: '0.04em',
-        color: owned ? accent : 'var(--sb-gold-light)',
-        marginBottom: 3,
-        marginTop: 4,
-        textAlign: 'center',
-        lineHeight: 1.25,
-      }}>
-        {owned && <span style={{ marginRight: 3, fontSize: 9 }}>✓</span>}
-        {upg.name}
-        {isNoOp && !owned && (
-          <span style={{ fontSize: 8, opacity: 0.45, marginLeft: 4, fontFamily: 'var(--sb-font-mono)' }}>SOON</span>
-        )}
-      </div>
-
-      {/* Description */}
-      <div style={{
-        fontSize: 9.5,
-        color: 'var(--sb-parchment)',
-        opacity: 0.82,
-        textAlign: 'center',
-        lineHeight: 1.3,
-        marginBottom: owned ? 0 : 5,
-      }}>
-        {upg.description}
-      </div>
-
-      {/* Buy button / owned state */}
-      {!owned && (
-        <button
-          onClick={e => { e.stopPropagation(); if (buyable) onBuy(); }}
-          disabled={!buyable}
+      {/* Center: name + description */}
+      <div style={{ minWidth: 0 }}>
+        <div
+          className="sb-display"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 3,
-            width: '100%',
-            padding: '4px 6px',
-            fontSize: 10,
-            fontFamily: 'var(--sb-font-display)',
+            fontSize: 12,
             fontWeight: 700,
-            letterSpacing: '0.05em',
-            borderRadius: 3,
-            cursor: buyable ? 'pointer' : 'not-allowed',
-            background: buyable
-              ? `linear-gradient(180deg, ${accent} 0%, ${accentDim} 100%)`
-              : 'rgba(0,0,0,0.4)',
-            border: `1px solid ${buyable ? accent : 'rgba(120,100,80,0.3)'}`,
-            color: buyable ? '#1a0f0a' : 'rgba(255,255,255,0.25)',
-            boxShadow: buyable ? `inset 0 1px 0 rgba(255,255,255,0.35)` : 'none',
+            letterSpacing: '0.04em',
+            color: owned ? accent : 'var(--sb-gold-light)',
+            lineHeight: 1.2,
+            marginBottom: 2,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}
         >
-          {locked ? '🔒' : '💰'} {upg.cost.toLocaleString()}
-        </button>
-      )}
-    </div>
-  );
-}
+          {owned && <span style={{ marginRight: 4, fontSize: 10 }}>✓</span>}
+          {upg.name}
+          {isNoOp && !owned && (
+            <span className="sb-mono" style={{ fontSize: 8, opacity: 0.5, marginLeft: 6, letterSpacing: '0.1em' }}>SOON</span>
+          )}
+        </div>
+        <div
+          style={{
+            fontSize: 10,
+            color: 'var(--sb-parchment)',
+            opacity: 0.78,
+            lineHeight: 1.3,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}
+        >
+          {upg.description}
+        </div>
+      </div>
 
-// Vertical connector between two nodes in a chain
-function ChainConnector({ owned, buyable, accent, accentDim }: {
-  owned: boolean; buyable: boolean; accent: string; accentDim: string;
-}) {
-  const color = owned ? accent : buyable ? accent + '77' : accentDim + '66';
-  const solid = owned || buyable;
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      height: 20,
-      position: 'relative',
-    }}>
-      <div style={{
-        width: 2,
-        height: '100%',
-        background: solid ? color : `repeating-linear-gradient(to bottom, ${color} 0px, ${color} 4px, transparent 4px, transparent 8px)`,
-        boxShadow: owned ? `0 0 6px ${accent}` : 'none',
-        borderRadius: 1,
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: -4,
-        width: 0,
-        height: 0,
-        borderLeft: '4px solid transparent',
-        borderRight: '4px solid transparent',
-        borderTop: `5px solid ${color}`,
-        filter: owned ? `drop-shadow(0 0 4px ${accent})` : 'none',
-      }} />
+      {/* Right: buy / owned state */}
+      <div style={{ flexShrink: 0 }}>
+        {owned ? (
+          <span
+            className="sb-mono"
+            style={{
+              padding: '4px 8px', borderRadius: 999,
+              fontSize: 9,
+              background: 'rgba(34,197,94,0.18)',
+              border: '1px solid rgba(74,222,128,0.5)',
+              color: '#86efac',
+              letterSpacing: '0.12em', fontWeight: 700,
+            }}
+          >
+            FORGED
+          </span>
+        ) : (
+          <button
+            onClick={e => { e.stopPropagation(); if (buyable) onBuy(); }}
+            disabled={!buyable}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '6px 10px',
+              fontSize: 11,
+              fontFamily: 'var(--sb-font-display)',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              borderRadius: 4,
+              cursor: buyable ? 'pointer' : 'not-allowed',
+              background: buyable
+                ? `linear-gradient(180deg, ${accent} 0%, ${accentDim} 100%)`
+                : 'rgba(0,0,0,0.4)',
+              border: `1px solid ${buyable ? accent : 'rgba(120,100,80,0.35)'}`,
+              color: buyable ? '#1a0f0a' : 'rgba(255,255,255,0.3)',
+              boxShadow: buyable ? `inset 0 1px 0 rgba(255,255,255,0.3)` : 'none',
+              minWidth: 76,
+              justifyContent: 'center',
+            }}
+          >
+            {locked ? '🔒' : '💰'} {upg.cost.toLocaleString()}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -321,6 +352,7 @@ function UpgradeInfoPopup({ upg, owned, buyable, locked, accent, onBuy, onClose 
 
 export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Props) {
   const [infoUpg, setInfoUpg] = useState<Upgrade | null>(null);
+  const [activeZone, setActiveZone] = useState<UpgradeZone>('armory');
   const ownedSet = new Set(profile.upgradesOwned);
   const all = allUpgrades();
 
@@ -333,7 +365,12 @@ export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Pr
 
   function handleBuy(u: Upgrade) {
     const next = buyUpgrade(profile, u.id, u.cost);
+    // buyUpgrade returns the same profile object on failure (already owned
+    // or not enough coins). Only play the unlock SFX on a real purchase —
+    // detected via the upgrade newly appearing in upgradesOwned.
+    const succeeded = next !== profile && next.upgradesOwned.includes(u.id);
     onProfileChange(next);
+    if (succeeded) sfx.upgradeUnlock();
   }
 
   const activeInfo = infoUpg;
@@ -400,31 +437,52 @@ export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Pr
         PERMANENT UPGRADES · CARRIED INTO EVERY BATTLE
       </div>
 
-      {/* Zone column headers */}
-      <div style={{
-        flexShrink: 0,
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: 6,
-        padding: '0 8px 6px',
-        zIndex: 5,
-      }}>
+      {/* Zone tab bar — tap to switch which zone's upgrades are shown */}
+      <div
+        role="tablist"
+        style={{
+          flexShrink: 0,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: 4,
+          padding: '0 8px 6px',
+          zIndex: 5,
+        }}
+      >
         {ACTIVE_ZONES.map(zone => {
           const meta = zoneMeta[zone];
           const ownedCount = grouped[zone].filter(u => ownedSet.has(u.id)).length;
           const total = grouped[zone].length;
+          const isActive = activeZone === zone;
           return (
-            <div
+            <button
               key={zone}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActiveZone(zone)}
               style={{
-                background: `linear-gradient(180deg, ${meta.tintStrong} 0%, ${meta.tint} 100%)`,
-                border: `1.5px solid ${meta.accent}55`,
-                borderRadius: '6px 6px 0 0',
+                background: isActive
+                  ? `linear-gradient(180deg, ${meta.tintStrong} 0%, ${meta.tint} 100%)`
+                  : 'rgba(0,0,0,0.4)',
+                border: `1.5px solid ${isActive ? meta.accent : meta.accent + '33'}`,
+                borderRadius: 6,
                 padding: '7px 4px 5px',
                 textAlign: 'center',
+                cursor: 'pointer',
+                color: 'inherit',
+                transition: 'all 160ms ease',
+                boxShadow: isActive
+                  ? `inset 0 1px 0 rgba(255,235,180,0.18), 0 0 12px ${meta.accent}44`
+                  : 'none',
+                opacity: isActive ? 1 : 0.7,
               }}
             >
-              <div style={{ fontSize: 18, lineHeight: 1, marginBottom: 3 }}>{meta.icon}</div>
+              <div style={{
+                fontSize: 18, lineHeight: 1, marginBottom: 3,
+                filter: isActive ? `drop-shadow(0 0 6px ${meta.accent}88)` : 'none',
+              }}>
+                {meta.icon}
+              </div>
               <div style={{
                 fontFamily: 'var(--sb-font-display)',
                 fontSize: 'clamp(8px, 1.8vw, 11px)',
@@ -438,96 +496,31 @@ export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Pr
                 fontFamily: 'var(--sb-font-mono)',
                 fontSize: 9,
                 color: meta.accent,
-                opacity: 0.7,
+                opacity: 0.85,
                 marginTop: 2,
               }}>
                 {ownedCount}/{total}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
 
-      {/* Upgrade tree grid — horizontally scrollable on very small screens */}
+      {/* Active zone — uniform vertical upgrade list, sorted by tier */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        overflowX: 'auto',
+        overflowX: 'hidden',
         padding: '0 8px 16px',
       }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: 6,
-          minWidth: 300,
-          alignItems: 'start',
-        }}>
-          {ACTIVE_ZONES.map(zone => {
-            const meta = zoneMeta[zone];
-            const chains = buildChains(grouped[zone]);
-
-            return (
-              <div
-                key={zone}
-                style={{
-                  background: `linear-gradient(180deg, ${meta.tint} 0%, rgba(0,0,0,0.2) 100%)`,
-                  border: `1px solid ${meta.accent}33`,
-                  borderTop: 'none',
-                  borderRadius: '0 0 6px 6px',
-                  padding: '8px 5px 10px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                }}
-              >
-                {chains.map((chain, ci) => (
-                  <div key={ci} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
-                    {chain.map((upg, ni) => {
-                      const owned = ownedSet.has(upg.id);
-                      const locked = !!(upg.prerequisite && !ownedSet.has(upg.prerequisite));
-                      const buyable = canBuy(upg, ownedSet, profile.bankCoins);
-                      const prevOwned = ni > 0 ? ownedSet.has(chain[ni - 1].id) : false;
-                      const prevBuyable = ni > 0 ? canBuy(chain[ni - 1], ownedSet, profile.bankCoins) : false;
-
-                      return (
-                        <div key={upg.id}>
-                          {ni > 0 && (
-                            <ChainConnector
-                              owned={prevOwned}
-                              buyable={prevBuyable || owned}
-                              accent={meta.accent}
-                              accentDim={meta.accentDim}
-                            />
-                          )}
-                          <UpgradeNode
-                            upg={upg}
-                            owned={owned}
-                            buyable={buyable}
-                            locked={locked}
-                            accent={meta.accent}
-                            accentDim={meta.accentDim}
-                            tintStrong={meta.tintStrong}
-                            onBuy={() => handleBuy(upg)}
-                            onInfo={setInfoUpg}
-                          />
-                        </div>
-                      );
-                    })}
-
-                    {/* Separator between chains within same column */}
-                    {ci < chains.length - 1 && (
-                      <div style={{
-                        height: 1,
-                        background: `linear-gradient(90deg, transparent, ${meta.accent}30, transparent)`,
-                        margin: '4px 0 2px',
-                      }} />
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+        <ZoneList
+          zone={activeZone}
+          upgrades={grouped[activeZone]}
+          ownedSet={ownedSet}
+          bankCoins={profile.bankCoins}
+          onBuy={handleBuy}
+          onInfo={setInfoUpg}
+        />
       </div>
 
       {/* Info popup */}
