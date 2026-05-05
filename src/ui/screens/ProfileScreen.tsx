@@ -18,6 +18,7 @@ import {
 } from '@engine/index';
 import {
   claimLevelReward,
+  resetProfile,
   setAvatarEmoji,
   setDisplayName,
   type Profile,
@@ -94,11 +95,11 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
   }
 
   return (
-    <div className="sb-bg sb-bg-stone relative h-full w-full overflow-y-auto safe-top safe-bottom">
-      <div className="relative z-10">
-        <div className="max-w-3xl mx-auto px-3 sm:px-5 py-4 sb-fade-up">
-
-          {/* === Top bar === */}
+    <div className="sb-bg sb-bg-stone relative h-full w-full safe-top safe-bottom flex flex-col overflow-hidden">
+      {/* === Fixed top HUD: header bar, hero block, avatar picker (when open),
+          toast, tabs. Never scrolls; the active tab below scrolls on its own. === */}
+      <div className="relative z-10 flex-shrink-0">
+        <div className="max-w-3xl mx-auto px-3 sm:px-5 pt-4 sb-fade-up">
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={onBack}
@@ -116,7 +117,6 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
             <div style={{ width: 50 }} />
           </div>
 
-          {/* === Hero block === */}
           <HeroBlock
             profile={profile}
             lp={lp}
@@ -129,7 +129,6 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
             onCancelName={() => setEditingName(false)}
           />
 
-          {/* === Avatar picker === */}
           {pickerOpen && (
             <div
               className="sb-leather sb-fade-up px-3 py-3 mb-4"
@@ -171,7 +170,6 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
             </div>
           )}
 
-          {/* === Toast === */}
           {msg && (
             <div
               className="sb-display sb-fade-up text-center px-3 py-2 mb-3"
@@ -188,14 +186,18 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
             </div>
           )}
 
-          {/* === Tabs === */}
           <div className="grid grid-cols-2 sm:flex gap-1.5 sm:gap-2 mb-3">
             <TabButton active={tab === 'overview'}      onClick={() => setTab('overview')}>📊 STATS</TabButton>
             <TabButton active={tab === 'levels'}        onClick={() => setTab('levels')}>🎁 REWARDS</TabButton>
             <TabButton active={tab === 'achievements'}  onClick={() => setTab('achievements')}>🏆 ACHIEVEMENTS</TabButton>
             <TabButton active={tab === 'account'}       onClick={() => setTab('account')}>☁ ACCOUNT</TabButton>
           </div>
+        </div>
+      </div>
 
+      {/* === Scrollable tab content. Only this region scrolls; the HUD stays. === */}
+      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-3 sm:px-5 pb-4">
           {tab === 'overview'     && <OverviewTab profile={profile} />}
           {tab === 'levels'       && <LevelsTab profile={profile} onClaim={claim} />}
           {tab === 'achievements' && <AchievementsTab profile={profile} />}
@@ -742,8 +744,14 @@ function AchievementCard({ a, unlocked }: { a: Achievement; unlocked: boolean })
 function AccountTab({ profile, auth, onProfileChange }: {
   profile: Profile; auth: AuthStatus; onProfileChange: (p: Profile) => void;
 }) {
-  void onProfileChange;
   const [signedOut, setSignedOut] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  function doReset() {
+    const fresh = resetProfile();
+    onProfileChange(fresh);
+    setConfirmReset(false);
+  }
 
   return (
     <div className="space-y-3 sb-fade-up">
@@ -827,6 +835,76 @@ function AccountTab({ profile, auth, onProfileChange }: {
             ⚔ {profile.hr}
           </span>
         </div>
+      </div>
+
+      {/* Danger Zone */}
+      <div
+        className="px-4 py-3"
+        style={{
+          background: 'linear-gradient(180deg, rgba(20,14,8,0.85) 0%, rgba(10,7,5,0.95) 100%)',
+          border: '1.5px solid var(--sb-bronze-dark)',
+          borderRadius: 4,
+          color: 'var(--sb-gold-light)',
+          boxShadow: 'inset 0 1px 0 rgba(255,235,180,0.08)',
+        }}
+      >
+        <SectionHeader icon="⚠" label="DANGER ZONE" />
+        {!confirmReset ? (
+          <button
+            onClick={() => setConfirmReset(true)}
+            className="sb-btn mt-2"
+            style={{
+              fontSize: '12px',
+              padding: '10px 16px',
+              background: 'linear-gradient(180deg, #b91c1c 0%, #5b0e0e 100%)',
+            }}
+          >
+            🗑 RESET ALL PROGRESS
+          </button>
+        ) : (
+          <div
+            className="p-3 mt-2"
+            style={{
+              background: 'linear-gradient(180deg, rgba(220,38,38,0.25) 0%, rgba(127,29,29,0.25) 100%)',
+              border: '2px solid var(--sb-crimson)',
+              borderRadius: '4px',
+              color: 'var(--sb-gold-light)',
+              boxShadow: '0 0 14px rgba(220,38,38,0.35)',
+            }}
+          >
+            <div className="sb-display mb-2" style={{ color: '#fecaca', letterSpacing: '0.15em' }}>
+              ⚠ START OVER FROM SCRATCH?
+            </div>
+            <div className="mb-3 text-[12px] leading-snug" style={{ color: 'var(--sb-parchment)' }}>
+              This wipes <b>everything</b>: stage progress &amp; stars, player level &amp; XP, gold, gems,
+              shards, all combat cards &amp; deck presets, upgrades, talents (owned and equipped), achievements,
+              daily/weekly/monthly challenges, and battle pass progress.
+              <span className="block mt-1 opacity-85" style={{ color: '#fde68a' }}>
+                Your card collection and decks reset to the starter loadout — exactly like the first time you opened the game. This cannot be undone.
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={doReset}
+                className="sb-btn"
+                style={{
+                  fontSize: '11px',
+                  padding: '8px 14px',
+                  background: 'linear-gradient(180deg, #dc2626 0%, #7f1d1d 100%)',
+                }}
+              >
+                YES, RESET
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="sb-btn sb-btn-steel"
+                style={{ fontSize: '11px', padding: '8px 14px' }}
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

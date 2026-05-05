@@ -47,10 +47,10 @@ export interface PlayerStats {
 // Base stats per level. Derived from the GDD §Character "Player Leveling" table.
 // Linear interpolation between the breakpoints there: 1→50/0, 50→250/30.
 // HP = 50 + (level-1) * 4, Atk grows ~0.6/level. Crit is purely from gear.
-const HP_PER_LEVEL = 4;
-const ATK_PER_LEVEL = 0.6;
+const HP_PER_LEVEL = 40;
+const ATK_PER_LEVEL = 6;
 const MAX_LEVEL = 50;
-const BASE_HP = 50;
+const BASE_HP = 500;
 const BASE_ATK = 0;
 const BASE_DEF = 0;
 const BASE_CRIT = 0.05;
@@ -222,6 +222,7 @@ export function applyPlayerStatus(
 export function tickEndOfPlayerTurn(c: PlayerCombatant): {
   combatant: PlayerCombatant;
   dotDamage: number;
+  dotBreakdown: { burn: number; bleed: number; poison: number };
   regenHeal: number;
   cleanTurn: boolean;
 } {
@@ -256,6 +257,7 @@ export function tickEndOfPlayerTurn(c: PlayerCombatant): {
   return {
     combatant: next,
     dotDamage: dotResult.damage,
+    dotBreakdown: dotResult.breakdown,
     regenHeal: healResult.heal,
     cleanTurn,
   };

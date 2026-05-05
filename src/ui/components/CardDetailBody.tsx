@@ -5,6 +5,7 @@
 // Does NOT include the outer modal shell (backdrop, close button, positioning) —
 // callers wrap this in whatever container they need.
 
+import { createPortal } from 'react-dom';
 import type { ActionCardDef, TacticCardDef, EquipmentDef, Perk } from '@engine/index';
 import { CombatCard } from './CombatCard';
 import { EquipmentCard } from './EquipmentCard';
@@ -142,7 +143,7 @@ export function BattleCardDetail({ card }: { card: ActionCardDef | TacticCardDef
           </>
         ) : (
           <>
-            <StatRow label="◆  Stamina cost" value={tac.cost} color="#86efac" />
+            <StatRow label="⚡  Stamina cost" value={tac.cost} color="#86efac" />
             {tac.persistent && <StatRow label="∞  Persistent" value="Yes" color="#c4b5fd" />}
           </>
         )}
@@ -291,7 +292,13 @@ export function CardDetailModal({ target, onClose, footer }: {
   footer?: React.ReactNode;
 }) {
   const accent = accentForTarget(target);
-  return (
+  // Portal to document.body so the modal escapes any ancestor with `transform`,
+  // `filter`, etc. that would otherwise act as a containing block for our
+  // `position: fixed` overlay (and pin our z-index inside the wrong stacking
+  // context). Without the portal, .sb-fade-up parents in screens like the
+  // CombatResultScreen trap the modal so later siblings paint over it.
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70 backdrop-blur-sm"
       onClick={onClose}
@@ -333,6 +340,7 @@ export function CardDetailModal({ target, onClose, footer }: {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

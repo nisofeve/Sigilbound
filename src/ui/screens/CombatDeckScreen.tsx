@@ -221,7 +221,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
               onClick={() => setTab('battle')}
               className={`pb-btn pb-btn-${tab === 'battle' ? 'gold' : 'cream'} pb-btn-sm`}
             >
-              ⚔ Battle Cards
+              ⬆ Upgrade Cards
             </button>
             <button
               onClick={() => setTab('equipment')}
@@ -381,7 +381,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
                     No cards in deck. Tap a card below to equip.
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2 sm:gap-2.5 justify-start">
+                  <div className="grid grid-cols-3 gap-2">
                     {profile.combatDeck.map((cardId, i) => (
                       <DeckSlot
                         key={`${cardId}-${i}`}
@@ -425,7 +425,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
                     No cards in inventory. Visit the Combat Shop to buy some!
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2 sm:gap-2.5 justify-start">
+                  <div className="grid grid-cols-3 gap-2">
                     {inventoryItems.map(({ card, available, inDeck }) => {
                       const upv = combatCardUpgradePreview(profile, card.id);
                       const upgradeable = !!upv && !upv.isMax && (profile.combatCardInventory[card.id] ?? 0) >= upv.copies && profile.bankCoins >= upv.gold;
@@ -453,8 +453,8 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack }: P
           {tab === 'battle' && (
             <div className="pb-panel px-4 py-3" style={{ color: '#3e2723' }}>
               <h2 className="fredoka text-lg flex items-center gap-2 mb-2">
-                <span className="text-xl">⚔</span>
-                Battle Cards
+                <span className="text-xl">⬆</span>
+                Upgrade Cards
               </h2>
               <p className="text-xs opacity-80 mb-3">
                 Manage and upgrade your battle cards. Sacrifice duplicate cards to raise their power tier.

@@ -185,6 +185,26 @@ export const sfx = {
     tone({ freq: 90,  endFreq: 50, duration: 0.12, type: 'sine',     gain: 0.14, delay: 0.07 });
   },
 
+  // Single tight thud when a card slams into a Sigil slot — short low-mid
+  // body with a noise transient on top so it reads as wood-on-leather rather
+  // than a synth tone. Quick attack, fast decay so back-to-back binds don't
+  // pile up audibly.
+  cardThud() {
+    tone({ freq: 220, endFreq: 90, duration: 0.09, type: 'sine',     gain: 0.22 });
+    tone({ freq: 140, endFreq: 60, duration: 0.13, type: 'triangle', gain: 0.14, delay: 0.01 });
+    noise({ duration: 0.05, startFreq: 1600, endFreq: 600, q: 2, gain: 0.12, filter: 'bandpass' });
+  },
+
+  // Deep air-cut whoosh — plays as the visual slash arc sweeps. Heavier
+  // than a fast slice: low-pass noise sweeps from mid down to a sub-bass
+  // rumble, layered with a brief sub-tone for body. Reads like a heavy
+  // blade carving through air, not a quick whip.
+  slashWhoosh() {
+    noise({ duration: 0.32, startFreq: 1100, endFreq: 140, q: 1.4, gain: 0.22, filter: 'lowpass' });
+    noise({ duration: 0.22, startFreq: 600,  endFreq: 90,  q: 1.0, gain: 0.16, filter: 'lowpass', delay: 0.04 });
+    tone({  freq: 180, endFreq: 60, duration: 0.26, type: 'sine', gain: 0.16, delay: 0.02 });
+  },
+
   // === Combat damage-type SFX ===
 
   // Steel — bandpass-noise slash plus a metallic ping.
@@ -245,6 +265,16 @@ export const sfx = {
     tone({ freq: 800, endFreq: 1080, duration: 0.16, type: 'sine', gain: 0.08, delay: 0.04 });
   },
 
+  // Dull metallic clunk when an enemy attack lands on block — different
+  // from blockGain (which rings upward as a buff). This descends and adds
+  // a noise transient so it reads as "shield absorbed a hit" rather than
+  // "shield was raised". Short (~140ms) so it sits inside the impact frame.
+  blockSoak() {
+    tone({ freq: 480, endFreq: 220, duration: 0.13, type: 'square',   gain: 0.14 });
+    tone({ freq: 220, endFreq: 110, duration: 0.10, type: 'sine',     gain: 0.10, delay: 0.02 });
+    noise({ duration: 0.06, startFreq: 2400, endFreq: 800, q: 4, gain: 0.10, filter: 'bandpass' });
+  },
+
   // === Combo banner SFX — distinct character per combo type ===
 
   // Onslaught: quick triple thump building into a heroic chord.
@@ -289,5 +319,86 @@ export const sfx = {
   tacticAnnounce() {
     tone({ freq: 440, endFreq: 660, duration: 0.18, type: 'triangle', gain: 0.14 });
     tone({ freq: 660, endFreq: 880, duration: 0.18, type: 'triangle', gain: 0.10, delay: 0.08 });
+  },
+
+  // === Reward / celebration SFX ===
+
+  // Heavy chest-opening swell — plays once when the reward panel mounts.
+  // Low whoosh underneath + ascending magical chord.
+  rewardOpen() {
+    noise({ duration: 0.30, startFreq: 1200, endFreq: 200, q: 1, gain: 0.16, filter: 'lowpass' });
+    tone({ freq: 220, endFreq: 440, duration: 0.32, type: 'sawtooth', gain: 0.14 });
+    tone({ freq: 523, endFreq: 1047, duration: 0.40, type: 'triangle', gain: 0.12, delay: 0.10 });
+    tone({ freq: 784, endFreq: 1568, duration: 0.40, type: 'triangle', gain: 0.10, delay: 0.16 });
+  },
+
+  // Soft single chime for a common reward chip popping in.
+  rewardChipCommon() {
+    tone({ freq: 880, endFreq: 1320, duration: 0.10, type: 'triangle', gain: 0.10 });
+  },
+
+  // Two-tone chime — uncommon/rare chip.
+  rewardChipRare() {
+    tone({ freq: 988,  endFreq: 1480, duration: 0.10, type: 'triangle', gain: 0.12 });
+    tone({ freq: 1480, endFreq: 1976, duration: 0.10, type: 'triangle', gain: 0.10, delay: 0.05 });
+  },
+
+  // Sparkly arpeggio for epic / legendary / mythic items.
+  rewardChipEpic() {
+    tone({ freq: 1047, duration: 0.12, type: 'triangle', gain: 0.12 });
+    tone({ freq: 1319, duration: 0.12, type: 'triangle', gain: 0.10, delay: 0.05 });
+    tone({ freq: 1568, duration: 0.18, type: 'triangle', gain: 0.10, delay: 0.10 });
+    tone({ freq: 2093, duration: 0.20, type: 'sine',     gain: 0.08, delay: 0.15 });
+    noise({ duration: 0.18, startFreq: 6000, endFreq: 3000, q: 6, gain: 0.05, delay: 0.05, filter: 'highpass' });
+  },
+
+  // Stronghold upgrade unlock — heavier than a reward chip because the
+  // unlock is permanent. A short metallic anvil-like clank sets the moment
+  // of "the upgrade is forged", followed by a quick rising 4-note arpeggio
+  // to celebrate the new permanent power. ~600ms total.
+  upgradeUnlock() {
+    // Anvil clank: bright bandpass burst + a low body thump.
+    noise({ duration: 0.08, startFreq: 3200, endFreq: 1600, q: 6, gain: 0.18, filter: 'bandpass' });
+    tone({ freq: 220, endFreq: 110, duration: 0.10, type: 'sine',   gain: 0.18 });
+    // Rising heroic arpeggio (G major-ish: D-G-B-D).
+    tone({ freq: 587,  duration: 0.10, type: 'triangle', gain: 0.14, delay: 0.10 });
+    tone({ freq: 784,  duration: 0.11, type: 'triangle', gain: 0.13, delay: 0.18 });
+    tone({ freq: 988,  duration: 0.13, type: 'triangle', gain: 0.12, delay: 0.27 });
+    tone({ freq: 1175, duration: 0.18, type: 'triangle', gain: 0.12, delay: 0.36 });
+    // Bright sparkle tail.
+    noise({ duration: 0.20, startFreq: 5000, endFreq: 2000, q: 5, gain: 0.06, delay: 0.30, filter: 'highpass' });
+  },
+
+  // === DoT (damage-over-time) tick SFX ===
+
+  // Burn — sizzling crackle layered with a low ember pop. Plays once per
+  // burned target during the end-of-turn DoT animation.
+  burnTick() {
+    noise({ duration: 0.20, startFreq: 1800, endFreq: 600, q: 1.6, gain: 0.14, filter: 'lowpass' });
+    noise({ duration: 0.16, startFreq: 4500, endFreq: 1500, q: 4, gain: 0.07, delay: 0.04, filter: 'highpass' });
+    tone({ freq: 220, endFreq: 90, duration: 0.18, type: 'sawtooth', gain: 0.10, delay: 0.02 });
+  },
+
+  // Poison — wet bubbling drip. Gurgly low-mid tone with a small splat.
+  poisonTick() {
+    tone({ freq: 320, endFreq: 140, duration: 0.18, type: 'sine', gain: 0.14 });
+    tone({ freq: 480, endFreq: 200, duration: 0.16, type: 'sine', gain: 0.10, delay: 0.05 });
+    noise({ duration: 0.14, startFreq: 800, endFreq: 300, q: 2, gain: 0.08, delay: 0.06, filter: 'lowpass' });
+  },
+
+  // Bleed — wet thud + brief wet hiss. Visceral but short.
+  bleedTick() {
+    tone({ freq: 140, endFreq: 70, duration: 0.18, type: 'sine', gain: 0.16 });
+    noise({ duration: 0.14, startFreq: 600, endFreq: 200, q: 2, gain: 0.10, delay: 0.04, filter: 'lowpass' });
+  },
+
+  // Triumphant fanfare for first-clear chest. Heroic ascending major chord.
+  fanfare() {
+    tone({ freq: 392, duration: 0.18, type: 'square',   gain: 0.14 });
+    tone({ freq: 523, duration: 0.18, type: 'square',   gain: 0.14, delay: 0.10 });
+    tone({ freq: 659, duration: 0.40, type: 'triangle', gain: 0.16, delay: 0.20 });
+    tone({ freq: 784, duration: 0.40, type: 'triangle', gain: 0.14, delay: 0.20 });
+    tone({ freq: 1047, duration: 0.50, type: 'triangle', gain: 0.12, delay: 0.30 });
+    noise({ duration: 0.30, startFreq: 4000, endFreq: 1200, q: 5, gain: 0.06, delay: 0.18, filter: 'highpass' });
   },
 };

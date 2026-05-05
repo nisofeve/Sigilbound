@@ -20,6 +20,10 @@
 
 html, body, #root {
   height: 100%;
+  /* Dynamic viewport height: avoids the iOS Safari "URL bar shows / hides"
+     resize jumps and matches whatever the browser actually paints. Falls back
+     to 100% on browsers that don't support dvh (Safari < 15.4). */
+  height: 100dvh;
   margin: 0;
   background: var(--pb-bg);
   font-family: 'Nunito', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -30,6 +34,51 @@ html, body, #root {
   touch-action: manipulation;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Hard-lock #root to dynamic viewport so nested 100% chains never overflow
+   when the keyboard appears or the URL bar collapses. */
+#root {
+  position: relative;
+  width: 100vw;
+  width: 100dvw;
+  overflow: hidden;
+}
+
+/* Desktop letterbox: on wide screens the game's portrait UI is centered and
+   flanked by a moody stone backdrop so the empty side margins look intentional
+   rather than broken. The inner ".sb-app-frame" element is what holds the
+   actual screen content; on mobile (≤ 720px) it spans full width as before. */
+.sb-app-frame {
+  position: relative;
+  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+  /* Cap the playable column at a comfortable mobile-portrait width so desktop
+     viewers still get the intended layout. Bumped up slightly from a phone
+     width so dense screens (Stronghold, BP rewards grid) breathe. */
+  max-width: 540px;
+  background: transparent;
+}
+
+/* Decorative outer wallpaper, visible only when the viewport is wider than the
+   playable column. Pure CSS, no extra DOM. */
+@media (min-width: 720px) {
+  body {
+    /* Match the in-game stone aesthetic. */
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(185,28,28,0.20) 0%, rgba(185,28,28,0) 60%),
+      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, #0e0907 0%, #1a0f0a 50%, #0e0907 100%);
+  }
+  .sb-app-frame {
+    /* Subtle bevel + gold rim so it reads as a "device" on the wallpaper. */
+    box-shadow:
+      0 0 0 1px rgba(196,146,42,0.35),
+      0 0 0 2px rgba(0,0,0,0.6),
+      0 30px 80px rgba(0,0,0,0.55),
+      0 0 80px rgba(185,28,28,0.12);
+  }
 }
 
 /* Honor iOS notch / Android nav bar safe areas. Use env(safe-area-inset-*). */
@@ -522,6 +571,34 @@ html, body, #root {
 }
 .sb-pulse-crimson { animation: sb-pulse-crimson 1.6s ease-out infinite; }
 
+/* Generic gentle pulse — used for claimable BP / quest CTAs. */
+@keyframes sb-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50%      { transform: scale(1.04); filter: brightness(1.15); }
+}
+
+/* Block badge shake — fires for ~450ms when an enemy attack consumes
+   block, so the player can clearly see the shield take the hit. */
+@keyframes sb-block-shake {
+  0%   { transform: translate(0, 0)         scale(1);    }
+  10%  { transform: translate(-3px, -1px)   scale(1.18); }
+  20%  { transform: translate(3px, 1px)     scale(1.16); }
+  30%  { transform: translate(-2px, 1px)    scale(1.12); }
+  45%  { transform: translate(2px, -1px)    scale(1.10); }
+  60%  { transform: translate(-1px, 0)      scale(1.06); }
+  100% { transform: translate(0, 0)         scale(1);    }
+}
+.sb-block-shake {
+  animation: sb-block-shake 450ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Lift the hub bottom dock by 12px on screens with enough vertical room to
+   spare. Short screens (≤600px tall) keep the original snug bottom so the
+   dock doesn't visually crowd content above. */
+@media (min-height: 600px) {
+  .sb-bottom-dock { margin-bottom: 12px; }
+}
+
 /* Fade-up on screen entry */
 @keyframes sb-fade-up {
   from { opacity: 0; transform: translateY(8px); }
@@ -549,16 +626,48 @@ html, body, #root {
 }
 .sb-combo-pulse { animation: sb-combo-pulse 1.5s ease-in-out infinite; }
 
-/* Slash impact arc — sweeping flash on the target after a slash/smash
-   strike lands. Duration set per-instance via --slash-duration so heavier
-   strikes can linger. */
-@keyframes sb-slash {
-  0%   { opacity: 0; transform: scaleX(0.15) scaleY(0.6); }
-  15%  { opacity: 1; transform: scaleX(1.1) scaleY(1.3); }
-  40%  { opacity: 1; transform: scaleX(1) scaleY(1.1); }
-  100% { opacity: 0; transform: scaleX(1.05) scaleY(0.7); }
+/* Slash impact line — a sharp, straight, semi-transparent sword cut.
+   Three stacked stroked SVG paths (soft halo, mid tint, sharp white core)
+   are drawn via stroke-dashoffset so the line slices through the air rather
+   than blinking on. The bounding wrap fades in fast, holds, fades out.
+   Total duration set per-instance via --slash-duration. */
+.sb-slash-wrap {
+  animation: sb-slash-wrap var(--slash-duration, 2000ms) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.sb-slash { animation: sb-slash var(--slash-duration, 600ms) cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes sb-slash-wrap {
+  0%   { opacity: 0; transform: rotate(var(--slash-rot, 0deg)) scale(0.95); }
+  6%   { opacity: 1; transform: rotate(var(--slash-rot, 0deg)) scale(1.02); }
+  55%  { opacity: 1; transform: rotate(var(--slash-rot, 0deg)) scale(1);    }
+  100% { opacity: 0; transform: rotate(var(--slash-rot, 0deg)) scale(1);    }
+}
+
+/* Each path uses stroke-dasharray to draw itself across the line. Path
+   length ≈ 100 (straight 96-unit segment in a 100×24 viewBox) so we use
+   dasharray:110 with offset:110→0→-110. The white core leads slightly so
+   you see a sharp leading point streak ahead of the colored body. */
+.sb-slash-glow {
+  stroke-dasharray: 110;
+  stroke-dashoffset: 110;
+  animation: sb-slash-stroke var(--slash-duration, 2000ms) cubic-bezier(0.18, 0.9, 0.32, 1) both;
+}
+.sb-slash-main {
+  stroke-dasharray: 110;
+  stroke-dashoffset: 110;
+  animation: sb-slash-stroke var(--slash-duration, 2000ms) cubic-bezier(0.15, 0.95, 0.28, 1) both;
+}
+.sb-slash-core {
+  stroke-dasharray: 110;
+  stroke-dashoffset: 110;
+  animation: sb-slash-stroke var(--slash-duration, 2000ms) cubic-bezier(0.12, 0.98, 0.22, 1) both;
+}
+@keyframes sb-slash-stroke {
+  0%   { stroke-dashoffset: 110;  opacity: 0; }
+  8%   { stroke-dashoffset: 70;   opacity: 1; }    /* head enters fast */
+  20%  { stroke-dashoffset: 0;    opacity: 1; }    /* line fully drawn */
+  60%  { stroke-dashoffset: 0;    opacity: 1; }    /* hold the cut on screen */
+  100% { stroke-dashoffset: -110; opacity: 0; }    /* sweep off the tail and fade */
+}
+
 
 /* Charge-up aura — radial pulse that gathers + intensifies before launch.
    Scales up from nothing, breathes once, dissipates. Duration set
@@ -776,16 +885,19 @@ html, body, #root {
 .sb-shake { animation: sb-shake 380ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
 
 /* Floating damage / status numbers — rise + fade. Used for hit damage,
-   block, status applications. The 'crit' variant scales bigger and adds a
-   shake at the start. */
+   block, status applications. Slowed (900ms → 1200ms) and given a longer
+   readable hold mid-animation so the number is easy to register before it
+   drifts off. The 'crit' variant scales bigger and adds a shake at the
+   start. */
 @keyframes sb-floater-rise {
   0%   { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
-  15%  { transform: translate(-50%, -55%) scale(1.15); opacity: 1; }
-  30%  { transform: translate(-50%, -65%) scale(1); opacity: 1; }
-  100% { transform: translate(-50%, -120%) scale(0.85); opacity: 0; }
+  12%  { transform: translate(-50%, -55%) scale(1.15); opacity: 1; }
+  25%  { transform: translate(-50%, -65%) scale(1); opacity: 1; }
+  70%  { transform: translate(-50%, -90%) scale(1); opacity: 1; }   /* hold for readability */
+  100% { transform: translate(-50%, -130%) scale(0.85); opacity: 0; }
 }
 .sb-floater {
-  animation: sb-floater-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: sb-floater-rise 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* ── Combat sigil border — shimmer animation for the golden line ───────────── */
@@ -1050,5 +1162,104 @@ html, body, #root {
   0%   { opacity: 1; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
   70%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(180deg); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) rotate(220deg); }
+}
+
+/* === DoT status tick particles (CombatView) === */
+
+/* Ember — drifts upward with a flicker, fades by the end. Used for burn. */
+@keyframes sb-dot-ember {
+  0%   { opacity: 0;   transform: translate(var(--dx, 0), 0) scale(0.6); }
+  20%  { opacity: 1;   transform: translate(var(--dx, 0), -16px) scale(1); }
+  60%  { opacity: 0.8; transform: translate(calc(var(--dx, 0) * 1.4), -56px) scale(0.85); }
+  100% { opacity: 0;   transform: translate(calc(var(--dx, 0) * 1.8), -90px) scale(0.4); }
+}
+.sb-dot-ember {
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff5e0 0%, #ff9d3a 50%, #c2410c 100%);
+  box-shadow: 0 0 8px #f97316, 0 0 14px rgba(249,115,22,0.6);
+  animation: sb-dot-ember var(--dur, 900ms) ease-out forwards;
+  pointer-events: none;
+}
+
+/* Drip — slides downward with a slight wobble, fades. Used for poison. */
+@keyframes sb-dot-drip {
+  0%   { opacity: 0;   transform: translate(var(--dx, 0), -4px) scale(0.7); }
+  25%  { opacity: 1;   transform: translate(var(--dx, 0), 8px) scale(1); }
+  100% { opacity: 0;   transform: translate(calc(var(--dx, 0) * 0.6), 60px) scale(0.7); }
+}
+.sb-dot-drip {
+  position: absolute;
+  width: 7px; height: 9px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: radial-gradient(ellipse at 35% 30%, #e9d5ff 0%, #a855f7 45%, #6b21a8 100%);
+  box-shadow: 0 0 8px #a855f7, 0 0 14px rgba(168,85,247,0.55);
+  animation: sb-dot-drip var(--dur, 900ms) ease-in forwards;
+  pointer-events: none;
+}
+
+/* Blood drop — falls downward, leaves a brief streak. Used for bleed. */
+@keyframes sb-dot-bleed {
+  0%   { opacity: 0;   transform: translate(var(--dx, 0), 0) scale(0.6); }
+  25%  { opacity: 1;   transform: translate(var(--dx, 0), 12px) scale(1); }
+  100% { opacity: 0;   transform: translate(var(--dx, 0), 64px) scale(0.7); }
+}
+.sb-dot-bleed {
+  position: absolute;
+  width: 5px; height: 8px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: linear-gradient(180deg, #ef4444 0%, #7f1d1d 100%);
+  box-shadow: 0 0 6px #dc2626, 0 0 10px rgba(220,38,38,0.55);
+  animation: sb-dot-bleed var(--dur, 900ms) ease-in forwards;
+  pointer-events: none;
+}
+
+/* Rising/scaling status floater (e.g. "🔥 -6"). One-shot. Slowed
+   (1100ms → 1500ms) with an extended readable hold so DoT ticks register
+   clearly before drifting off. */
+@keyframes sb-dot-floater {
+  0%   { opacity: 0; transform: translate(-50%, -30%) scale(0.7); }
+  16%  { opacity: 1; transform: translate(-50%, -55%) scale(1.15); }
+  35%  { opacity: 1; transform: translate(-50%, -85%) scale(1); }
+  75%  { opacity: 1; transform: translate(-50%, -110%) scale(1); }   /* hold */
+  100% { opacity: 0; transform: translate(-50%, -150%) scale(0.95); }
+}
+.sb-dot-floater {
+  position: fixed;
+  font-family: var(--sb-font-display, 'Cinzel', serif);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  z-index: 261;
+  animation: sb-dot-floater 1500ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85), 0 0 12px var(--floater-glow, currentColor);
+}
+
+/* Card-wide flash overlay timed with the SFX hit. */
+@keyframes sb-dot-flash {
+  0%   { opacity: 0; }
+  20%  { opacity: 0.65; }
+  100% { opacity: 0; }
+}
+.sb-dot-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  animation: sb-dot-flash 700ms ease-out forwards;
+}
+
+/* === Reward reveal pop (CombatResultScreen) === */
+
+/* One-shot scale-in with overshoot. Used per reward chip / item drop. */
+@keyframes sb-reward-pop {
+  0%   { opacity: 0; transform: scale(0.5) translateY(8px); }
+  55%  { opacity: 1; transform: scale(1.15) translateY(-2px); }
+  80%  { transform: scale(0.96) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.sb-reward-pop {
+  animation: sb-reward-pop 0.55s cubic-bezier(0.2, 0.85, 0.2, 1) both;
 }
 

@@ -68,6 +68,37 @@ const KIND_HINTS: Record<Quest['kind'], { headline: string; how: string[] }> = {
       'Complete the quest once you achieve the required streak in any combat.',
     ],
   },
+  open_app: {
+    headline: 'Daily login',
+    how: [
+      'Opens automatically the first time you launch the game in a UTC day.',
+      'Counts once per day — claim the reward and you are done.',
+    ],
+  },
+  buy_shop_item: {
+    headline: 'Shop purchases',
+    how: [
+      'Counts every card / equipment / talent bought from the combat shop.',
+      'Each individual purchase ticks the counter by the quantity bought.',
+      'Re-rolls do NOT count — only confirmed buys.',
+    ],
+  },
+  upgrade_card: {
+    headline: 'Combat-card upgrades',
+    how: [
+      'Counts each combat card you tier up at the upgrade screen.',
+      'Both action and tactic upgrades qualify.',
+      'Sacrificing copies + spending coins commits an upgrade and ticks the counter.',
+    ],
+  },
+  buy_stronghold_upgrade: {
+    headline: 'Stronghold upgrades',
+    how: [
+      'Counts each Stronghold upgrade you purchase from the upgrade tree.',
+      'Any zone (Armory / Sanctum / Library / Forge / Shrine) qualifies.',
+      'Owning a previously-purchased upgrade does NOT re-count — only fresh purchases tick the counter.',
+    ],
+  },
 };
 
 export default function QuestDetailModal({ quest, state, onClose }: Props) {

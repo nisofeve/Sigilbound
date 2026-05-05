@@ -8,11 +8,12 @@ import {
   type AchievementCategory,
   type Rarity,
 } from '@engine/index';
-import type { Profile } from '@storage/index';
+import { claimAchievementReward, saveProfile, type Profile } from '@storage/index';
 
 interface Props {
   profile: Profile;
   onBack: () => void;
+  onProfileChange: (p: Profile) => void;
 }
 
 const rarityColor: Record<Rarity, string> = {
@@ -22,16 +23,17 @@ const rarityColor: Record<Rarity, string> = {
 const rarityOrder: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
 
 const categoryLabels: Record<AchievementCategory, string> = {
-  beginner: 'Beginner', harvest: 'Harvest', combo_master: 'Combo Master',
-  tycoon: 'Tycoon', veteran: 'Veteran', deck_builder: 'Deck Builder',
-  social: 'Social', mythic: 'Mythic', tool_wizard: 'Tool Wizard', farmstead: 'Farmstead',
+  beginner: 'Initiate', harvest: 'Conqueror', combo_master: 'Combo Master',
+  tycoon: 'Treasury', veteran: 'Veteran', deck_builder: 'Sigilsmith',
+  social: 'Vanguard', mythic: 'Mythic', tool_wizard: 'Battle Pass', farmstead: 'Stronghold',
 };
 
-export default function AchievementsScreen({ profile, onBack }: Props) {
+export default function AchievementsScreen({ profile, onBack, onProfileChange }: Props) {
   const [filterCategory, setFilterCategory] = useState<'all' | AchievementCategory>('all');
   const [filterRarity, setFilterRarity] = useState<'all' | Rarity>('all');
   const [showOnly, setShowOnly] = useState<'all' | 'unlocked' | 'locked'>('all');
   const owned = useMemo(() => new Set(profile.achievementsUnlocked), [profile.achievementsUnlocked]);
+  const claimed = useMemo(() => new Set(profile.achievementsClaimed ?? []), [profile.achievementsClaimed]);
 
   const grouped = achievementsByCategory();
   const categories = Object.keys(grouped) as AchievementCategory[];
@@ -54,6 +56,13 @@ export default function AchievementsScreen({ profile, onBack }: Props) {
   const totalCount = all.length;
   const ownedCount = owned.size;
   const completionPct = Math.round((ownedCount / totalCount) * 100);
+
+  function handleClaim(id: string) {
+    const next = claimAchievementReward(profile, id);
+    if (!next) return;
+    saveProfile(next);
+    onProfileChange(next);
+  }
 
   return (
     <div className="h-full w-full overflow-y-auto text-white safe-top safe-bottom" style={{ background: 'linear-gradient(180deg, #1b3a1f 0%, #0d3a14 100%)' }}>
@@ -108,7 +117,14 @@ export default function AchievementsScreen({ profile, onBack }: Props) {
         ) : (
           <div className="space-y-1.5">
             {sorted.map(a => (
-              <AchievementRow key={a.id} achievement={a} owned={owned.has(a.id)} profile={profile} />
+              <AchievementRow
+                key={a.id}
+                achievement={a}
+                owned={owned.has(a.id)}
+                claimed={claimed.has(a.id)}
+                profile={profile}
+                onClaim={() => handleClaim(a.id)}
+              />
             ))}
           </div>
         )}
@@ -139,7 +155,13 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
   );
 }
 
-function AchievementRow({ achievement: a, owned, profile }: { achievement: Achievement; owned: boolean; profile: Profile }) {
+function AchievementRow({ achievement: a, owned, claimed, profile, onClaim }: {
+  achievement: Achievement;
+  owned: boolean;
+  claimed: boolean;
+  profile: Profile;
+  onClaim: () => void;
+}) {
   const reward = ACHIEVEMENT_REWARDS[a.rarity];
   const progress = predicateProgress(a.predicate, {
     profile: {
@@ -158,6 +180,7 @@ function AchievementRow({ achievement: a, owned, profile }: { achievement: Achie
     },
   });
   const pct = progress ? Math.min(100, Math.round((progress.current / progress.goal) * 100)) : (owned ? 100 : 0);
+  const claimable = owned && !claimed;
 
   return (
     <div
@@ -169,7 +192,8 @@ function AchievementRow({ achievement: a, owned, profile }: { achievement: Achie
         <div className="flex items-center gap-2 flex-wrap">
           <div className="text-sm font-bold">{a.name}</div>
           <div className="text-[9px] uppercase tracking-widest font-bold" style={{ color: rarityColor[a.rarity] }}>{a.rarity}</div>
-          {owned && <div className="text-[10px] text-yellow-200">✓ Unlocked</div>}
+          {claimed && <div className="text-[10px] text-yellow-200">✓ Claimed</div>}
+          {claimable && <div className="text-[10px] text-green-300">● Ready</div>}
         </div>
         <div className="text-[11px] opacity-70 leading-snug">{a.description}</div>
         {progress && !owned && (
@@ -181,7 +205,18 @@ function AchievementRow({ achievement: a, owned, profile }: { achievement: Achie
           </div>
         )}
         {owned && (
-          <div className="text-[10px] opacity-60 mt-1">+{reward.coins} 💰 +{reward.gems} 💎</div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] opacity-60">+{reward.coins} 💰 +{reward.gems} 💎</span>
+            {claimable && (
+              <button
+                onClick={onClaim}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md active:opacity-70"
+                style={{ background: 'rgba(249,168,37,0.25)', border: '1px solid rgba(249,168,37,0.5)', color: '#fde68a' }}
+              >
+                Claim
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

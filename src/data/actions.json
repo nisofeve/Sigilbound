@@ -1,60 +1,60 @@
 [
   { "id": "act_001", "type": "action", "name": "Strike",
-    "rarity": "common", "damageType": "physical", "damage": 6, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "physical", "damage": 60, "charge": 1, "cost": 1,
     "emoji": "🗡️", "effect": "A simple, reliable strike." },
 
   { "id": "act_002", "type": "action", "name": "Slash",
-    "rarity": "common", "damageType": "physical", "damage": 9, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "physical", "damage": 90, "charge": 1, "cost": 1,
     "emoji": "⚔️", "effect": "A wide arc that deals moderate damage." },
 
   { "id": "act_003", "type": "action", "name": "Shield Bash",
-    "rarity": "common", "damageType": "physical", "damage": 4, "charge": 1, "cost": 1,
-    "emoji": "🛡️", "selfBlock": 6,
-    "effect": "Light strike. Gain 6 Block." },
+    "rarity": "common", "damageType": "physical", "damage": 40, "charge": 1, "cost": 1,
+    "emoji": "🛡️", "selfBlock": 60,
+    "effect": "Light strike. Gain 60 Block." },
 
   { "id": "act_004", "type": "action", "name": "Heavy Swing",
-    "rarity": "common", "damageType": "physical", "damage": 14, "charge": 2, "cost": 2,
+    "rarity": "common", "damageType": "physical", "damage": 140, "charge": 2, "cost": 2,
     "emoji": "🪓", "applyStatus": { "id": "weakened", "stacks": 1, "turns": 2 },
     "effect": "Slow but powerful. Weakens target for 2 turns." },
 
   { "id": "act_005", "type": "action", "name": "Blade Dance",
-    "rarity": "uncommon", "damageType": "physical", "damage": 4, "charge": 1, "cost": 2,
+    "rarity": "uncommon", "damageType": "physical", "damage": 40, "charge": 1, "cost": 2,
     "emoji": "🌀", "hits": 3,
     "effect": "Strike 3 times rapidly." },
 
   { "id": "act_006", "type": "action", "name": "Cleave",
-    "rarity": "uncommon", "damageType": "physical", "damage": 7, "charge": 2, "cost": 2,
+    "rarity": "uncommon", "damageType": "physical", "damage": 70, "charge": 2, "cost": 2,
     "emoji": "💥", "aoe": true,
     "effect": "Strikes all enemies." },
 
   { "id": "act_007", "type": "action", "name": "Reckless Assault",
-    "rarity": "uncommon", "damageType": "physical", "damage": 18, "charge": 2, "cost": 2,
+    "rarity": "uncommon", "damageType": "physical", "damage": 180, "charge": 2, "cost": 2,
     "emoji": "💢",
-    "effect": "High damage. You take 5 self-damage." },
+    "effect": "High damage. You take 50 self-damage." },
 
   { "id": "act_008", "type": "action", "name": "Mortal Wound",
-    "rarity": "rare", "damageType": "physical", "damage": 12, "charge": 2, "cost": 2,
+    "rarity": "rare", "damageType": "physical", "damage": 120, "charge": 2, "cost": 2,
     "emoji": "🩸", "applyStatus": { "id": "bleed", "stacks": 4, "turns": 4 },
     "effect": "Inflicts 4 stacks of Bleed for 4 turns." },
 
   { "id": "act_009", "type": "action", "name": "Whirlwind",
-    "rarity": "rare", "damageType": "physical", "damage": 6, "charge": 2, "cost": 3,
+    "rarity": "rare", "damageType": "physical", "damage": 60, "charge": 2, "cost": 3,
     "emoji": "🌪️", "aoe": true, "hits": 2,
     "effect": "Spin-attack hits all enemies twice." },
 
   { "id": "act_010", "type": "action", "name": "Juggernaut Strike",
-    "rarity": "rare", "damageType": "physical", "damage": 22, "charge": 3, "cost": 3,
+    "rarity": "rare", "damageType": "physical", "damage": 220, "charge": 3, "cost": 3,
     "emoji": "🔨", "blockPiercing": 0.5,
     "applyStatus": { "id": "stun", "stacks": 1, "turns": 1 },
     "effect": "Pierces 50% block. Stuns target for 1 turn." },
 
   { "id": "act_011", "type": "action", "name": "Execute",
-    "rarity": "epic", "damageType": "physical", "damage": 10, "charge": 2, "cost": 3,
-    "emoji": "⚔️", "selfHealOnKill": 15,
-    "effect": "Deadly finish. Heal 15 if it kills." },
+    "rarity": "epic", "damageType": "physical", "damage": 100, "charge": 2, "cost": 3,
+    "emoji": "⚔️", "selfHealOnKill": 150,
+    "effect": "Deadly finish. Heal 150 if it kills." },
 
   { "id": "act_012", "type": "action", "name": "Titan's Wrath",
-    "rarity": "legendary", "damageType": "physical", "damage": 30, "charge": 4, "cost": 4,
+    "rarity": "legendary", "damageType": "physical", "damage": 300, "charge": 4, "cost": 4,
     "emoji": "👊", "aoe": true, "blockPiercing": 0.5,
     "applyStatuses": [
       { "id": "weakened", "stacks": 2, "turns": 3 },
@@ -63,27 +63,27 @@
     "effect": "Massive AOE. Pierces 50% block. Weakens and Bleeds all enemies." },
 
   { "id": "act_013", "type": "action", "name": "Firebolt",
-    "rarity": "common", "damageType": "fire", "damage": 5, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "fire", "damage": 50, "charge": 1, "cost": 1,
     "emoji": "🔥", "applyStatus": { "id": "burn", "stacks": 2, "turns": 3 },
     "effect": "Applies 2 stacks of Burn." },
 
   { "id": "act_014", "type": "action", "name": "Ember Dash",
-    "rarity": "common", "damageType": "fire", "damage": 7, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "fire", "damage": 70, "charge": 1, "cost": 1,
     "emoji": "💨", "selfDrawCard": 1,
     "effect": "Fiery charge attack. Draw 1 card." },
 
   { "id": "act_015", "type": "action", "name": "Flame Lance",
-    "rarity": "uncommon", "damageType": "fire", "damage": 11, "charge": 2, "cost": 2,
+    "rarity": "uncommon", "damageType": "fire", "damage": 110, "charge": 2, "cost": 2,
     "emoji": "🏮", "applyStatus": { "id": "burn", "stacks": 3, "turns": 3 },
     "effect": "Concentrated fire. Applies 3 Burn." },
 
   { "id": "act_016", "type": "action", "name": "Conflagration",
-    "rarity": "uncommon", "damageType": "fire", "damage": 5, "charge": 2, "cost": 2,
+    "rarity": "uncommon", "damageType": "fire", "damage": 50, "charge": 2, "cost": 2,
     "emoji": "🌋", "aoe": true, "applyStatus": { "id": "burn", "stacks": 2, "turns": 3 },
     "effect": "Spreads fire to all enemies. Applies 2 Burn to each." },
 
   { "id": "act_017", "type": "action", "name": "Magma Surge",
-    "rarity": "rare", "damageType": "fire", "damage": 14, "charge": 2, "cost": 2,
+    "rarity": "rare", "damageType": "fire", "damage": 140, "charge": 2, "cost": 2,
     "emoji": "🌊",
     "applyStatuses": [
       { "id": "burn", "stacks": 3, "turns": 3 },
@@ -92,25 +92,25 @@
     "effect": "Burns and Weakens target." },
 
   { "id": "act_018", "type": "action", "name": "Phoenix Blast",
-    "rarity": "rare", "damageType": "fire", "damage": 16, "charge": 3, "cost": 3,
-    "emoji": "☄️", "selfHealOnKill": 10,
+    "rarity": "rare", "damageType": "fire", "damage": 160, "charge": 3, "cost": 3,
+    "emoji": "☄️", "selfHealOnKill": 100,
     "selfDamageBuff": { "pct": 0.2, "turns": 2 },
-    "effect": "Heal 10 if kills. Gain +20% damage for 2 turns." },
+    "effect": "Heal 100 if kills. Gain +20% damage for 2 turns." },
 
   { "id": "act_019", "type": "action", "name": "Inferno",
-    "rarity": "rare", "damageType": "fire", "damage": 8, "charge": 3, "cost": 3,
+    "rarity": "rare", "damageType": "fire", "damage": 80, "charge": 3, "cost": 3,
     "emoji": "🔥", "aoe": true,
     "applyStatus": { "id": "burn", "stacks": 4, "turns": 4 },
     "effect": "Scorches all enemies. Applies 4 Burn to each." },
 
   { "id": "act_020", "type": "action", "name": "Melt Armor",
-    "rarity": "epic", "damageType": "fire", "damage": 12, "charge": 2, "cost": 2,
+    "rarity": "epic", "damageType": "fire", "damage": 120, "charge": 2, "cost": 2,
     "emoji": "🫠", "blockPiercing": 0.75,
     "applyStatus": { "id": "vulnerable", "stacks": 1, "turns": 3 },
     "effect": "Melts 75% block. Target is Vulnerable for 3 turns." },
 
   { "id": "act_021", "type": "action", "name": "Solar Flare",
-    "rarity": "epic", "damageType": "fire", "damage": 20, "charge": 3, "cost": 4,
+    "rarity": "epic", "damageType": "fire", "damage": 200, "charge": 3, "cost": 4,
     "emoji": "☀️", "aoe": true,
     "applyStatuses": [
       { "id": "burn", "stacks": 5, "turns": 4 },
@@ -119,48 +119,48 @@
     "effect": "Massive solar explosion. 5 Burn + Vulnerable to all." },
 
   { "id": "act_022", "type": "action", "name": "Eternal Flame",
-    "rarity": "legendary", "damageType": "fire", "damage": 18, "charge": 3, "cost": 4,
+    "rarity": "legendary", "damageType": "fire", "damage": 180, "charge": 3, "cost": 4,
     "emoji": "🕯️",
     "applyStatus": { "id": "burn", "stacks": 6, "turns": -1 },
     "selfDamageBuff": { "pct": 0.3, "turns": 3 },
     "effect": "Applies permanent Burn. You gain +30% damage for 3 turns." },
 
   { "id": "act_023", "type": "action", "name": "Frost Shard",
-    "rarity": "common", "damageType": "ice", "damage": 5, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "ice", "damage": 50, "charge": 1, "cost": 1,
     "emoji": "❄️", "applyStatus": { "id": "chill", "stacks": 1, "turns": 3 },
     "effect": "Applies 1 Chill. 3 stacks triggers Frozen." },
 
   { "id": "act_024", "type": "action", "name": "Ice Spear",
-    "rarity": "common", "damageType": "ice", "damage": 8, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "ice", "damage": 80, "charge": 1, "cost": 1,
     "emoji": "🏔️", "applyStatus": { "id": "chill", "stacks": 2, "turns": 3 },
     "effect": "Applies 2 Chill stacks." },
 
   { "id": "act_025", "type": "action", "name": "Cold Snap",
-    "rarity": "uncommon", "damageType": "ice", "damage": 6, "charge": 1, "cost": 1,
+    "rarity": "uncommon", "damageType": "ice", "damage": 60, "charge": 1, "cost": 1,
     "emoji": "🥶",
     "applyStatuses": [
       { "id": "chill", "stacks": 2, "turns": 3 },
       { "id": "weakened", "stacks": 1, "turns": 2 }
     ],
-    "selfBlock": 4,
-    "effect": "Chills and Weakens target. Gain 4 Block." },
+    "selfBlock": 40,
+    "effect": "Chills and Weakens target. Gain 40 Block." },
 
   { "id": "act_026", "type": "action", "name": "Blizzard",
-    "rarity": "uncommon", "damageType": "ice", "damage": 4, "charge": 2, "cost": 2,
+    "rarity": "uncommon", "damageType": "ice", "damage": 40, "charge": 2, "cost": 2,
     "emoji": "🌨️", "aoe": true,
     "applyStatus": { "id": "chill", "stacks": 2, "turns": 3 },
     "effect": "Icy storm hits all enemies. Applies 2 Chill to each." },
 
   { "id": "act_027", "type": "action", "name": "Frozen Spike",
-    "rarity": "rare", "damageType": "ice", "damage": 13, "charge": 2, "cost": 2,
+    "rarity": "rare", "damageType": "ice", "damage": 130, "charge": 2, "cost": 2,
     "emoji": "🧊", "applyStatus": { "id": "frozen", "stacks": 1, "turns": 2 },
     "effect": "Freezes target for 2 turns (skip turn)." },
 
   { "id": "act_028", "type": "action", "name": "Glacial Wall",
-    "rarity": "rare", "damageType": "ice", "damage": 8, "charge": 2, "cost": 2,
-    "emoji": "🏔️", "selfBlock": 14,
+    "rarity": "rare", "damageType": "ice", "damage": 80, "charge": 2, "cost": 2,
+    "emoji": "🏔️", "selfBlock": 140,
     "applyStatus": { "id": "chill", "stacks": 2, "turns": 3 },
-    "effect": "Raise ice barrier. Gain 14 Block. Chills target." },
+    "effect": "Raise ice barrier. Gain 140 Block. Chills target." },
 
   { "id": "act_029", "type": "action", "name": "Permafrost",
     "rarity": "epic", "damageType": "ice", "damage": 0, "charge": 2, "cost": 2,
@@ -172,42 +172,42 @@
     "effect": "Freezes all enemies for 2 turns. Applies 3 Chill to each." },
 
   { "id": "act_030", "type": "action", "name": "Shatter",
-    "rarity": "rare", "damageType": "ice", "damage": 20, "charge": 2, "cost": 3,
+    "rarity": "rare", "damageType": "ice", "damage": 200, "charge": 2, "cost": 3,
     "emoji": "💥", "blockPiercing": 1.0,
     "effect": "Ignores all block. Hits hardest vs frozen targets." },
 
   { "id": "act_031", "type": "action", "name": "Ice Age",
-    "rarity": "legendary", "damageType": "ice", "damage": 12, "charge": 4, "cost": 4,
-    "emoji": "❄️", "aoe": true, "selfBlock": 10,
+    "rarity": "legendary", "damageType": "ice", "damage": 120, "charge": 4, "cost": 4,
+    "emoji": "❄️", "aoe": true, "selfBlock": 100,
     "applyStatuses": [
       { "id": "frozen", "stacks": 1, "turns": 3 },
       { "id": "chill", "stacks": 5, "turns": 5 },
       { "id": "weakened", "stacks": 2, "turns": 3 }
     ],
-    "effect": "Apocalyptic ice. Freezes all 3 turns, heavy Chill, Weakens all. Gain 10 Block." },
+    "effect": "Apocalyptic ice. Freezes all 3 turns, heavy Chill, Weakens all. Gain 100 Block." },
 
   { "id": "act_032", "type": "action", "name": "Spark",
-    "rarity": "common", "damageType": "thunder", "damage": 6, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "thunder", "damage": 60, "charge": 1, "cost": 1,
     "emoji": "⚡", "effect": "Quick electric zap." },
 
   { "id": "act_033", "type": "action", "name": "Chain Lightning",
-    "rarity": "uncommon", "damageType": "thunder", "damage": 8, "charge": 1, "cost": 1,
+    "rarity": "uncommon", "damageType": "thunder", "damage": 80, "charge": 1, "cost": 1,
     "emoji": "⚡", "aoe": true,
     "effect": "Lightning arcs to all enemies." },
 
   { "id": "act_034", "type": "action", "name": "Thunderclap",
-    "rarity": "uncommon", "damageType": "thunder", "damage": 10, "charge": 2, "cost": 2,
+    "rarity": "uncommon", "damageType": "thunder", "damage": 100, "charge": 2, "cost": 2,
     "emoji": "🌩️", "applyStatus": { "id": "stun", "stacks": 1, "turns": 1 },
     "effect": "Stunning thunder strike. Stuns for 1 turn." },
 
   { "id": "act_035", "type": "action", "name": "Static Charge",
-    "rarity": "rare", "damageType": "thunder", "damage": 7, "charge": 1, "cost": 1,
+    "rarity": "rare", "damageType": "thunder", "damage": 70, "charge": 1, "cost": 1,
     "emoji": "🔋", "hits": 2,
     "selfDamageBuff": { "pct": 0.25, "turns": 2 },
     "effect": "2 quick hits. Charge up +25% damage for 2 turns." },
 
   { "id": "act_036", "type": "action", "name": "Voltaic Strike",
-    "rarity": "rare", "damageType": "thunder", "damage": 15, "charge": 2, "cost": 2,
+    "rarity": "rare", "damageType": "thunder", "damage": 150, "charge": 2, "cost": 2,
     "emoji": "⚡",
     "applyStatuses": [
       { "id": "stun", "stacks": 1, "turns": 1 },
@@ -216,19 +216,19 @@
     "effect": "Stuns and renders target Vulnerable." },
 
   { "id": "act_037", "type": "action", "name": "Ball Lightning",
-    "rarity": "epic", "damageType": "thunder", "damage": 12, "charge": 3, "cost": 3,
+    "rarity": "epic", "damageType": "thunder", "damage": 120, "charge": 3, "cost": 3,
     "emoji": "🌀", "aoe": true, "hits": 2,
     "applyStatus": { "id": "stun", "stacks": 1, "turns": 1 },
     "effect": "Bouncing orb hits all enemies twice. Stuns each." },
 
   { "id": "act_038", "type": "action", "name": "Thunderstorm",
-    "rarity": "epic", "damageType": "thunder", "damage": 9, "charge": 3, "cost": 4,
+    "rarity": "epic", "damageType": "thunder", "damage": 90, "charge": 3, "cost": 4,
     "emoji": "⛈️", "aoe": true, "hits": 3,
     "applyStatus": { "id": "vulnerable", "stacks": 1, "turns": 3 },
     "effect": "3 lightning strikes hit all enemies. Each becomes Vulnerable." },
 
   { "id": "act_039", "type": "action", "name": "Divine Thunder",
-    "rarity": "legendary", "damageType": "thunder", "damage": 35, "charge": 4, "cost": 4,
+    "rarity": "legendary", "damageType": "thunder", "damage": 350, "charge": 4, "cost": 4,
     "emoji": "⚡", "blockPiercing": 0.5,
     "applyStatuses": [
       { "id": "stun", "stacks": 1, "turns": 2 },
@@ -238,28 +238,28 @@
     "effect": "Called lightning. Massive damage, stuns 2 turns, Vulnerable. You gain +40% damage." },
 
   { "id": "act_040", "type": "action", "name": "Poison Dart",
-    "rarity": "common", "damageType": "nature", "damage": 4, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "nature", "damage": 40, "charge": 1, "cost": 1,
     "emoji": "🎯", "applyStatus": { "id": "poison", "stacks": 2, "turns": 4 },
     "effect": "Applies 2 Poison stacks." },
 
   { "id": "act_041", "type": "action", "name": "Thorn Whip",
-    "rarity": "common", "damageType": "nature", "damage": 7, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "nature", "damage": 70, "charge": 1, "cost": 1,
     "emoji": "🌿", "applyStatus": { "id": "bleed", "stacks": 2, "turns": 3 },
     "effect": "Slashing thorns inflict Bleed." },
 
   { "id": "act_042", "type": "action", "name": "Spore Cloud",
-    "rarity": "uncommon", "damageType": "nature", "damage": 3, "charge": 1, "cost": 1,
+    "rarity": "uncommon", "damageType": "nature", "damage": 30, "charge": 1, "cost": 1,
     "emoji": "🍄", "aoe": true,
     "applyStatus": { "id": "poison", "stacks": 2, "turns": 4 },
     "effect": "Toxic spores hit all enemies. Applies 2 Poison to each." },
 
   { "id": "act_043", "type": "action", "name": "Entangle",
-    "rarity": "uncommon", "damageType": "nature", "damage": 5, "charge": 1, "cost": 1,
+    "rarity": "uncommon", "damageType": "nature", "damage": 50, "charge": 1, "cost": 1,
     "emoji": "🌱", "applyStatus": { "id": "entangled", "stacks": 1, "turns": 2 },
     "effect": "Roots target; cannot gain block for 2 turns." },
 
   { "id": "act_044", "type": "action", "name": "Venom Strike",
-    "rarity": "rare", "damageType": "nature", "damage": 10, "charge": 2, "cost": 2,
+    "rarity": "rare", "damageType": "nature", "damage": 100, "charge": 2, "cost": 2,
     "emoji": "🐍",
     "applyStatuses": [
       { "id": "poison", "stacks": 4, "turns": 5 },
@@ -268,22 +268,22 @@
     "effect": "Venomous bite. Heavy Poison and Weakened." },
 
   { "id": "act_045", "type": "action", "name": "Sleep Spores",
-    "rarity": "rare", "damageType": "nature", "damage": 2, "charge": 2, "cost": 2,
+    "rarity": "rare", "damageType": "nature", "damage": 20, "charge": 2, "cost": 2,
     "emoji": "💤", "aoe": true,
     "applyStatus": { "id": "sleep", "stacks": 1, "turns": 2 },
     "effect": "Puts all enemies to sleep for 2 turns." },
 
   { "id": "act_046", "type": "action", "name": "Overgrowth",
-    "rarity": "rare", "damageType": "nature", "damage": 8, "charge": 2, "cost": 2,
-    "emoji": "🌳", "aoe": true, "selfHeal": 8,
+    "rarity": "rare", "damageType": "nature", "damage": 80, "charge": 2, "cost": 2,
+    "emoji": "🌳", "aoe": true, "selfHeal": 80,
     "applyStatuses": [
       { "id": "entangled", "stacks": 1, "turns": 3 },
       { "id": "poison", "stacks": 2, "turns": 3 }
     ],
-    "effect": "Entangles and Poisons all enemies. Drain life for 8 HP." },
+    "effect": "Entangles and Poisons all enemies. Drain life for 80 HP." },
 
   { "id": "act_047", "type": "action", "name": "Plague Strike",
-    "rarity": "epic", "damageType": "nature", "damage": 12, "charge": 2, "cost": 3,
+    "rarity": "epic", "damageType": "nature", "damage": 120, "charge": 2, "cost": 3,
     "emoji": "☠️",
     "applyStatuses": [
       { "id": "poison", "stacks": 6, "turns": 6 },
@@ -293,82 +293,82 @@
     "effect": "Devastating blight. Heavy Poison, Bleed, and Weakened." },
 
   { "id": "act_048", "type": "action", "name": "Nature's Wrath",
-    "rarity": "legendary", "damageType": "nature", "damage": 10, "charge": 3, "cost": 4,
-    "emoji": "🌲", "aoe": true, "selfHeal": 15,
+    "rarity": "legendary", "damageType": "nature", "damage": 100, "charge": 3, "cost": 4,
+    "emoji": "🌲", "aoe": true, "selfHeal": 150,
     "applyStatuses": [
       { "id": "poison", "stacks": 5, "turns": 6 },
       { "id": "entangled", "stacks": 1, "turns": 4 },
       { "id": "sleep", "stacks": 1, "turns": 2 }
     ],
-    "effect": "The forest claims all enemies. Mass Poison, Entangle, Sleep. Heal 15." },
+    "effect": "The forest claims all enemies. Mass Poison, Entangle, Sleep. Heal 150." },
 
   { "id": "act_049", "type": "action", "name": "Holy Smite",
-    "rarity": "common", "damageType": "holy", "damage": 7, "charge": 1, "cost": 1,
-    "emoji": "✨", "selfHeal": 2,
-    "effect": "Sacred strike. Heal 2 on hit." },
+    "rarity": "common", "damageType": "holy", "damage": 70, "charge": 1, "cost": 1,
+    "emoji": "✨", "selfHeal": 20,
+    "effect": "Sacred strike. Heal 20 on hit." },
 
   { "id": "act_050", "type": "action", "name": "Radiant Slash",
-    "rarity": "common", "damageType": "holy", "damage": 9, "charge": 1, "cost": 1,
-    "emoji": "🌟", "selfBlock": 4,
-    "effect": "A blessed strike. Gain 4 Block." },
+    "rarity": "common", "damageType": "holy", "damage": 90, "charge": 1, "cost": 1,
+    "emoji": "🌟", "selfBlock": 40,
+    "effect": "A blessed strike. Gain 40 Block." },
 
   { "id": "act_051", "type": "action", "name": "Consecrate",
-    "rarity": "uncommon", "damageType": "holy", "damage": 5, "charge": 2, "cost": 2,
-    "emoji": "🔆", "aoe": true, "selfHeal": 6,
+    "rarity": "uncommon", "damageType": "holy", "damage": 50, "charge": 2, "cost": 2,
+    "emoji": "🔆", "aoe": true, "selfHeal": 60,
     "applyStatus": { "id": "vulnerable", "stacks": 1, "turns": 3 },
-    "effect": "Sacred ground damages all foes. Heals 6; Vulnerable on all." },
+    "effect": "Sacred ground damages all foes. Heals 60; Vulnerable on all." },
 
   { "id": "act_052", "type": "action", "name": "Divine Judgement",
-    "rarity": "rare", "damageType": "holy", "damage": 16, "charge": 2, "cost": 2,
-    "emoji": "⚖️", "selfHeal": 6,
+    "rarity": "rare", "damageType": "holy", "damage": 160, "charge": 2, "cost": 2,
+    "emoji": "⚖️", "selfHeal": 60,
     "applyStatus": { "id": "marked", "stacks": 1, "turns": 2 },
-    "effect": "Marks target for 50% increased damage. Heals 6." },
+    "effect": "Marks target for 50% increased damage. Heals 60." },
 
   { "id": "act_053", "type": "action", "name": "Banish",
     "rarity": "rare", "damageType": "holy", "damage": 0, "charge": 2, "cost": 2,
-    "emoji": "🚫", "selfBlock": 12,
+    "emoji": "🚫", "selfBlock": 120,
     "applyStatus": { "id": "charmed", "stacks": 1, "turns": 2 },
-    "effect": "Charms enemy to attack own side for 2 turns. Gain 12 Block." },
+    "effect": "Charms enemy to attack own side for 2 turns. Gain 120 Block." },
 
   { "id": "act_054", "type": "action", "name": "Angelic Blade",
-    "rarity": "epic", "damageType": "holy", "damage": 20, "charge": 3, "cost": 3,
-    "emoji": "🗡️", "selfHeal": 10, "selfBlock": 8,
+    "rarity": "epic", "damageType": "holy", "damage": 200, "charge": 3, "cost": 3,
+    "emoji": "🗡️", "selfHeal": 100, "selfBlock": 80,
     "applyStatus": { "id": "vulnerable", "stacks": 2, "turns": 3 },
-    "effect": "A weapon of light. Heal 10, gain 8 Block, target Vulnerable." },
+    "effect": "A weapon of light. Heal 100, gain 80 Block, target Vulnerable." },
 
   { "id": "act_055", "type": "action", "name": "Sacred Inferno",
-    "rarity": "epic", "damageType": "holy", "damage": 14, "charge": 3, "cost": 4,
-    "emoji": "🌅", "aoe": true, "selfHeal": 12,
+    "rarity": "epic", "damageType": "holy", "damage": 140, "charge": 3, "cost": 4,
+    "emoji": "🌅", "aoe": true, "selfHeal": 120,
     "applyStatuses": [
       { "id": "vulnerable", "stacks": 2, "turns": 3 },
       { "id": "charmed", "stacks": 1, "turns": 1 }
     ],
-    "effect": "Holy fire burns all enemies. Vulnerable + briefly Charmed. Heal 12." },
+    "effect": "Holy fire burns all enemies. Vulnerable + briefly Charmed. Heal 120." },
 
   { "id": "act_056", "type": "action", "name": "Wrath of the Heavens",
-    "rarity": "legendary", "damageType": "holy", "damage": 25, "charge": 4, "cost": 4,
-    "emoji": "☀️", "aoe": true, "selfHeal": 20, "selfBlock": 15,
+    "rarity": "legendary", "damageType": "holy", "damage": 250, "charge": 4, "cost": 4,
+    "emoji": "☀️", "aoe": true, "selfHeal": 200, "selfBlock": 150,
     "selfDamageBuff": { "pct": 0.3, "turns": 3 },
     "applyStatuses": [
       { "id": "vulnerable", "stacks": 3, "turns": 4 },
       { "id": "charmed", "stacks": 1, "turns": 2 },
       { "id": "marked", "stacks": 1, "turns": 3 }
     ],
-    "effect": "Legendary divine strike. Vulnerable, Charmed, Marked on all. Heal 20, 15 Block, +30% dmg." },
+    "effect": "Legendary divine strike. Vulnerable, Charmed, Marked on all. Heal 200, 150 Block, +30% dmg." },
 
   { "id": "act_057", "type": "action", "name": "Shadow Bolt",
-    "rarity": "common", "damageType": "dark", "damage": 6, "charge": 1, "cost": 1,
+    "rarity": "common", "damageType": "dark", "damage": 60, "charge": 1, "cost": 1,
     "emoji": "🌑", "blockPiercing": 0.3,
     "effect": "Dark energy that partially bypasses block (30%)." },
 
   { "id": "act_058", "type": "action", "name": "Soul Drain",
-    "rarity": "uncommon", "damageType": "dark", "damage": 9, "charge": 2, "cost": 2,
-    "emoji": "💜", "selfHeal": 4,
+    "rarity": "uncommon", "damageType": "dark", "damage": 90, "charge": 2, "cost": 2,
+    "emoji": "💜", "selfHeal": 40,
     "applyStatus": { "id": "weakened", "stacks": 1, "turns": 3 },
-    "effect": "Drain life force. Heal 4. Target Weakened." },
+    "effect": "Drain life force. Heal 40. Target Weakened." },
 
   { "id": "act_059", "type": "action", "name": "Curse of Agony",
-    "rarity": "rare", "damageType": "dark", "damage": 6, "charge": 1, "cost": 1,
+    "rarity": "rare", "damageType": "dark", "damage": 60, "charge": 1, "cost": 1,
     "emoji": "💀",
     "applyStatuses": [
       { "id": "curse", "stacks": 2, "turns": 4 },
@@ -377,19 +377,19 @@
     "effect": "Curses target (−2 atk) and applies Vulnerable." },
 
   { "id": "act_060", "type": "action", "name": "Void Rupture",
-    "rarity": "rare", "damageType": "dark", "damage": 18, "charge": 2, "cost": 2,
+    "rarity": "rare", "damageType": "dark", "damage": 180, "charge": 2, "cost": 2,
     "emoji": "🕳️", "blockPiercing": 0.75,
     "applyStatus": { "id": "curse", "stacks": 1, "turns": 3 },
     "effect": "Tears through 75% block. Curses the target." },
 
   { "id": "act_061", "type": "action", "name": "Shadow Swarm",
-    "rarity": "epic", "damageType": "dark", "damage": 8, "charge": 2, "cost": 3,
-    "emoji": "🦇", "aoe": true, "blockPiercing": 0.5, "selfHeal": 6,
+    "rarity": "epic", "damageType": "dark", "damage": 80, "charge": 2, "cost": 3,
+    "emoji": "🦇", "aoe": true, "blockPiercing": 0.5, "selfHeal": 60,
     "applyStatus": { "id": "weakened", "stacks": 2, "turns": 3 },
-    "effect": "Dark swarm hits all enemies, pierces 50% block, Weakens all, drains 6 HP." },
+    "effect": "Dark swarm hits all enemies, pierces 50% block, Weakens all, drains 60 HP." },
 
   { "id": "act_062", "type": "action", "name": "Necrotic Wave",
-    "rarity": "epic", "damageType": "dark", "damage": 14, "charge": 3, "cost": 3,
+    "rarity": "epic", "damageType": "dark", "damage": 140, "charge": 3, "cost": 3,
     "emoji": "💀", "aoe": true,
     "applyStatuses": [
       { "id": "curse", "stacks": 3, "turns": 4 },
@@ -400,13 +400,13 @@
     "effect": "Necrotic blast hits all. Curse, Weaken, Poison each. Gain +25% damage." },
 
   { "id": "act_063", "type": "action", "name": "Abyss Caller",
-    "rarity": "legendary", "damageType": "dark", "damage": 28, "charge": 4, "cost": 4,
-    "emoji": "🌌", "blockPiercing": 1.0, "selfHeal": 14,
+    "rarity": "legendary", "damageType": "dark", "damage": 280, "charge": 4, "cost": 4,
+    "emoji": "🌌", "blockPiercing": 1.0, "selfHeal": 140,
     "selfDamageBuff": { "pct": 0.35, "turns": 3 },
     "applyStatuses": [
       { "id": "curse", "stacks": 4, "turns": 5 },
       { "id": "vulnerable", "stacks": 3, "turns": 4 },
       { "id": "weakened", "stacks": 3, "turns": 4 }
     ],
-    "effect": "Call the void. Ignores all block. Curse + Vulnerable + Weaken. Drain 14. +35% dmg." }
+    "effect": "Call the void. Ignores all block. Curse + Vulnerable + Weaken. Drain 140. +35% dmg." }
 ]

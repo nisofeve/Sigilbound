@@ -1,81 +1,5253 @@
 [
-  { "id": "upg.armory.sigil_1",      "zone": "armory",     "tier": 1,  "name": "Extra Sigil Slot I",      "description": "+1 Sigil Slot (4 total).",                        "cost": 60,   "prerequisite": null,                        "effect": { "type": "sigil_slots_delta",        "value": 1    } },
-  { "id": "upg.armory.atk_1",        "zone": "armory",     "tier": 1,  "name": "Whetstone I",             "description": "+2 Attack.",                                      "cost": 80,   "prerequisite": null,                        "effect": { "type": "atk_bonus",                "value": 2    } },
-  { "id": "upg.armory.crit_1",       "zone": "armory",     "tier": 1,  "name": "Keen Edge I",             "description": "+5% Crit Chance.",                                "cost": 100,  "prerequisite": null,                        "effect": { "type": "crit_chance_bonus",        "value": 0.05 } },
-  { "id": "upg.armory.sigil_2",      "zone": "armory",     "tier": 2,  "name": "Extra Sigil Slot II",     "description": "+1 Sigil Slot (5 total).",                        "cost": 250,  "prerequisite": "upg.armory.sigil_1",        "effect": { "type": "sigil_slots_delta",        "value": 1    } },
-  { "id": "upg.armory.atk_2",        "zone": "armory",     "tier": 2,  "name": "Whetstone II",            "description": "+3 Attack.",                                      "cost": 300,  "prerequisite": "upg.armory.atk_1",          "effect": { "type": "atk_bonus",                "value": 3    } },
-  { "id": "upg.armory.crit_2",       "zone": "armory",     "tier": 2,  "name": "Keen Edge II",            "description": "+5% Crit Chance (+10% total).",                   "cost": 350,  "prerequisite": "upg.armory.crit_1",         "effect": { "type": "crit_chance_bonus",        "value": 0.05 } },
-  { "id": "upg.armory.pierce_1",     "zone": "armory",     "tier": 3,  "name": "Armor Piercer",           "description": "All attacks pierce 5% of enemy block.",           "cost": 700,  "prerequisite": "upg.armory.atk_2",          "effect": { "type": "global_block_piercing",    "value": 0.05 } },
-  { "id": "upg.armory.sigil_3",      "zone": "armory",     "tier": 3,  "name": "Extra Sigil Slot III",    "description": "+1 Sigil Slot (6 total).",                        "cost": 800,  "prerequisite": "upg.armory.sigil_2",        "effect": { "type": "sigil_slots_delta",        "value": 1    } },
-  { "id": "upg.armory.crit_3",       "zone": "armory",     "tier": 3,  "name": "Keen Edge III",           "description": "+5% Crit Chance (+15% total).",                   "cost": 800,  "prerequisite": "upg.armory.crit_2",         "effect": { "type": "crit_chance_bonus",        "value": 0.05 } },
-  { "id": "upg.armory.combo_dmg",    "zone": "armory",     "tier": 4,  "name": "Combo Mastery",           "description": "+10% damage on every combo strike.",              "cost": 1800, "prerequisite": "upg.armory.pierce_1",       "effect": { "type": "combo_damage_bonus",       "value": 0.10 } },
-  { "id": "upg.armory.atk_3",        "zone": "armory",     "tier": 4,  "name": "Whetstone III",           "description": "+4 Attack.",                                      "cost": 1800, "prerequisite": "upg.armory.atk_2",          "effect": { "type": "atk_bonus",                "value": 4    } },
-  { "id": "upg.armory.speed_1",      "zone": "armory",     "tier": 4,  "name": "Swift Strikes",           "description": "+1 Speed.",                                       "cost": 2000, "prerequisite": "upg.armory.sigil_3",        "effect": { "type": "speed_bonus",              "value": 1    } },
-  { "id": "upg.armory.sigil_4",      "zone": "armory",     "tier": 5,  "name": "Extra Sigil Slot IV",     "description": "+1 Sigil Slot (7 total).",                        "cost": 4500, "prerequisite": "upg.armory.sigil_3",        "effect": { "type": "sigil_slots_delta",        "value": 1    } },
-  { "id": "upg.armory.crit_bonus",   "zone": "armory",     "tier": 5,  "name": "Critical Mastery",        "description": "Crits deal +25% damage (150% → 175%).",          "cost": 5000, "prerequisite": "upg.armory.crit_3",         "effect": { "type": "crit_damage_bonus",        "value": 0.25 } },
-  { "id": "upg.armory.battlecry",    "zone": "armory",     "tier": 5,  "name": "Battlecry",               "description": "First action card each turn deals +25% damage.",  "cost": 5500, "prerequisite": "upg.armory.combo_dmg",      "effect": { "type": "first_action_damage_bonus","value": 0.25 } },
-
-  { "id": "upg.sanctum.hp_1",        "zone": "sanctum",    "tier": 1,  "name": "Iron Constitution I",     "description": "+10 Max HP.",                                     "cost": 60,   "prerequisite": null,                        "effect": { "type": "max_hp_bonus",             "value": 10   } },
-  { "id": "upg.sanctum.block_1",     "zone": "sanctum",    "tier": 1,  "name": "Shield Training I",       "description": "+3 starting Block each stage.",                   "cost": 80,   "prerequisite": null,                        "effect": { "type": "starting_block",           "value": 3    } },
-  { "id": "upg.sanctum.regen_1",     "zone": "sanctum",    "tier": 1,  "name": "Meditation I",            "description": "+1 HP per turn (regen).",                         "cost": 100,  "prerequisite": null,                        "effect": { "type": "regen_per_turn",           "value": 1    } },
-  { "id": "upg.sanctum.hp_2",        "zone": "sanctum",    "tier": 2,  "name": "Iron Constitution II",    "description": "+15 Max HP.",                                     "cost": 250,  "prerequisite": "upg.sanctum.hp_1",          "effect": { "type": "max_hp_bonus",             "value": 15   } },
-  { "id": "upg.sanctum.block_2",     "zone": "sanctum",    "tier": 2,  "name": "Shield Training II",      "description": "+5 starting Block each stage.",                   "cost": 300,  "prerequisite": "upg.sanctum.block_1",       "effect": { "type": "starting_block",           "value": 5    } },
-  { "id": "upg.sanctum.def_1",       "zone": "sanctum",    "tier": 2,  "name": "Ironhide I",              "description": "+2 Defence (flat damage reduction).",             "cost": 350,  "prerequisite": "upg.sanctum.hp_1",          "effect": { "type": "def_bonus",                "value": 2    } },
-  { "id": "upg.sanctum.regen_2",     "zone": "sanctum",    "tier": 3,  "name": "Meditation II",           "description": "+2 HP per turn (3 total).",                       "cost": 700,  "prerequisite": "upg.sanctum.regen_1",       "effect": { "type": "regen_per_turn",           "value": 2    } },
-  { "id": "upg.sanctum.hp_3",        "zone": "sanctum",    "tier": 3,  "name": "Iron Constitution III",   "description": "+20 Max HP.",                                     "cost": 800,  "prerequisite": "upg.sanctum.hp_2",          "effect": { "type": "max_hp_bonus",             "value": 20   } },
-  { "id": "upg.sanctum.def_2",       "zone": "sanctum",    "tier": 3,  "name": "Ironhide II",             "description": "+3 Defence.",                                     "cost": 800,  "prerequisite": "upg.sanctum.def_1",         "effect": { "type": "def_bonus",                "value": 3    } },
-  { "id": "upg.sanctum.resilience",  "zone": "sanctum",    "tier": 4,  "name": "Resilience",              "description": "Block carries over to next turn (cap 8).",        "cost": 1800, "prerequisite": "upg.sanctum.block_2",       "effect": { "type": "block_carry_cap",          "value": 8    } },
-  { "id": "upg.sanctum.hp_4",        "zone": "sanctum",    "tier": 4,  "name": "Iron Constitution IV",    "description": "+25 Max HP.",                                     "cost": 2000, "prerequisite": "upg.sanctum.hp_3",          "effect": { "type": "max_hp_bonus",             "value": 25   } },
-  { "id": "upg.sanctum.lifedrain",   "zone": "sanctum",    "tier": 4,  "name": "Life Drain",              "description": "Heal 2 HP on each kill.",                         "cost": 2000, "prerequisite": "upg.sanctum.def_2",         "effect": { "type": "on_kill_heal",             "value": 2    } },
-  { "id": "upg.sanctum.aegis",       "zone": "sanctum",    "tier": 5,  "name": "Aegis",                   "description": "First time HP drops below 30%, gain 15 Block.",   "cost": 4500, "prerequisite": "upg.sanctum.resilience",    "effect": { "type": "auto_block_low_hp",        "threshold": 0.30, "block": 15 } },
-  { "id": "upg.sanctum.vigorous",    "zone": "sanctum",    "tier": 5,  "name": "Vigorous",                "description": "+5 HP at start of each stage.",                   "cost": 5000, "prerequisite": "upg.sanctum.hp_4",          "effect": { "type": "stage_start_heal",         "value": 5    } },
-  { "id": "upg.sanctum.revive",      "zone": "sanctum",    "tier": 5,  "name": "Phoenix Ember",           "description": "Once per stage, survive a lethal hit at 1 HP.",   "cost": 6000, "prerequisite": "upg.sanctum.aegis",         "effect": { "type": "on_lethal_survive",        "value": 1    } },
-
-  { "id": "upg.library.hand_1",      "zone": "library",    "tier": 1,  "name": "Bigger Hand I",           "description": "+1 hand size (6 cards).",                         "cost": 60,   "prerequisite": null,                        "effect": { "type": "hand_size_delta",          "value": 1    } },
-  { "id": "upg.library.deck_1",      "zone": "library",    "tier": 1,  "name": "Expanded Codex I",        "description": "+3 cards in starting deck.",                      "cost": 80,   "prerequisite": null,                        "effect": { "type": "starting_deck_extra",      "value": 3    } },
-  { "id": "upg.library.stamina_1",   "zone": "library",    "tier": 1,  "name": "Focus Training I",        "description": "+1 Stamina per turn.",                            "cost": 100,  "prerequisite": null,                        "effect": { "type": "stamina_bonus",            "value": 1    } },
-  { "id": "upg.library.hand_2",      "zone": "library",    "tier": 2,  "name": "Bigger Hand II",          "description": "+1 hand size (7 cards).",                         "cost": 250,  "prerequisite": "upg.library.hand_1",        "effect": { "type": "hand_size_delta",          "value": 1    } },
-  { "id": "upg.library.draft_1",     "zone": "library",    "tier": 2,  "name": "Draft +1",                "description": "Draft offers 4 cards instead of 3.",             "cost": 300,  "prerequisite": "upg.library.deck_1",        "effect": { "type": "draft_count_delta",        "value": 1    } },
-  { "id": "upg.library.stamina_2",   "zone": "library",    "tier": 2,  "name": "Focus Training II",       "description": "+1 Stamina per turn (+2 total).",                 "cost": 350,  "prerequisite": "upg.library.stamina_1",     "effect": { "type": "stamina_bonus",            "value": 1    } },
-  { "id": "upg.library.deck_2",      "zone": "library",    "tier": 3,  "name": "Expanded Codex II",       "description": "+3 more cards in starting deck.",                 "cost": 700,  "prerequisite": "upg.library.deck_1",        "effect": { "type": "starting_deck_extra",      "value": 3    } },
-  { "id": "upg.library.tactic_disc", "zone": "library",    "tier": 3,  "name": "Tactic Mastery",          "description": "Tactic cards cost 1 less stamina (min 0).",       "cost": 800,  "prerequisite": "upg.library.stamina_2",     "effect": { "type": "tactic_stamina_discount",  "value": 1    } },
-  { "id": "upg.library.quick_draw",  "zone": "library",    "tier": 3,  "name": "Quick Draw",              "description": "Draw 1 extra card on turn 1 of each stage.",      "cost": 800,  "prerequisite": "upg.library.hand_2",        "effect": { "type": "turn_one_extra_draw",      "value": 1    } },
-  { "id": "upg.library.hand_3",      "zone": "library",    "tier": 4,  "name": "Bigger Hand III",         "description": "+1 hand size (8 cards).",                         "cost": 1800, "prerequisite": "upg.library.hand_2",        "effect": { "type": "hand_size_delta",          "value": 1    } },
-  { "id": "upg.library.cascade",     "zone": "library",    "tier": 4,  "name": "Combo Cascade",           "description": "Each combo refunds 1 stamina and draws 1 card.",  "cost": 2000, "prerequisite": "upg.library.tactic_disc",   "effect": { "type": "combo_stamina_refund",     "value": 1    } },
-  { "id": "upg.library.draft_2",     "zone": "library",    "tier": 4,  "name": "Draft +2",                "description": "Draft offers 5 cards instead of 4.",             "cost": 2000, "prerequisite": "upg.library.draft_1",       "effect": { "type": "draft_count_delta",        "value": 1    } },
-  { "id": "upg.library.vault",       "zone": "library",    "tier": 5,  "name": "Card Vault",              "description": "+1 hand size (9 cards).",                         "cost": 4500, "prerequisite": "upg.library.draft_2",       "effect": { "type": "hand_size_delta",          "value": 1    } },
-  { "id": "upg.library.echo",        "zone": "library",    "tier": 5,  "name": "Echo Sigil",              "description": "Each turn, 10% chance a random action card replicates.", "cost": 5000, "prerequisite": "upg.library.cascade",  "effect": { "type": "card_replicate_chance",    "value": 0.10 } },
-  { "id": "upg.library.perk_slot",   "zone": "library",    "tier": 5,  "name": "Perk Slot IV",            "description": "Unlocks a 4th perk slot.",                        "cost": 6000, "prerequisite": "upg.library.hand_3",        "effect": { "type": "perk_slots_delta",         "value": 1    } },
-
-  { "id": "upg.forge.craft_1",       "zone": "forge",      "tier": 1,  "name": "Smelter",                 "description": "Craft basic equipment at lower gold cost (−10%).", "cost": 70,   "prerequisite": null,                        "effect": { "type": "craft_discount",           "value": 0.10 } },
-  { "id": "upg.forge.upgrade_1",     "zone": "forge",      "tier": 1,  "name": "Upgrade Bench I",         "description": "Upgrade equipment tier 1 → 2.",                   "cost": 80,   "prerequisite": null,                        "effect": { "type": "unlock_upgrade_tier",      "value": 1    } },
-  { "id": "upg.forge.fire_res",      "zone": "forge",      "tier": 1,  "name": "Fire Resistance",         "description": "−20% Fire damage received.",                      "cost": 100,  "prerequisite": null,                        "effect": { "type": "resistance_bonus",         "element": "fire",     "value": 0.8 } },
-  { "id": "upg.forge.craft_2",       "zone": "forge",      "tier": 2,  "name": "Master Smelter",          "description": "Craft discount increases to −20%.",               "cost": 300,  "prerequisite": "upg.forge.craft_1",         "effect": { "type": "craft_discount",           "value": 0.20 } },
-  { "id": "upg.forge.upgrade_2",     "zone": "forge",      "tier": 2,  "name": "Upgrade Bench II",        "description": "Upgrade equipment tier 2 → 3.",                   "cost": 350,  "prerequisite": "upg.forge.upgrade_1",       "effect": { "type": "unlock_upgrade_tier",      "value": 2    } },
-  { "id": "upg.forge.ice_res",       "zone": "forge",      "tier": 2,  "name": "Ice Resistance",          "description": "−20% Ice damage received.",                       "cost": 350,  "prerequisite": "upg.forge.fire_res",        "effect": { "type": "resistance_bonus",         "element": "ice",      "value": 0.8 } },
-  { "id": "upg.forge.gold_drop",     "zone": "forge",      "tier": 3,  "name": "Treasure Sense",          "description": "+15% gold dropped by enemies.",                   "cost": 700,  "prerequisite": "upg.forge.craft_2",         "effect": { "type": "gold_drop_bonus",          "value": 0.15 } },
-  { "id": "upg.forge.dark_res",      "zone": "forge",      "tier": 3,  "name": "Dark Resistance",         "description": "−20% Dark damage received.",                      "cost": 800,  "prerequisite": "upg.forge.ice_res",         "effect": { "type": "resistance_bonus",         "element": "dark",     "value": 0.8 } },
-  { "id": "upg.forge.upgrade_3",     "zone": "forge",      "tier": 3,  "name": "Upgrade Bench III",       "description": "Upgrade equipment tier 3 → 4.",                   "cost": 800,  "prerequisite": "upg.forge.upgrade_2",       "effect": { "type": "unlock_upgrade_tier",      "value": 3    } },
-  { "id": "upg.forge.phys_atk",      "zone": "forge",      "tier": 4,  "name": "Physical Affinity",       "description": "+10% Physical damage dealt.",                     "cost": 1800, "prerequisite": "upg.forge.gold_drop",       "effect": { "type": "damage_type_bonus",        "element": "physical", "value": 0.10 } },
-  { "id": "upg.forge.gold_bonus",    "zone": "forge",      "tier": 4,  "name": "Hoarder",                 "description": "+25% gold dropped by enemies.",                   "cost": 2000, "prerequisite": "upg.forge.gold_drop",       "effect": { "type": "gold_drop_bonus",          "value": 0.25 } },
-  { "id": "upg.forge.thunder_atk",   "zone": "forge",      "tier": 4,  "name": "Thunder Affinity",        "description": "+10% Thunder damage dealt.",                      "cost": 2000, "prerequisite": "upg.forge.dark_res",        "effect": { "type": "damage_type_bonus",        "element": "thunder",  "value": 0.10 } },
-  { "id": "upg.forge.all_res",       "zone": "forge",      "tier": 5,  "name": "Elemental Ward",          "description": "−10% all elemental damage received.",             "cost": 5000, "prerequisite": "upg.forge.dark_res",        "effect": { "type": "all_resist_bonus",         "value": 0.10 } },
-  { "id": "upg.forge.upgrade_4",     "zone": "forge",      "tier": 5,  "name": "Upgrade Bench IV",        "description": "Upgrade equipment tier 4 → 5 (max tier).",        "cost": 5500, "prerequisite": "upg.forge.upgrade_3",       "effect": { "type": "unlock_upgrade_tier",      "value": 4    } },
-  { "id": "upg.forge.fire_atk",      "zone": "forge",      "tier": 5,  "name": "Pyromancer's Touch",      "description": "+15% Fire damage dealt.",                         "cost": 6000, "prerequisite": "upg.forge.phys_atk",        "effect": { "type": "damage_type_bonus",        "element": "fire",     "value": 0.15 } },
-
-  { "id": "upg.shrine.perk_1",       "zone": "shrine",     "tier": 1,  "name": "Perk Slot II",            "description": "Unlocks 2nd perk slot.",                          "cost": 70,   "prerequisite": null,                        "effect": { "type": "perk_slots_delta",         "value": 1    } },
-  { "id": "upg.shrine.reaction_1",   "zone": "shrine",     "tier": 1,  "name": "Reaction Deck I",         "description": "Unlock 2nd Reaction card slot.",                  "cost": 80,   "prerequisite": null,                        "effect": { "type": "reaction_slots_delta",     "value": 1    } },
-  { "id": "upg.shrine.talent_1",     "zone": "shrine",     "tier": 1,  "name": "Talent Scroll I",         "description": "Unlock talent trees for the player.",             "cost": 100,  "prerequisite": null,                        "effect": { "type": "unlock_talent_tier",       "value": 1    } },
-  { "id": "upg.shrine.perk_2",       "zone": "shrine",     "tier": 2,  "name": "Perk Slot III",           "description": "Unlocks 3rd perk slot.",                          "cost": 300,  "prerequisite": "upg.shrine.perk_1",         "effect": { "type": "perk_slots_delta",         "value": 1    } },
-  { "id": "upg.shrine.gold_sale",    "zone": "shrine",     "tier": 2,  "name": "Merchant Blessing",       "description": "+5% all sales.",                                  "cost": 350,  "prerequisite": "upg.shrine.reaction_1",     "effect": { "type": "global_sale_mult",         "value": 0.05 } },
-  { "id": "upg.shrine.talent_2",     "zone": "shrine",     "tier": 2,  "name": "Talent Scroll II",        "description": "Unlock tier 2 talent trees.",                     "cost": 350,  "prerequisite": "upg.shrine.talent_1",       "effect": { "type": "unlock_talent_tier",       "value": 2    } },
-  { "id": "upg.shrine.reaction_2",   "zone": "shrine",     "tier": 3,  "name": "Reaction Deck II",        "description": "Unlock 3rd Reaction card slot.",                  "cost": 700,  "prerequisite": "upg.shrine.reaction_1",     "effect": { "type": "reaction_slots_delta",     "value": 1    } },
-  { "id": "upg.shrine.talent_3",     "zone": "shrine",     "tier": 3,  "name": "Talent Scroll III",       "description": "Unlock tier 3 talent trees.",                     "cost": 800,  "prerequisite": "upg.shrine.talent_2",       "effect": { "type": "unlock_talent_tier",       "value": 3    } },
-  { "id": "upg.shrine.gold_sale_2",  "zone": "shrine",     "tier": 3,  "name": "Trade Network",           "description": "+10% all sales.",                                 "cost": 800,  "prerequisite": "upg.shrine.gold_sale",      "effect": { "type": "global_sale_mult",         "value": 0.10 } },
-  { "id": "upg.shrine.free_reroll",  "zone": "shrine",     "tier": 4,  "name": "Oracle's Eye",            "description": "Foresight grants +5% Crit Chance.",               "cost": 1800, "prerequisite": "upg.shrine.reaction_2",     "effect": { "type": "crit_chance_bonus",        "value": 0.05 } },
-  { "id": "upg.shrine.perk_3",       "zone": "shrine",     "tier": 4,  "name": "Perk Slot IV",            "description": "Unlocks 4th perk slot.",                          "cost": 2000, "prerequisite": "upg.shrine.perk_2",         "effect": { "type": "perk_slots_delta",         "value": 1    } },
-  { "id": "upg.shrine.talent_4",     "zone": "shrine",     "tier": 4,  "name": "Talent Scroll IV",        "description": "Unlock tier 4 (elite) talent trees.",             "cost": 2000, "prerequisite": "upg.shrine.talent_3",       "effect": { "type": "unlock_talent_tier",       "value": 4    } },
-  { "id": "upg.shrine.gold_sale_3",  "zone": "shrine",     "tier": 5,  "name": "Diamond Market",          "description": "+15% all sales.",                                 "cost": 4500, "prerequisite": "upg.shrine.gold_sale_2",    "effect": { "type": "global_sale_mult",         "value": 0.15 } },
-  { "id": "upg.shrine.combo_master", "zone": "shrine",     "tier": 5,  "name": "Sigilbound Master",       "description": "Combo damage bonuses doubled.",                   "cost": 5500, "prerequisite": "upg.shrine.free_reroll",    "effect": { "type": "all_combo_damage_mult",    "mult": 2.0   } },
-  { "id": "upg.shrine.astral_pact",  "zone": "shrine",     "tier": 5,  "name": "Astral Convergence",      "description": "15% chance any action card fires twice.",         "cost": 7000, "prerequisite": "upg.shrine.combo_master",   "effect": { "type": "card_replicate_chance",    "value": 0.15 } }
+  {
+    "id": "upg.armory.atk_1",
+    "zone": "armory",
+    "tier": 1,
+    "name": "Whetstone I",
+    "description": "+1 Attack.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_2",
+    "zone": "armory",
+    "tier": 2,
+    "name": "Whetstone II",
+    "description": "+1 Attack.",
+    "cost": 100,
+    "prerequisite": "upg.armory.atk_1",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_3",
+    "zone": "armory",
+    "tier": 3,
+    "name": "Whetstone III",
+    "description": "+1 Attack.",
+    "cost": 150,
+    "prerequisite": "upg.armory.atk_2",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_4",
+    "zone": "armory",
+    "tier": 4,
+    "name": "Whetstone IV",
+    "description": "+1 Attack.",
+    "cost": 200,
+    "prerequisite": "upg.armory.atk_3",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_5",
+    "zone": "armory",
+    "tier": 5,
+    "name": "Whetstone V",
+    "description": "+1 Attack.",
+    "cost": 280,
+    "prerequisite": "upg.armory.atk_4",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_6",
+    "zone": "armory",
+    "tier": 6,
+    "name": "Whetstone VI",
+    "description": "+1 Attack.",
+    "cost": 380,
+    "prerequisite": "upg.armory.atk_5",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_7",
+    "zone": "armory",
+    "tier": 7,
+    "name": "Whetstone VII",
+    "description": "+1 Attack.",
+    "cost": 500,
+    "prerequisite": "upg.armory.atk_6",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_8",
+    "zone": "armory",
+    "tier": 8,
+    "name": "Whetstone VIII",
+    "description": "+1 Attack.",
+    "cost": 650,
+    "prerequisite": "upg.armory.atk_7",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_9",
+    "zone": "armory",
+    "tier": 9,
+    "name": "Whetstone IX",
+    "description": "+1 Attack.",
+    "cost": 850,
+    "prerequisite": "upg.armory.atk_8",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_10",
+    "zone": "armory",
+    "tier": 10,
+    "name": "Whetstone X",
+    "description": "+1 Attack.",
+    "cost": 1100,
+    "prerequisite": "upg.armory.atk_9",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.atk_11",
+    "zone": "armory",
+    "tier": 11,
+    "name": "Whetstone XI",
+    "description": "+2 Attack.",
+    "cost": 1400,
+    "prerequisite": "upg.armory.atk_10",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.armory.atk_12",
+    "zone": "armory",
+    "tier": 12,
+    "name": "Whetstone XII",
+    "description": "+2 Attack.",
+    "cost": 1800,
+    "prerequisite": "upg.armory.atk_11",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.armory.atk_13",
+    "zone": "armory",
+    "tier": 13,
+    "name": "Whetstone XIII",
+    "description": "+2 Attack.",
+    "cost": 2300,
+    "prerequisite": "upg.armory.atk_12",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.armory.atk_14",
+    "zone": "armory",
+    "tier": 14,
+    "name": "Whetstone XIV",
+    "description": "+2 Attack.",
+    "cost": 2900,
+    "prerequisite": "upg.armory.atk_13",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.armory.atk_15",
+    "zone": "armory",
+    "tier": 15,
+    "name": "Whetstone XV",
+    "description": "+2 Attack.",
+    "cost": 3700,
+    "prerequisite": "upg.armory.atk_14",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.armory.atk_16",
+    "zone": "armory",
+    "tier": 16,
+    "name": "Whetstone XVI",
+    "description": "+2 Attack.",
+    "cost": 4700,
+    "prerequisite": "upg.armory.atk_15",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.armory.atk_17",
+    "zone": "armory",
+    "tier": 17,
+    "name": "Whetstone XVII",
+    "description": "+2 Attack.",
+    "cost": 6000,
+    "prerequisite": "upg.armory.atk_16",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.armory.atk_18",
+    "zone": "armory",
+    "tier": 18,
+    "name": "Whetstone XVIII",
+    "description": "+2 Attack.",
+    "cost": 7500,
+    "prerequisite": "upg.armory.atk_17",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.armory.atk_19",
+    "zone": "armory",
+    "tier": 19,
+    "name": "Whetstone XIX",
+    "description": "+2 Attack.",
+    "cost": 9500,
+    "prerequisite": "upg.armory.atk_18",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.armory.atk_20",
+    "zone": "armory",
+    "tier": 20,
+    "name": "Mythic Blade",
+    "description": "+5 Attack.",
+    "cost": 16000,
+    "prerequisite": "upg.armory.atk_19",
+    "effect": {
+      "type": "atk_bonus",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.armory.crit_1",
+    "zone": "armory",
+    "tier": 1,
+    "name": "Keen Edge I",
+    "description": "+0.5% Crit Chance.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_2",
+    "zone": "armory",
+    "tier": 2,
+    "name": "Keen Edge II",
+    "description": "+0.5% Crit Chance.",
+    "cost": 100,
+    "prerequisite": "upg.armory.crit_1",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_3",
+    "zone": "armory",
+    "tier": 3,
+    "name": "Keen Edge III",
+    "description": "+0.5% Crit Chance.",
+    "cost": 150,
+    "prerequisite": "upg.armory.crit_2",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_4",
+    "zone": "armory",
+    "tier": 4,
+    "name": "Keen Edge IV",
+    "description": "+0.5% Crit Chance.",
+    "cost": 200,
+    "prerequisite": "upg.armory.crit_3",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_5",
+    "zone": "armory",
+    "tier": 5,
+    "name": "Keen Edge V",
+    "description": "+0.5% Crit Chance.",
+    "cost": 280,
+    "prerequisite": "upg.armory.crit_4",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_6",
+    "zone": "armory",
+    "tier": 6,
+    "name": "Keen Edge VI",
+    "description": "+0.5% Crit Chance.",
+    "cost": 380,
+    "prerequisite": "upg.armory.crit_5",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_7",
+    "zone": "armory",
+    "tier": 7,
+    "name": "Keen Edge VII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 500,
+    "prerequisite": "upg.armory.crit_6",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_8",
+    "zone": "armory",
+    "tier": 8,
+    "name": "Keen Edge VIII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 650,
+    "prerequisite": "upg.armory.crit_7",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_9",
+    "zone": "armory",
+    "tier": 9,
+    "name": "Keen Edge IX",
+    "description": "+0.5% Crit Chance.",
+    "cost": 850,
+    "prerequisite": "upg.armory.crit_8",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_10",
+    "zone": "armory",
+    "tier": 10,
+    "name": "Keen Edge X",
+    "description": "+0.5% Crit Chance.",
+    "cost": 1100,
+    "prerequisite": "upg.armory.crit_9",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_dmg_1",
+    "zone": "armory",
+    "tier": 11,
+    "name": "Crit Mastery I",
+    "description": "Crits +0.5% damage.",
+    "cost": 1400,
+    "prerequisite": "upg.armory.crit_10",
+    "effect": {
+      "type": "crit_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_dmg_2",
+    "zone": "armory",
+    "tier": 12,
+    "name": "Crit Mastery II",
+    "description": "Crits +0.5% damage.",
+    "cost": 1800,
+    "prerequisite": "upg.armory.crit_dmg_1",
+    "effect": {
+      "type": "crit_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_dmg_3",
+    "zone": "armory",
+    "tier": 13,
+    "name": "Crit Mastery III",
+    "description": "Crits +0.5% damage.",
+    "cost": 2300,
+    "prerequisite": "upg.armory.crit_dmg_2",
+    "effect": {
+      "type": "crit_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_dmg_4",
+    "zone": "armory",
+    "tier": 14,
+    "name": "Crit Mastery IV",
+    "description": "+0.5% Crit Chance.",
+    "cost": 2900,
+    "prerequisite": "upg.armory.crit_dmg_3",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_dmg_5",
+    "zone": "armory",
+    "tier": 15,
+    "name": "Crit Mastery V",
+    "description": "Crits +0.5% damage.",
+    "cost": 3700,
+    "prerequisite": "upg.armory.crit_dmg_4",
+    "effect": {
+      "type": "crit_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_dmg_6",
+    "zone": "armory",
+    "tier": 16,
+    "name": "Crit Mastery VI",
+    "description": "+0.5% Crit Chance.",
+    "cost": 4700,
+    "prerequisite": "upg.armory.crit_dmg_5",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_dmg_7",
+    "zone": "armory",
+    "tier": 17,
+    "name": "Crit Mastery VII",
+    "description": "Crits +0.5% damage.",
+    "cost": 6000,
+    "prerequisite": "upg.armory.crit_dmg_6",
+    "effect": {
+      "type": "crit_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_dmg_8",
+    "zone": "armory",
+    "tier": 18,
+    "name": "Crit Mastery VIII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 7500,
+    "prerequisite": "upg.armory.crit_dmg_7",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_dmg_9",
+    "zone": "armory",
+    "tier": 19,
+    "name": "Crit Mastery IX",
+    "description": "Crits +0.5% damage.",
+    "cost": 9500,
+    "prerequisite": "upg.armory.crit_dmg_8",
+    "effect": {
+      "type": "crit_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.crit_apex",
+    "zone": "armory",
+    "tier": 20,
+    "name": "Apex Precision",
+    "description": "+2% Crit Chance.",
+    "cost": 16000,
+    "prerequisite": "upg.armory.crit_dmg_9",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.02
+    }
+  },
+  {
+    "id": "upg.armory.combo_1",
+    "zone": "armory",
+    "tier": 1,
+    "name": "Combo Training I",
+    "description": "+0.5% combo strike damage.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_2",
+    "zone": "armory",
+    "tier": 2,
+    "name": "Combo Training II",
+    "description": "+0.5% combo strike damage.",
+    "cost": 100,
+    "prerequisite": "upg.armory.combo_1",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_3",
+    "zone": "armory",
+    "tier": 3,
+    "name": "Combo Training III",
+    "description": "+0.5% combo strike damage.",
+    "cost": 150,
+    "prerequisite": "upg.armory.combo_2",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_4",
+    "zone": "armory",
+    "tier": 4,
+    "name": "Combo Training IV",
+    "description": "+0.5% combo strike damage.",
+    "cost": 200,
+    "prerequisite": "upg.armory.combo_3",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_5",
+    "zone": "armory",
+    "tier": 5,
+    "name": "Combo Training V",
+    "description": "+0.5% combo strike damage.",
+    "cost": 280,
+    "prerequisite": "upg.armory.combo_4",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_6",
+    "zone": "armory",
+    "tier": 6,
+    "name": "Combo Training VI",
+    "description": "+0.5% combo strike damage.",
+    "cost": 380,
+    "prerequisite": "upg.armory.combo_5",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_7",
+    "zone": "armory",
+    "tier": 7,
+    "name": "Combo Training VII",
+    "description": "+0.5% combo strike damage.",
+    "cost": 500,
+    "prerequisite": "upg.armory.combo_6",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_8",
+    "zone": "armory",
+    "tier": 8,
+    "name": "Combo Training VIII",
+    "description": "+0.5% combo strike damage.",
+    "cost": 650,
+    "prerequisite": "upg.armory.combo_7",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_9",
+    "zone": "armory",
+    "tier": 9,
+    "name": "Combo Training IX",
+    "description": "+0.5% combo strike damage.",
+    "cost": 850,
+    "prerequisite": "upg.armory.combo_8",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_10",
+    "zone": "armory",
+    "tier": 10,
+    "name": "Combo Training X",
+    "description": "+0.5% combo strike damage.",
+    "cost": 1100,
+    "prerequisite": "upg.armory.combo_9",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.battlecry_1",
+    "zone": "armory",
+    "tier": 11,
+    "name": "Battlecry I",
+    "description": "First action +0.5% damage.",
+    "cost": 1400,
+    "prerequisite": "upg.armory.combo_10",
+    "effect": {
+      "type": "first_action_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.battlecry_2",
+    "zone": "armory",
+    "tier": 12,
+    "name": "Battlecry II",
+    "description": "First action +0.5% more.",
+    "cost": 1800,
+    "prerequisite": "upg.armory.battlecry_1",
+    "effect": {
+      "type": "first_action_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.battlecry_3",
+    "zone": "armory",
+    "tier": 13,
+    "name": "Battlecry III",
+    "description": "First action +0.5% more.",
+    "cost": 2300,
+    "prerequisite": "upg.armory.battlecry_2",
+    "effect": {
+      "type": "first_action_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_11",
+    "zone": "armory",
+    "tier": 14,
+    "name": "Combo Mastery I",
+    "description": "+0.5% combo damage.",
+    "cost": 2900,
+    "prerequisite": "upg.armory.battlecry_3",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_12",
+    "zone": "armory",
+    "tier": 15,
+    "name": "Combo Mastery II",
+    "description": "+0.5% combo damage.",
+    "cost": 3700,
+    "prerequisite": "upg.armory.combo_11",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.battlecry_4",
+    "zone": "armory",
+    "tier": 16,
+    "name": "Battlecry IV",
+    "description": "First action +0.5% more.",
+    "cost": 4700,
+    "prerequisite": "upg.armory.combo_12",
+    "effect": {
+      "type": "first_action_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.battlecry_5",
+    "zone": "armory",
+    "tier": 17,
+    "name": "Battlecry V",
+    "description": "First action +0.5% more.",
+    "cost": 6000,
+    "prerequisite": "upg.armory.battlecry_4",
+    "effect": {
+      "type": "first_action_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_13",
+    "zone": "armory",
+    "tier": 18,
+    "name": "Combo Mastery III",
+    "description": "+0.5% combo damage.",
+    "cost": 7500,
+    "prerequisite": "upg.armory.battlecry_5",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_14",
+    "zone": "armory",
+    "tier": 19,
+    "name": "Combo Mastery IV",
+    "description": "+0.5% combo damage.",
+    "cost": 9500,
+    "prerequisite": "upg.armory.combo_13",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.combo_apex",
+    "zone": "armory",
+    "tier": 20,
+    "name": "Sigilbound Mastery",
+    "description": "All combo damage bonuses ×1.10.",
+    "cost": 18000,
+    "prerequisite": "upg.armory.combo_14",
+    "effect": {
+      "type": "all_combo_damage_mult",
+      "mult": 1.1
+    }
+  },
+  {
+    "id": "upg.armory.pierce_1",
+    "zone": "armory",
+    "tier": 1,
+    "name": "Honed Point I",
+    "description": "Attacks pierce 0.5% block.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.sigil_1",
+    "zone": "armory",
+    "tier": 2,
+    "name": "Extra Sigil Slot I",
+    "description": "+1 Sigil Slot.",
+    "cost": 100,
+    "prerequisite": "upg.armory.pierce_1",
+    "effect": {
+      "type": "sigil_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.pierce_2",
+    "zone": "armory",
+    "tier": 3,
+    "name": "Honed Point II",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 150,
+    "prerequisite": "upg.armory.sigil_1",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.sigil_2",
+    "zone": "armory",
+    "tier": 4,
+    "name": "Extra Sigil Slot II",
+    "description": "+1 Sigil Slot.",
+    "cost": 200,
+    "prerequisite": "upg.armory.pierce_2",
+    "effect": {
+      "type": "sigil_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.pierce_3",
+    "zone": "armory",
+    "tier": 5,
+    "name": "Honed Point III",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 280,
+    "prerequisite": "upg.armory.sigil_2",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.pierce_4",
+    "zone": "armory",
+    "tier": 6,
+    "name": "Honed Point IV",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 380,
+    "prerequisite": "upg.armory.pierce_3",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.pierce_5",
+    "zone": "armory",
+    "tier": 7,
+    "name": "Armor Piercer I",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 500,
+    "prerequisite": "upg.armory.pierce_4",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.sigil_3",
+    "zone": "armory",
+    "tier": 8,
+    "name": "Extra Sigil Slot III",
+    "description": "+1 Sigil Slot.",
+    "cost": 650,
+    "prerequisite": "upg.armory.pierce_5",
+    "effect": {
+      "type": "sigil_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.pierce_6",
+    "zone": "armory",
+    "tier": 9,
+    "name": "Armor Piercer II",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 850,
+    "prerequisite": "upg.armory.sigil_3",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.pierce_7",
+    "zone": "armory",
+    "tier": 10,
+    "name": "Armor Piercer III",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 1100,
+    "prerequisite": "upg.armory.pierce_6",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.pierce_8",
+    "zone": "armory",
+    "tier": 11,
+    "name": "Siege Breaker I",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 1400,
+    "prerequisite": "upg.armory.pierce_7",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.sigil_4",
+    "zone": "armory",
+    "tier": 12,
+    "name": "Extra Sigil Slot IV",
+    "description": "+1 Sigil Slot.",
+    "cost": 1800,
+    "prerequisite": "upg.armory.pierce_8",
+    "effect": {
+      "type": "sigil_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.pierce_9",
+    "zone": "armory",
+    "tier": 13,
+    "name": "Siege Breaker II",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 2300,
+    "prerequisite": "upg.armory.sigil_4",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.pierce_10",
+    "zone": "armory",
+    "tier": 14,
+    "name": "Vanguard Edge I",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 2900,
+    "prerequisite": "upg.armory.pierce_9",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.pierce_11",
+    "zone": "armory",
+    "tier": 15,
+    "name": "Vanguard Edge II",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 3700,
+    "prerequisite": "upg.armory.pierce_10",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.sigil_5",
+    "zone": "armory",
+    "tier": 16,
+    "name": "Extra Sigil Slot V",
+    "description": "+1 Sigil Slot.",
+    "cost": 4700,
+    "prerequisite": "upg.armory.pierce_11",
+    "effect": {
+      "type": "sigil_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.armory.pierce_12",
+    "zone": "armory",
+    "tier": 17,
+    "name": "Void Piercer I",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 6000,
+    "prerequisite": "upg.armory.sigil_5",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.pierce_13",
+    "zone": "armory",
+    "tier": 18,
+    "name": "Void Piercer II",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 7500,
+    "prerequisite": "upg.armory.pierce_12",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.pierce_14",
+    "zone": "armory",
+    "tier": 19,
+    "name": "Void Piercer III",
+    "description": "Attacks pierce 0.5% more.",
+    "cost": 9500,
+    "prerequisite": "upg.armory.pierce_13",
+    "effect": {
+      "type": "global_block_piercing",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.armory.sigil_apex",
+    "zone": "armory",
+    "tier": 20,
+    "name": "Boundless Arsenal",
+    "description": "+1 Sigil Slot (apex).",
+    "cost": 20000,
+    "prerequisite": "upg.armory.pierce_14",
+    "effect": {
+      "type": "sigil_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Iron Constitution I",
+    "description": "+8 Max HP.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_2",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Iron Constitution II",
+    "description": "+8 Max HP.",
+    "cost": 100,
+    "prerequisite": "upg.sanctum.hp_1",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_3",
+    "zone": "sanctum",
+    "tier": 3,
+    "name": "Iron Constitution III",
+    "description": "+8 Max HP.",
+    "cost": 150,
+    "prerequisite": "upg.sanctum.hp_2",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_4",
+    "zone": "sanctum",
+    "tier": 4,
+    "name": "Iron Constitution IV",
+    "description": "+8 Max HP.",
+    "cost": 200,
+    "prerequisite": "upg.sanctum.hp_3",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_5",
+    "zone": "sanctum",
+    "tier": 5,
+    "name": "Iron Constitution V",
+    "description": "+8 Max HP.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.hp_4",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_6",
+    "zone": "sanctum",
+    "tier": 6,
+    "name": "Iron Constitution VI",
+    "description": "+8 Max HP.",
+    "cost": 380,
+    "prerequisite": "upg.sanctum.hp_5",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_7",
+    "zone": "sanctum",
+    "tier": 7,
+    "name": "Iron Constitution VII",
+    "description": "+8 Max HP.",
+    "cost": 500,
+    "prerequisite": "upg.sanctum.hp_6",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_8",
+    "zone": "sanctum",
+    "tier": 8,
+    "name": "Iron Constitution VIII",
+    "description": "+8 Max HP.",
+    "cost": 650,
+    "prerequisite": "upg.sanctum.hp_7",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_9",
+    "zone": "sanctum",
+    "tier": 9,
+    "name": "Iron Constitution IX",
+    "description": "+8 Max HP.",
+    "cost": 850,
+    "prerequisite": "upg.sanctum.hp_8",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_10",
+    "zone": "sanctum",
+    "tier": 10,
+    "name": "Iron Constitution X",
+    "description": "+8 Max HP.",
+    "cost": 1100,
+    "prerequisite": "upg.sanctum.hp_9",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_11",
+    "zone": "sanctum",
+    "tier": 11,
+    "name": "Iron Constitution XI",
+    "description": "+12 Max HP.",
+    "cost": 1400,
+    "prerequisite": "upg.sanctum.hp_10",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 12
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_12",
+    "zone": "sanctum",
+    "tier": 12,
+    "name": "Iron Constitution XII",
+    "description": "+12 Max HP.",
+    "cost": 1800,
+    "prerequisite": "upg.sanctum.hp_11",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 12
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_13",
+    "zone": "sanctum",
+    "tier": 13,
+    "name": "Iron Constitution XIII",
+    "description": "+12 Max HP.",
+    "cost": 2300,
+    "prerequisite": "upg.sanctum.hp_12",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 12
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_14",
+    "zone": "sanctum",
+    "tier": 14,
+    "name": "Iron Constitution XIV",
+    "description": "+12 Max HP.",
+    "cost": 2900,
+    "prerequisite": "upg.sanctum.hp_13",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 12
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_15",
+    "zone": "sanctum",
+    "tier": 15,
+    "name": "Iron Constitution XV",
+    "description": "+12 Max HP.",
+    "cost": 3700,
+    "prerequisite": "upg.sanctum.hp_14",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 12
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_16",
+    "zone": "sanctum",
+    "tier": 16,
+    "name": "Iron Constitution XVI",
+    "description": "+18 Max HP.",
+    "cost": 4700,
+    "prerequisite": "upg.sanctum.hp_15",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 18
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_17",
+    "zone": "sanctum",
+    "tier": 17,
+    "name": "Iron Constitution XVII",
+    "description": "+18 Max HP.",
+    "cost": 6000,
+    "prerequisite": "upg.sanctum.hp_16",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 18
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_18",
+    "zone": "sanctum",
+    "tier": 18,
+    "name": "Iron Constitution XVIII",
+    "description": "+18 Max HP.",
+    "cost": 7500,
+    "prerequisite": "upg.sanctum.hp_17",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 18
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_19",
+    "zone": "sanctum",
+    "tier": 19,
+    "name": "Iron Constitution XIX",
+    "description": "+18 Max HP.",
+    "cost": 9500,
+    "prerequisite": "upg.sanctum.hp_18",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 18
+    }
+  },
+  {
+    "id": "upg.sanctum.hp_20",
+    "zone": "sanctum",
+    "tier": 20,
+    "name": "Undying Fortress",
+    "description": "+50 Max HP.",
+    "cost": 16000,
+    "prerequisite": "upg.sanctum.hp_19",
+    "effect": {
+      "type": "max_hp_bonus",
+      "value": 50
+    }
+  },
+  {
+    "id": "upg.sanctum.block_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Shield Training I",
+    "description": "+5 starting Block each stage.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "starting_block",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.block_2",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Shield Training II",
+    "description": "+5 starting Block each stage.",
+    "cost": 100,
+    "prerequisite": "upg.sanctum.block_1",
+    "effect": {
+      "type": "starting_block",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.block_3",
+    "zone": "sanctum",
+    "tier": 3,
+    "name": "Shield Training III",
+    "description": "+5 starting Block each stage.",
+    "cost": 150,
+    "prerequisite": "upg.sanctum.block_2",
+    "effect": {
+      "type": "starting_block",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.block_4",
+    "zone": "sanctum",
+    "tier": 4,
+    "name": "Shield Training IV",
+    "description": "+5 starting Block each stage.",
+    "cost": 200,
+    "prerequisite": "upg.sanctum.block_3",
+    "effect": {
+      "type": "starting_block",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.block_5",
+    "zone": "sanctum",
+    "tier": 5,
+    "name": "Shield Training V",
+    "description": "+5 starting Block each stage.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.block_4",
+    "effect": {
+      "type": "starting_block",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.block_6",
+    "zone": "sanctum",
+    "tier": 6,
+    "name": "Shield Training VI",
+    "description": "+5 starting Block each stage.",
+    "cost": 380,
+    "prerequisite": "upg.sanctum.block_5",
+    "effect": {
+      "type": "starting_block",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.block_7",
+    "zone": "sanctum",
+    "tier": 7,
+    "name": "Shield Training VII",
+    "description": "+5 starting Block each stage.",
+    "cost": 500,
+    "prerequisite": "upg.sanctum.block_6",
+    "effect": {
+      "type": "starting_block",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.block_8",
+    "zone": "sanctum",
+    "tier": 8,
+    "name": "Shield Training VIII",
+    "description": "+5 starting Block each stage.",
+    "cost": 650,
+    "prerequisite": "upg.sanctum.block_7",
+    "effect": {
+      "type": "starting_block",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.resilience_1",
+    "zone": "sanctum",
+    "tier": 9,
+    "name": "Resilience I",
+    "description": "Block carry cap 10.",
+    "cost": 850,
+    "prerequisite": "upg.sanctum.block_8",
+    "effect": {
+      "type": "block_carry_cap",
+      "value": 10
+    }
+  },
+  {
+    "id": "upg.sanctum.resilience_2",
+    "zone": "sanctum",
+    "tier": 10,
+    "name": "Resilience II",
+    "description": "Block carry cap 20.",
+    "cost": 1100,
+    "prerequisite": "upg.sanctum.resilience_1",
+    "effect": {
+      "type": "block_carry_cap",
+      "value": 20
+    }
+  },
+  {
+    "id": "upg.sanctum.resilience_3",
+    "zone": "sanctum",
+    "tier": 11,
+    "name": "Resilience III",
+    "description": "Block carry cap 30.",
+    "cost": 1400,
+    "prerequisite": "upg.sanctum.resilience_2",
+    "effect": {
+      "type": "block_carry_cap",
+      "value": 30
+    }
+  },
+  {
+    "id": "upg.sanctum.resilience_4",
+    "zone": "sanctum",
+    "tier": 12,
+    "name": "Resilience IV",
+    "description": "Block carry cap 40.",
+    "cost": 1800,
+    "prerequisite": "upg.sanctum.resilience_3",
+    "effect": {
+      "type": "block_carry_cap",
+      "value": 40
+    }
+  },
+  {
+    "id": "upg.sanctum.block_9",
+    "zone": "sanctum",
+    "tier": 13,
+    "name": "Shield Training IX",
+    "description": "+8 starting Block each stage.",
+    "cost": 2300,
+    "prerequisite": "upg.sanctum.resilience_4",
+    "effect": {
+      "type": "starting_block",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.block_10",
+    "zone": "sanctum",
+    "tier": 14,
+    "name": "Shield Training X",
+    "description": "+8 starting Block each stage.",
+    "cost": 2900,
+    "prerequisite": "upg.sanctum.block_9",
+    "effect": {
+      "type": "starting_block",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.block_11",
+    "zone": "sanctum",
+    "tier": 15,
+    "name": "Shield Training XI",
+    "description": "+8 starting Block each stage.",
+    "cost": 3700,
+    "prerequisite": "upg.sanctum.block_10",
+    "effect": {
+      "type": "starting_block",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.block_12",
+    "zone": "sanctum",
+    "tier": 16,
+    "name": "Shield Training XII",
+    "description": "+8 starting Block each stage.",
+    "cost": 4700,
+    "prerequisite": "upg.sanctum.block_11",
+    "effect": {
+      "type": "starting_block",
+      "value": 8
+    }
+  },
+  {
+    "id": "upg.sanctum.resilience_5",
+    "zone": "sanctum",
+    "tier": 17,
+    "name": "Resilience V",
+    "description": "Block carry cap +15.",
+    "cost": 6000,
+    "prerequisite": "upg.sanctum.block_12",
+    "effect": {
+      "type": "block_carry_cap",
+      "value": 15
+    }
+  },
+  {
+    "id": "upg.sanctum.resilience_6",
+    "zone": "sanctum",
+    "tier": 18,
+    "name": "Resilience VI",
+    "description": "Block carry cap +15.",
+    "cost": 7500,
+    "prerequisite": "upg.sanctum.resilience_5",
+    "effect": {
+      "type": "block_carry_cap",
+      "value": 15
+    }
+  },
+  {
+    "id": "upg.sanctum.resilience_7",
+    "zone": "sanctum",
+    "tier": 19,
+    "name": "Resilience VII",
+    "description": "Block carry cap +15.",
+    "cost": 9500,
+    "prerequisite": "upg.sanctum.resilience_6",
+    "effect": {
+      "type": "block_carry_cap",
+      "value": 15
+    }
+  },
+  {
+    "id": "upg.sanctum.block_apex",
+    "zone": "sanctum",
+    "tier": 20,
+    "name": "Ironclad",
+    "description": "+25 starting Block (apex).",
+    "cost": 18000,
+    "prerequisite": "upg.sanctum.resilience_7",
+    "effect": {
+      "type": "starting_block",
+      "value": 25
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Meditation I",
+    "description": "+1 HP regen per turn.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_2",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Meditation II",
+    "description": "+1 HP regen per turn.",
+    "cost": 100,
+    "prerequisite": "upg.sanctum.regen_1",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_3",
+    "zone": "sanctum",
+    "tier": 3,
+    "name": "Meditation III",
+    "description": "+1 HP regen per turn.",
+    "cost": 150,
+    "prerequisite": "upg.sanctum.regen_2",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_4",
+    "zone": "sanctum",
+    "tier": 4,
+    "name": "Meditation IV",
+    "description": "+1 HP regen per turn.",
+    "cost": 200,
+    "prerequisite": "upg.sanctum.regen_3",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_5",
+    "zone": "sanctum",
+    "tier": 5,
+    "name": "Meditation V",
+    "description": "+1 HP regen per turn.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.regen_4",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_6",
+    "zone": "sanctum",
+    "tier": 6,
+    "name": "Meditation VI",
+    "description": "+1 HP regen per turn.",
+    "cost": 380,
+    "prerequisite": "upg.sanctum.regen_5",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_7",
+    "zone": "sanctum",
+    "tier": 7,
+    "name": "Meditation VII",
+    "description": "+1 HP regen per turn.",
+    "cost": 500,
+    "prerequisite": "upg.sanctum.regen_6",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_8",
+    "zone": "sanctum",
+    "tier": 8,
+    "name": "Meditation VIII",
+    "description": "+1 HP regen per turn.",
+    "cost": 650,
+    "prerequisite": "upg.sanctum.regen_7",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.vigorous_1",
+    "zone": "sanctum",
+    "tier": 9,
+    "name": "Vigorous I",
+    "description": "+5 HP at start of each stage.",
+    "cost": 850,
+    "prerequisite": "upg.sanctum.regen_8",
+    "effect": {
+      "type": "stage_start_heal",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.vigorous_2",
+    "zone": "sanctum",
+    "tier": 10,
+    "name": "Vigorous II",
+    "description": "+5 HP at start of each stage.",
+    "cost": 1100,
+    "prerequisite": "upg.sanctum.vigorous_1",
+    "effect": {
+      "type": "stage_start_heal",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.vigorous_3",
+    "zone": "sanctum",
+    "tier": 11,
+    "name": "Vigorous III",
+    "description": "+5 HP at start of each stage.",
+    "cost": 1400,
+    "prerequisite": "upg.sanctum.vigorous_2",
+    "effect": {
+      "type": "stage_start_heal",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.vigorous_4",
+    "zone": "sanctum",
+    "tier": 12,
+    "name": "Vigorous IV",
+    "description": "+5 HP at start of each stage.",
+    "cost": 1800,
+    "prerequisite": "upg.sanctum.vigorous_3",
+    "effect": {
+      "type": "stage_start_heal",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_9",
+    "zone": "sanctum",
+    "tier": 13,
+    "name": "Meditation IX",
+    "description": "+2 HP regen per turn.",
+    "cost": 2300,
+    "prerequisite": "upg.sanctum.vigorous_4",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_10",
+    "zone": "sanctum",
+    "tier": 14,
+    "name": "Meditation X",
+    "description": "+2 HP regen per turn.",
+    "cost": 2900,
+    "prerequisite": "upg.sanctum.regen_9",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_11",
+    "zone": "sanctum",
+    "tier": 15,
+    "name": "Meditation XI",
+    "description": "+2 HP regen per turn.",
+    "cost": 3700,
+    "prerequisite": "upg.sanctum.regen_10",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_12",
+    "zone": "sanctum",
+    "tier": 16,
+    "name": "Meditation XII",
+    "description": "+2 HP regen per turn.",
+    "cost": 4700,
+    "prerequisite": "upg.sanctum.regen_11",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.sanctum.vigorous_5",
+    "zone": "sanctum",
+    "tier": 17,
+    "name": "Vigorous V",
+    "description": "+10 HP at start of each stage.",
+    "cost": 6000,
+    "prerequisite": "upg.sanctum.regen_12",
+    "effect": {
+      "type": "stage_start_heal",
+      "value": 10
+    }
+  },
+  {
+    "id": "upg.sanctum.vigorous_6",
+    "zone": "sanctum",
+    "tier": 18,
+    "name": "Vigorous VI",
+    "description": "+10 HP at start of each stage.",
+    "cost": 7500,
+    "prerequisite": "upg.sanctum.vigorous_5",
+    "effect": {
+      "type": "stage_start_heal",
+      "value": 10
+    }
+  },
+  {
+    "id": "upg.sanctum.vigorous_7",
+    "zone": "sanctum",
+    "tier": 19,
+    "name": "Vigorous VII",
+    "description": "+10 HP at start of each stage.",
+    "cost": 9500,
+    "prerequisite": "upg.sanctum.vigorous_6",
+    "effect": {
+      "type": "stage_start_heal",
+      "value": 10
+    }
+  },
+  {
+    "id": "upg.sanctum.regen_apex",
+    "zone": "sanctum",
+    "tier": 20,
+    "name": "Eternal Spring",
+    "description": "+5 HP regen per turn.",
+    "cost": 18000,
+    "prerequisite": "upg.sanctum.vigorous_7",
+    "effect": {
+      "type": "regen_per_turn",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.def_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Ironhide I",
+    "description": "+1 Defence.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "def_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.def_2",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Ironhide II",
+    "description": "+1 Defence.",
+    "cost": 100,
+    "prerequisite": "upg.sanctum.def_1",
+    "effect": {
+      "type": "def_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.def_3",
+    "zone": "sanctum",
+    "tier": 3,
+    "name": "Ironhide III",
+    "description": "+1 Defence.",
+    "cost": 150,
+    "prerequisite": "upg.sanctum.def_2",
+    "effect": {
+      "type": "def_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.def_4",
+    "zone": "sanctum",
+    "tier": 4,
+    "name": "Ironhide IV",
+    "description": "+1 Defence.",
+    "cost": 200,
+    "prerequisite": "upg.sanctum.def_3",
+    "effect": {
+      "type": "def_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.def_5",
+    "zone": "sanctum",
+    "tier": 5,
+    "name": "Ironhide V",
+    "description": "+1 Defence.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.def_4",
+    "effect": {
+      "type": "def_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.def_6",
+    "zone": "sanctum",
+    "tier": 6,
+    "name": "Ironhide VI",
+    "description": "+1 Defence.",
+    "cost": 380,
+    "prerequisite": "upg.sanctum.def_5",
+    "effect": {
+      "type": "def_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.sanctum.lifedrain_1",
+    "zone": "sanctum",
+    "tier": 7,
+    "name": "Life Drain I",
+    "description": "Heal 3 HP on each kill.",
+    "cost": 500,
+    "prerequisite": "upg.sanctum.def_6",
+    "effect": {
+      "type": "on_kill_heal",
+      "value": 3
+    }
+  },
+  {
+    "id": "upg.sanctum.lifedrain_2",
+    "zone": "sanctum",
+    "tier": 8,
+    "name": "Life Drain II",
+    "description": "Heal 3 HP on each kill.",
+    "cost": 650,
+    "prerequisite": "upg.sanctum.lifedrain_1",
+    "effect": {
+      "type": "on_kill_heal",
+      "value": 3
+    }
+  },
+  {
+    "id": "upg.sanctum.lifedrain_3",
+    "zone": "sanctum",
+    "tier": 9,
+    "name": "Life Drain III",
+    "description": "Heal 3 HP on each kill.",
+    "cost": 850,
+    "prerequisite": "upg.sanctum.lifedrain_2",
+    "effect": {
+      "type": "on_kill_heal",
+      "value": 3
+    }
+  },
+  {
+    "id": "upg.sanctum.lifedrain_4",
+    "zone": "sanctum",
+    "tier": 10,
+    "name": "Life Drain IV",
+    "description": "Heal 3 HP on each kill.",
+    "cost": 1100,
+    "prerequisite": "upg.sanctum.lifedrain_3",
+    "effect": {
+      "type": "on_kill_heal",
+      "value": 3
+    }
+  },
+  {
+    "id": "upg.sanctum.def_7",
+    "zone": "sanctum",
+    "tier": 11,
+    "name": "Ironhide VII",
+    "description": "+2 Defence.",
+    "cost": 1400,
+    "prerequisite": "upg.sanctum.lifedrain_4",
+    "effect": {
+      "type": "def_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.sanctum.def_8",
+    "zone": "sanctum",
+    "tier": 12,
+    "name": "Ironhide VIII",
+    "description": "+2 Defence.",
+    "cost": 1800,
+    "prerequisite": "upg.sanctum.def_7",
+    "effect": {
+      "type": "def_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.sanctum.def_9",
+    "zone": "sanctum",
+    "tier": 13,
+    "name": "Ironhide IX",
+    "description": "+2 Defence.",
+    "cost": 2300,
+    "prerequisite": "upg.sanctum.def_8",
+    "effect": {
+      "type": "def_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.sanctum.def_10",
+    "zone": "sanctum",
+    "tier": 14,
+    "name": "Ironhide X",
+    "description": "+2 Defence.",
+    "cost": 2900,
+    "prerequisite": "upg.sanctum.def_9",
+    "effect": {
+      "type": "def_bonus",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.sanctum.lifedrain_5",
+    "zone": "sanctum",
+    "tier": 15,
+    "name": "Life Drain V",
+    "description": "Heal 5 HP on each kill.",
+    "cost": 3700,
+    "prerequisite": "upg.sanctum.def_10",
+    "effect": {
+      "type": "on_kill_heal",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.lifedrain_6",
+    "zone": "sanctum",
+    "tier": 16,
+    "name": "Life Drain VI",
+    "description": "Heal 5 HP on each kill.",
+    "cost": 4700,
+    "prerequisite": "upg.sanctum.lifedrain_5",
+    "effect": {
+      "type": "on_kill_heal",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.lifedrain_7",
+    "zone": "sanctum",
+    "tier": 17,
+    "name": "Life Drain VII",
+    "description": "Heal 5 HP on each kill.",
+    "cost": 6000,
+    "prerequisite": "upg.sanctum.lifedrain_6",
+    "effect": {
+      "type": "on_kill_heal",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.sanctum.aegis_1",
+    "zone": "sanctum",
+    "tier": 18,
+    "name": "Aegis I",
+    "description": "First time HP drops below 30%, gain 50 Block.",
+    "cost": 7500,
+    "prerequisite": "upg.sanctum.lifedrain_7",
+    "effect": {
+      "type": "auto_block_low_hp",
+      "threshold": 0.3,
+      "block": 50
+    }
+  },
+  {
+    "id": "upg.sanctum.aegis_2",
+    "zone": "sanctum",
+    "tier": 19,
+    "name": "Aegis II",
+    "description": "Aegis triggers at 40% HP with 100 Block.",
+    "cost": 9500,
+    "prerequisite": "upg.sanctum.aegis_1",
+    "effect": {
+      "type": "auto_block_low_hp",
+      "threshold": 0.4,
+      "block": 100
+    }
+  },
+  {
+    "id": "upg.sanctum.revive",
+    "zone": "sanctum",
+    "tier": 20,
+    "name": "Phoenix Ember",
+    "description": "Once per stage, survive a lethal hit at 1 HP.",
+    "cost": 20000,
+    "prerequisite": "upg.sanctum.aegis_2",
+    "effect": {
+      "type": "on_lethal_survive",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_1",
+    "zone": "library",
+    "tier": 1,
+    "name": "Bigger Hand I",
+    "description": "+1 hand size.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "hand_size_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.quick_draw",
+    "zone": "library",
+    "tier": 2,
+    "name": "Quick Draw I",
+    "description": "Draw 1 extra card on turn 1.",
+    "cost": 100,
+    "prerequisite": "upg.library.hand_1",
+    "effect": {
+      "type": "turn_one_extra_draw",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_2",
+    "zone": "library",
+    "tier": 3,
+    "name": "Bigger Hand II",
+    "description": "+1 hand size.",
+    "cost": 150,
+    "prerequisite": "upg.library.quick_draw",
+    "effect": {
+      "type": "hand_size_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.quick_draw_2",
+    "zone": "library",
+    "tier": 4,
+    "name": "Quick Draw II",
+    "description": "Draw 1 more on turn 1.",
+    "cost": 200,
+    "prerequisite": "upg.library.hand_2",
+    "effect": {
+      "type": "turn_one_extra_draw",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_3",
+    "zone": "library",
+    "tier": 5,
+    "name": "Bigger Hand III",
+    "description": "+1 hand size.",
+    "cost": 280,
+    "prerequisite": "upg.library.quick_draw_2",
+    "effect": {
+      "type": "hand_size_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.quick_draw_3",
+    "zone": "library",
+    "tier": 6,
+    "name": "Quick Draw III",
+    "description": "Draw 1 more on turn 1.",
+    "cost": 380,
+    "prerequisite": "upg.library.hand_3",
+    "effect": {
+      "type": "turn_one_extra_draw",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_4",
+    "zone": "library",
+    "tier": 7,
+    "name": "Bigger Hand IV",
+    "description": "+1 hand size.",
+    "cost": 500,
+    "prerequisite": "upg.library.quick_draw_3",
+    "effect": {
+      "type": "hand_size_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_1",
+    "zone": "library",
+    "tier": 8,
+    "name": "Spacious Mind I",
+    "description": "Hand cap +1.",
+    "cost": 650,
+    "prerequisite": "upg.library.hand_4",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_2",
+    "zone": "library",
+    "tier": 9,
+    "name": "Spacious Mind II",
+    "description": "Hand cap +1.",
+    "cost": 850,
+    "prerequisite": "upg.library.hand_cap_1",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_3",
+    "zone": "library",
+    "tier": 10,
+    "name": "Spacious Mind III",
+    "description": "Hand cap +1.",
+    "cost": 1100,
+    "prerequisite": "upg.library.hand_cap_2",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_4",
+    "zone": "library",
+    "tier": 11,
+    "name": "Spacious Mind IV",
+    "description": "Hand cap +1.",
+    "cost": 1400,
+    "prerequisite": "upg.library.hand_cap_3",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_5",
+    "zone": "library",
+    "tier": 12,
+    "name": "Spacious Mind V",
+    "description": "Hand cap +1.",
+    "cost": 1800,
+    "prerequisite": "upg.library.hand_cap_4",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.quick_draw_4",
+    "zone": "library",
+    "tier": 13,
+    "name": "Quick Draw IV",
+    "description": "Draw 1 more on turn 1.",
+    "cost": 2300,
+    "prerequisite": "upg.library.hand_cap_5",
+    "effect": {
+      "type": "turn_one_extra_draw",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_6",
+    "zone": "library",
+    "tier": 14,
+    "name": "Spacious Mind VI",
+    "description": "Hand cap +1.",
+    "cost": 2900,
+    "prerequisite": "upg.library.quick_draw_4",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_7",
+    "zone": "library",
+    "tier": 15,
+    "name": "Spacious Mind VII",
+    "description": "Hand cap +1.",
+    "cost": 3700,
+    "prerequisite": "upg.library.hand_cap_6",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_8",
+    "zone": "library",
+    "tier": 16,
+    "name": "Spacious Mind VIII",
+    "description": "Hand cap +1.",
+    "cost": 4700,
+    "prerequisite": "upg.library.hand_cap_7",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_9",
+    "zone": "library",
+    "tier": 17,
+    "name": "Spacious Mind IX",
+    "description": "Hand cap +1.",
+    "cost": 6000,
+    "prerequisite": "upg.library.hand_cap_8",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.quick_draw_5",
+    "zone": "library",
+    "tier": 18,
+    "name": "Quick Draw V",
+    "description": "Draw 1 more on turn 1.",
+    "cost": 7500,
+    "prerequisite": "upg.library.hand_cap_9",
+    "effect": {
+      "type": "turn_one_extra_draw",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_cap_10",
+    "zone": "library",
+    "tier": 19,
+    "name": "Spacious Mind X",
+    "description": "Hand cap +1.",
+    "cost": 9500,
+    "prerequisite": "upg.library.quick_draw_5",
+    "effect": {
+      "type": "hand_cap_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.hand_apex",
+    "zone": "library",
+    "tier": 20,
+    "name": "Infinite Hand",
+    "description": "+1 hand size (apex).",
+    "cost": 18000,
+    "prerequisite": "upg.library.hand_cap_10",
+    "effect": {
+      "type": "hand_size_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_1",
+    "zone": "library",
+    "tier": 1,
+    "name": "Focus Training I",
+    "description": "+1 Stamina per turn.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_2",
+    "zone": "library",
+    "tier": 2,
+    "name": "Focus Training II",
+    "description": "+1 Stamina per turn.",
+    "cost": 100,
+    "prerequisite": "upg.library.stamina_1",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_3",
+    "zone": "library",
+    "tier": 3,
+    "name": "Focus Training III",
+    "description": "+1 Stamina per turn.",
+    "cost": 150,
+    "prerequisite": "upg.library.stamina_2",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_4",
+    "zone": "library",
+    "tier": 4,
+    "name": "Focus Training IV",
+    "description": "+1 Stamina per turn.",
+    "cost": 200,
+    "prerequisite": "upg.library.stamina_3",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_5",
+    "zone": "library",
+    "tier": 5,
+    "name": "Focus Training V",
+    "description": "+1 Stamina per turn.",
+    "cost": 280,
+    "prerequisite": "upg.library.stamina_4",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_6",
+    "zone": "library",
+    "tier": 6,
+    "name": "Focus Training VI",
+    "description": "+1 Stamina per turn.",
+    "cost": 380,
+    "prerequisite": "upg.library.stamina_5",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_7",
+    "zone": "library",
+    "tier": 7,
+    "name": "Focus Training VII",
+    "description": "+1 Stamina per turn.",
+    "cost": 500,
+    "prerequisite": "upg.library.stamina_6",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_8",
+    "zone": "library",
+    "tier": 8,
+    "name": "Focus Training VIII",
+    "description": "+1 Stamina per turn.",
+    "cost": 650,
+    "prerequisite": "upg.library.stamina_7",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_9",
+    "zone": "library",
+    "tier": 9,
+    "name": "Focus Training IX",
+    "description": "+1 Stamina per turn.",
+    "cost": 850,
+    "prerequisite": "upg.library.stamina_8",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_10",
+    "zone": "library",
+    "tier": 10,
+    "name": "Focus Training X",
+    "description": "+1 Stamina per turn.",
+    "cost": 1100,
+    "prerequisite": "upg.library.stamina_9",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.tactic_disc_1",
+    "zone": "library",
+    "tier": 11,
+    "name": "Tactic Mastery I",
+    "description": "Tactic cards cost 1 less stamina.",
+    "cost": 1400,
+    "prerequisite": "upg.library.stamina_10",
+    "effect": {
+      "type": "tactic_stamina_discount",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.tactic_disc_2",
+    "zone": "library",
+    "tier": 12,
+    "name": "Tactic Mastery II",
+    "description": "Tactic cards cost 1 less stamina.",
+    "cost": 1800,
+    "prerequisite": "upg.library.tactic_disc_1",
+    "effect": {
+      "type": "tactic_stamina_discount",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.tactic_disc_3",
+    "zone": "library",
+    "tier": 13,
+    "name": "Tactic Mastery III",
+    "description": "Tactic cards cost 1 less stamina.",
+    "cost": 2300,
+    "prerequisite": "upg.library.tactic_disc_2",
+    "effect": {
+      "type": "tactic_stamina_discount",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.tactic_disc_4",
+    "zone": "library",
+    "tier": 14,
+    "name": "Tactic Mastery IV",
+    "description": "Tactic cards cost 1 less stamina.",
+    "cost": 2900,
+    "prerequisite": "upg.library.tactic_disc_3",
+    "effect": {
+      "type": "tactic_stamina_discount",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_11",
+    "zone": "library",
+    "tier": 15,
+    "name": "Focus Training XI",
+    "description": "+1 Stamina per turn.",
+    "cost": 3700,
+    "prerequisite": "upg.library.tactic_disc_4",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_12",
+    "zone": "library",
+    "tier": 16,
+    "name": "Focus Training XII",
+    "description": "+1 Stamina per turn.",
+    "cost": 4700,
+    "prerequisite": "upg.library.stamina_11",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_13",
+    "zone": "library",
+    "tier": 17,
+    "name": "Focus Training XIII",
+    "description": "+1 Stamina per turn.",
+    "cost": 6000,
+    "prerequisite": "upg.library.stamina_12",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_14",
+    "zone": "library",
+    "tier": 18,
+    "name": "Focus Training XIV",
+    "description": "+1 Stamina per turn.",
+    "cost": 7500,
+    "prerequisite": "upg.library.stamina_13",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.tactic_disc_5",
+    "zone": "library",
+    "tier": 19,
+    "name": "Tactic Mastery V",
+    "description": "Tactic cards cost 1 less stamina.",
+    "cost": 9500,
+    "prerequisite": "upg.library.stamina_14",
+    "effect": {
+      "type": "tactic_stamina_discount",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.stamina_apex",
+    "zone": "library",
+    "tier": 20,
+    "name": "Infinite Focus",
+    "description": "+1 Stamina per turn.",
+    "cost": 20000,
+    "prerequisite": "upg.library.tactic_disc_5",
+    "effect": {
+      "type": "stamina_bonus",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_1",
+    "zone": "library",
+    "tier": 1,
+    "name": "Expanded Codex I",
+    "description": "+1 card in starting deck.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_2",
+    "zone": "library",
+    "tier": 2,
+    "name": "Expanded Codex II",
+    "description": "+1 card in starting deck.",
+    "cost": 100,
+    "prerequisite": "upg.library.deck_1",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_3",
+    "zone": "library",
+    "tier": 3,
+    "name": "Expanded Codex III",
+    "description": "+1 card in starting deck.",
+    "cost": 150,
+    "prerequisite": "upg.library.deck_2",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_4",
+    "zone": "library",
+    "tier": 4,
+    "name": "Expanded Codex IV",
+    "description": "+1 card in starting deck.",
+    "cost": 200,
+    "prerequisite": "upg.library.deck_3",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_5",
+    "zone": "library",
+    "tier": 5,
+    "name": "Expanded Codex V",
+    "description": "+1 card in starting deck.",
+    "cost": 280,
+    "prerequisite": "upg.library.deck_4",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_6",
+    "zone": "library",
+    "tier": 6,
+    "name": "Expanded Codex VI",
+    "description": "+1 card in starting deck.",
+    "cost": 380,
+    "prerequisite": "upg.library.deck_5",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_7",
+    "zone": "library",
+    "tier": 7,
+    "name": "Expanded Codex VII",
+    "description": "+1 card in starting deck.",
+    "cost": 500,
+    "prerequisite": "upg.library.deck_6",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_8",
+    "zone": "library",
+    "tier": 8,
+    "name": "Expanded Codex VIII",
+    "description": "+1 card in starting deck.",
+    "cost": 650,
+    "prerequisite": "upg.library.deck_7",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.draft_1",
+    "zone": "library",
+    "tier": 9,
+    "name": "Draft +1",
+    "description": "Draft offers +1 card.",
+    "cost": 850,
+    "prerequisite": "upg.library.deck_8",
+    "effect": {
+      "type": "draft_count_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.draft_2",
+    "zone": "library",
+    "tier": 10,
+    "name": "Draft +2",
+    "description": "Draft offers +1 card.",
+    "cost": 1100,
+    "prerequisite": "upg.library.draft_1",
+    "effect": {
+      "type": "draft_count_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.draft_3",
+    "zone": "library",
+    "tier": 11,
+    "name": "Draft +3",
+    "description": "Draft offers +1 card.",
+    "cost": 1400,
+    "prerequisite": "upg.library.draft_2",
+    "effect": {
+      "type": "draft_count_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.draft_4",
+    "zone": "library",
+    "tier": 12,
+    "name": "Draft +4",
+    "description": "Draft offers +1 card.",
+    "cost": 1800,
+    "prerequisite": "upg.library.draft_3",
+    "effect": {
+      "type": "draft_count_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_9",
+    "zone": "library",
+    "tier": 13,
+    "name": "Expanded Codex IX",
+    "description": "+1 card in starting deck.",
+    "cost": 2300,
+    "prerequisite": "upg.library.draft_4",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_10",
+    "zone": "library",
+    "tier": 14,
+    "name": "Expanded Codex X",
+    "description": "+1 card in starting deck.",
+    "cost": 2900,
+    "prerequisite": "upg.library.deck_9",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_11",
+    "zone": "library",
+    "tier": 15,
+    "name": "Expanded Codex XI",
+    "description": "+1 card in starting deck.",
+    "cost": 3700,
+    "prerequisite": "upg.library.deck_10",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.deck_12",
+    "zone": "library",
+    "tier": 16,
+    "name": "Expanded Codex XII",
+    "description": "+1 card in starting deck.",
+    "cost": 4700,
+    "prerequisite": "upg.library.deck_11",
+    "effect": {
+      "type": "starting_deck_extra",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.draft_5",
+    "zone": "library",
+    "tier": 17,
+    "name": "Draft +5",
+    "description": "Draft offers +1 card.",
+    "cost": 6000,
+    "prerequisite": "upg.library.deck_12",
+    "effect": {
+      "type": "draft_count_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.draft_6",
+    "zone": "library",
+    "tier": 18,
+    "name": "Draft +6",
+    "description": "Draft offers +1 card.",
+    "cost": 7500,
+    "prerequisite": "upg.library.draft_5",
+    "effect": {
+      "type": "draft_count_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.draft_7",
+    "zone": "library",
+    "tier": 19,
+    "name": "Draft +7",
+    "description": "Draft offers +1 card.",
+    "cost": 9500,
+    "prerequisite": "upg.library.draft_6",
+    "effect": {
+      "type": "draft_count_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.oracle",
+    "zone": "library",
+    "tier": 20,
+    "name": "Oracle's Draft",
+    "description": "Draft offers +1 card and shows rarity labels.",
+    "cost": 18000,
+    "prerequisite": "upg.library.draft_7",
+    "effect": {
+      "type": "draft_count_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.perk_1",
+    "zone": "library",
+    "tier": 1,
+    "name": "Perk Slot II",
+    "description": "Unlocks 2nd perk slot.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.perk_2",
+    "zone": "library",
+    "tier": 2,
+    "name": "Perk Slot III",
+    "description": "Unlocks 3nd perk slot.",
+    "cost": 100,
+    "prerequisite": "upg.library.perk_1",
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.perk_3",
+    "zone": "library",
+    "tier": 3,
+    "name": "Perk Slot IV",
+    "description": "Unlocks 4nd perk slot.",
+    "cost": 150,
+    "prerequisite": "upg.library.perk_2",
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.perk_4",
+    "zone": "library",
+    "tier": 4,
+    "name": "Perk Slot V",
+    "description": "Unlocks 5nd perk slot.",
+    "cost": 200,
+    "prerequisite": "upg.library.perk_3",
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.perk_5",
+    "zone": "library",
+    "tier": 5,
+    "name": "Perk Slot VI",
+    "description": "Unlocks 6nd perk slot.",
+    "cost": 280,
+    "prerequisite": "upg.library.perk_4",
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.perk_6",
+    "zone": "library",
+    "tier": 6,
+    "name": "Perk Slot VII",
+    "description": "Unlocks 7nd perk slot.",
+    "cost": 380,
+    "prerequisite": "upg.library.perk_5",
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.cascade_1",
+    "zone": "library",
+    "tier": 7,
+    "name": "Combo Cascade I",
+    "description": "Combo refunds 1 stamina + draws 1.",
+    "cost": 500,
+    "prerequisite": "upg.library.perk_6",
+    "effect": {
+      "type": "combo_stamina_refund",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.cascade_2",
+    "zone": "library",
+    "tier": 8,
+    "name": "Combo Cascade II",
+    "description": "Combo refunds 1 stamina + draws 1.",
+    "cost": 650,
+    "prerequisite": "upg.library.cascade_1",
+    "effect": {
+      "type": "combo_stamina_refund",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.cascade_3",
+    "zone": "library",
+    "tier": 9,
+    "name": "Combo Cascade III",
+    "description": "Combo refunds 1 stamina + draws 1.",
+    "cost": 850,
+    "prerequisite": "upg.library.cascade_2",
+    "effect": {
+      "type": "combo_stamina_refund",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.cascade_4",
+    "zone": "library",
+    "tier": 10,
+    "name": "Combo Cascade IV",
+    "description": "Combo refunds 1 stamina + draws 1.",
+    "cost": 1100,
+    "prerequisite": "upg.library.cascade_3",
+    "effect": {
+      "type": "combo_stamina_refund",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.echo_1",
+    "zone": "library",
+    "tier": 11,
+    "name": "Echo Sigil I",
+    "description": "+1% chance action card fires twice.",
+    "cost": 1400,
+    "prerequisite": "upg.library.cascade_4",
+    "effect": {
+      "type": "card_replicate_chance",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.library.echo_2",
+    "zone": "library",
+    "tier": 12,
+    "name": "Echo Sigil II",
+    "description": "+1% chance action card fires twice.",
+    "cost": 1800,
+    "prerequisite": "upg.library.echo_1",
+    "effect": {
+      "type": "card_replicate_chance",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.library.echo_3",
+    "zone": "library",
+    "tier": 13,
+    "name": "Echo Sigil III",
+    "description": "+1% chance action card fires twice.",
+    "cost": 2300,
+    "prerequisite": "upg.library.echo_2",
+    "effect": {
+      "type": "card_replicate_chance",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.library.echo_4",
+    "zone": "library",
+    "tier": 14,
+    "name": "Echo Sigil IV",
+    "description": "+1% chance action card fires twice.",
+    "cost": 2900,
+    "prerequisite": "upg.library.echo_3",
+    "effect": {
+      "type": "card_replicate_chance",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.library.perk_7",
+    "zone": "library",
+    "tier": 15,
+    "name": "Perk Slot VIII",
+    "description": "Unlocks 8th perk slot.",
+    "cost": 3700,
+    "prerequisite": "upg.library.echo_4",
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.perk_8",
+    "zone": "library",
+    "tier": 16,
+    "name": "Perk Slot IX",
+    "description": "Unlocks 9th perk slot.",
+    "cost": 4700,
+    "prerequisite": "upg.library.perk_7",
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.perk_9",
+    "zone": "library",
+    "tier": 17,
+    "name": "Perk Slot X",
+    "description": "Unlocks 10th perk slot.",
+    "cost": 6000,
+    "prerequisite": "upg.library.perk_8",
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.perk_10",
+    "zone": "library",
+    "tier": 18,
+    "name": "Perk Slot XI",
+    "description": "Unlocks 11th perk slot.",
+    "cost": 7500,
+    "prerequisite": "upg.library.perk_9",
+    "effect": {
+      "type": "perk_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.library.echo_5",
+    "zone": "library",
+    "tier": 19,
+    "name": "Echo Sigil V",
+    "description": "+1% more replicate chance.",
+    "cost": 9500,
+    "prerequisite": "upg.library.perk_10",
+    "effect": {
+      "type": "card_replicate_chance",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.library.astral_pact",
+    "zone": "library",
+    "tier": 20,
+    "name": "Astral Convergence",
+    "description": "+2% replicate chance (apex).",
+    "cost": 16000,
+    "prerequisite": "upg.library.echo_5",
+    "effect": {
+      "type": "card_replicate_chance",
+      "value": 0.02
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_1",
+    "zone": "forge",
+    "tier": 1,
+    "name": "Fire Ward I",
+    "description": "-1% Fire damage received.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_2",
+    "zone": "forge",
+    "tier": 2,
+    "name": "Fire Ward II",
+    "description": "-1% Fire damage received.",
+    "cost": 100,
+    "prerequisite": "upg.forge.fire_res_1",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_3",
+    "zone": "forge",
+    "tier": 3,
+    "name": "Fire Ward III",
+    "description": "-1% Fire damage received.",
+    "cost": 150,
+    "prerequisite": "upg.forge.fire_res_2",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_4",
+    "zone": "forge",
+    "tier": 4,
+    "name": "Fire Ward IV",
+    "description": "-1% Fire damage received.",
+    "cost": 200,
+    "prerequisite": "upg.forge.fire_res_3",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_5",
+    "zone": "forge",
+    "tier": 5,
+    "name": "Fire Ward V",
+    "description": "-1% Fire damage received.",
+    "cost": 280,
+    "prerequisite": "upg.forge.fire_res_4",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.ice_res_1",
+    "zone": "forge",
+    "tier": 6,
+    "name": "Frost Ward I",
+    "description": "-1% Ice damage received.",
+    "cost": 380,
+    "prerequisite": "upg.forge.fire_res_5",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.ice_res_2",
+    "zone": "forge",
+    "tier": 7,
+    "name": "Frost Ward II",
+    "description": "-1% Ice damage received.",
+    "cost": 500,
+    "prerequisite": "upg.forge.ice_res_1",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.ice_res_3",
+    "zone": "forge",
+    "tier": 8,
+    "name": "Frost Ward III",
+    "description": "-1% Ice damage received.",
+    "cost": 650,
+    "prerequisite": "upg.forge.ice_res_2",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.ice_res_4",
+    "zone": "forge",
+    "tier": 9,
+    "name": "Frost Ward IV",
+    "description": "-1% Ice damage received.",
+    "cost": 850,
+    "prerequisite": "upg.forge.ice_res_3",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.ice_res_5",
+    "zone": "forge",
+    "tier": 10,
+    "name": "Frost Ward V",
+    "description": "-1% Ice damage received.",
+    "cost": 1100,
+    "prerequisite": "upg.forge.ice_res_4",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_6",
+    "zone": "forge",
+    "tier": 11,
+    "name": "Fire Ward VI",
+    "description": "-1% Fire damage received.",
+    "cost": 1400,
+    "prerequisite": "upg.forge.ice_res_5",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_7",
+    "zone": "forge",
+    "tier": 12,
+    "name": "Fire Ward VII",
+    "description": "-1% Fire damage received.",
+    "cost": 1800,
+    "prerequisite": "upg.forge.fire_res_6",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_8",
+    "zone": "forge",
+    "tier": 13,
+    "name": "Fire Ward VIII",
+    "description": "-1% Fire damage received.",
+    "cost": 2300,
+    "prerequisite": "upg.forge.fire_res_7",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_9",
+    "zone": "forge",
+    "tier": 14,
+    "name": "Fire Ward IX",
+    "description": "-1% Fire damage received.",
+    "cost": 2900,
+    "prerequisite": "upg.forge.fire_res_8",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_res_10",
+    "zone": "forge",
+    "tier": 15,
+    "name": "Fire Ward X",
+    "description": "-1% Fire damage received.",
+    "cost": 3700,
+    "prerequisite": "upg.forge.fire_res_9",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.ice_res_6",
+    "zone": "forge",
+    "tier": 16,
+    "name": "Frost Ward VI",
+    "description": "-1% Ice damage received.",
+    "cost": 4700,
+    "prerequisite": "upg.forge.fire_res_10",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.ice_res_7",
+    "zone": "forge",
+    "tier": 17,
+    "name": "Frost Ward VII",
+    "description": "-1% Ice damage received.",
+    "cost": 6000,
+    "prerequisite": "upg.forge.ice_res_6",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.ice_res_8",
+    "zone": "forge",
+    "tier": 18,
+    "name": "Frost Ward VIII",
+    "description": "-1% Ice damage received.",
+    "cost": 7500,
+    "prerequisite": "upg.forge.ice_res_7",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.ice_res_9",
+    "zone": "forge",
+    "tier": 19,
+    "name": "Frost Ward IX",
+    "description": "-1% Ice damage received.",
+    "cost": 9500,
+    "prerequisite": "upg.forge.ice_res_8",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.fire_ice_apex",
+    "zone": "forge",
+    "tier": 20,
+    "name": "Arcane Bulwark I",
+    "description": "-2% all elemental damage.",
+    "cost": 16000,
+    "prerequisite": "upg.forge.ice_res_9",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.02
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_1",
+    "zone": "forge",
+    "tier": 1,
+    "name": "Shadow Ward I",
+    "description": "-1% Dark damage received.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_2",
+    "zone": "forge",
+    "tier": 2,
+    "name": "Shadow Ward II",
+    "description": "-1% Dark damage received.",
+    "cost": 100,
+    "prerequisite": "upg.forge.dark_res_1",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_3",
+    "zone": "forge",
+    "tier": 3,
+    "name": "Shadow Ward III",
+    "description": "-1% Dark damage received.",
+    "cost": 150,
+    "prerequisite": "upg.forge.dark_res_2",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_4",
+    "zone": "forge",
+    "tier": 4,
+    "name": "Shadow Ward IV",
+    "description": "-1% Dark damage received.",
+    "cost": 200,
+    "prerequisite": "upg.forge.dark_res_3",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_5",
+    "zone": "forge",
+    "tier": 5,
+    "name": "Shadow Ward V",
+    "description": "-1% Dark damage received.",
+    "cost": 280,
+    "prerequisite": "upg.forge.dark_res_4",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.all_res_1",
+    "zone": "forge",
+    "tier": 6,
+    "name": "Elemental Ward I",
+    "description": "-0.5% all elemental damage.",
+    "cost": 380,
+    "prerequisite": "upg.forge.dark_res_5",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.all_res_2",
+    "zone": "forge",
+    "tier": 7,
+    "name": "Elemental Ward II",
+    "description": "-0.5% all elemental damage.",
+    "cost": 500,
+    "prerequisite": "upg.forge.all_res_1",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.all_res_3",
+    "zone": "forge",
+    "tier": 8,
+    "name": "Elemental Ward III",
+    "description": "-0.5% all elemental damage.",
+    "cost": 650,
+    "prerequisite": "upg.forge.all_res_2",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.all_res_4",
+    "zone": "forge",
+    "tier": 9,
+    "name": "Elemental Ward IV",
+    "description": "-0.5% all elemental damage.",
+    "cost": 850,
+    "prerequisite": "upg.forge.all_res_3",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.all_res_5",
+    "zone": "forge",
+    "tier": 10,
+    "name": "Elemental Ward V",
+    "description": "-0.5% all elemental damage.",
+    "cost": 1100,
+    "prerequisite": "upg.forge.all_res_4",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_6",
+    "zone": "forge",
+    "tier": 11,
+    "name": "Shadow Ward VI",
+    "description": "-1% Dark damage received.",
+    "cost": 1400,
+    "prerequisite": "upg.forge.all_res_5",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_7",
+    "zone": "forge",
+    "tier": 12,
+    "name": "Shadow Ward VII",
+    "description": "-1% Dark damage received.",
+    "cost": 1800,
+    "prerequisite": "upg.forge.dark_res_6",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_8",
+    "zone": "forge",
+    "tier": 13,
+    "name": "Shadow Ward VIII",
+    "description": "-1% Dark damage received.",
+    "cost": 2300,
+    "prerequisite": "upg.forge.dark_res_7",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_9",
+    "zone": "forge",
+    "tier": 14,
+    "name": "Shadow Ward IX",
+    "description": "-1% Dark damage received.",
+    "cost": 2900,
+    "prerequisite": "upg.forge.dark_res_8",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.dark_res_10",
+    "zone": "forge",
+    "tier": 15,
+    "name": "Shadow Ward X",
+    "description": "-1% Dark damage received.",
+    "cost": 3700,
+    "prerequisite": "upg.forge.dark_res_9",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.99
+    }
+  },
+  {
+    "id": "upg.forge.all_res_6",
+    "zone": "forge",
+    "tier": 16,
+    "name": "Elemental Ward VI",
+    "description": "-0.5% all elemental damage.",
+    "cost": 4700,
+    "prerequisite": "upg.forge.dark_res_10",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.all_res_7",
+    "zone": "forge",
+    "tier": 17,
+    "name": "Elemental Ward VII",
+    "description": "-0.5% all elemental damage.",
+    "cost": 6000,
+    "prerequisite": "upg.forge.all_res_6",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.all_res_8",
+    "zone": "forge",
+    "tier": 18,
+    "name": "Elemental Ward VIII",
+    "description": "-0.5% all elemental damage.",
+    "cost": 7500,
+    "prerequisite": "upg.forge.all_res_7",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.all_res_9",
+    "zone": "forge",
+    "tier": 19,
+    "name": "Elemental Ward IX",
+    "description": "-0.5% all elemental damage.",
+    "cost": 9500,
+    "prerequisite": "upg.forge.all_res_8",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.all_res_apex",
+    "zone": "forge",
+    "tier": 20,
+    "name": "Arcane Bulwark II",
+    "description": "-3% all elemental damage.",
+    "cost": 16000,
+    "prerequisite": "upg.forge.all_res_9",
+    "effect": {
+      "type": "all_resist_bonus",
+      "value": 0.03
+    }
+  },
+  {
+    "id": "upg.forge.phys_atk_1",
+    "zone": "forge",
+    "tier": 1,
+    "name": "Physical Affinity I",
+    "description": "+0.5% Physical damage dealt.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "physical",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.phys_atk_2",
+    "zone": "forge",
+    "tier": 2,
+    "name": "Physical Affinity II",
+    "description": "+0.5% Physical damage dealt.",
+    "cost": 100,
+    "prerequisite": "upg.forge.phys_atk_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "physical",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.phys_atk_3",
+    "zone": "forge",
+    "tier": 3,
+    "name": "Physical Affinity III",
+    "description": "+0.5% Physical damage dealt.",
+    "cost": 150,
+    "prerequisite": "upg.forge.phys_atk_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "physical",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.phys_atk_4",
+    "zone": "forge",
+    "tier": 4,
+    "name": "Physical Affinity IV",
+    "description": "+0.5% Physical damage dealt.",
+    "cost": 200,
+    "prerequisite": "upg.forge.phys_atk_3",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "physical",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.phys_atk_5",
+    "zone": "forge",
+    "tier": 5,
+    "name": "Physical Affinity V",
+    "description": "+0.5% Physical damage dealt.",
+    "cost": 280,
+    "prerequisite": "upg.forge.phys_atk_4",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "physical",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.fire_atk_1",
+    "zone": "forge",
+    "tier": 6,
+    "name": "Pyromancer's Touch I",
+    "description": "+0.5% Fire damage dealt.",
+    "cost": 380,
+    "prerequisite": "upg.forge.phys_atk_5",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "fire",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.fire_atk_2",
+    "zone": "forge",
+    "tier": 7,
+    "name": "Pyromancer's Touch II",
+    "description": "+0.5% Fire damage dealt.",
+    "cost": 500,
+    "prerequisite": "upg.forge.fire_atk_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "fire",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.fire_atk_3",
+    "zone": "forge",
+    "tier": 8,
+    "name": "Pyromancer's Touch III",
+    "description": "+0.5% Fire damage dealt.",
+    "cost": 650,
+    "prerequisite": "upg.forge.fire_atk_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "fire",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.fire_atk_4",
+    "zone": "forge",
+    "tier": 9,
+    "name": "Pyromancer's Touch IV",
+    "description": "+0.5% Fire damage dealt.",
+    "cost": 850,
+    "prerequisite": "upg.forge.fire_atk_3",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "fire",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.fire_atk_5",
+    "zone": "forge",
+    "tier": 10,
+    "name": "Pyromancer's Touch V",
+    "description": "+0.5% Fire damage dealt.",
+    "cost": 1100,
+    "prerequisite": "upg.forge.fire_atk_4",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "fire",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.thunder_atk_1",
+    "zone": "forge",
+    "tier": 11,
+    "name": "Thunder Affinity I",
+    "description": "+0.5% Thunder damage dealt.",
+    "cost": 1400,
+    "prerequisite": "upg.forge.fire_atk_5",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "thunder",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.thunder_atk_2",
+    "zone": "forge",
+    "tier": 12,
+    "name": "Thunder Affinity II",
+    "description": "+0.5% Thunder damage dealt.",
+    "cost": 1800,
+    "prerequisite": "upg.forge.thunder_atk_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "thunder",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.thunder_atk_3",
+    "zone": "forge",
+    "tier": 13,
+    "name": "Thunder Affinity III",
+    "description": "+0.5% Thunder damage dealt.",
+    "cost": 2300,
+    "prerequisite": "upg.forge.thunder_atk_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "thunder",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.thunder_atk_4",
+    "zone": "forge",
+    "tier": 14,
+    "name": "Thunder Affinity IV",
+    "description": "+0.5% Thunder damage dealt.",
+    "cost": 2900,
+    "prerequisite": "upg.forge.thunder_atk_3",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "thunder",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.thunder_atk_5",
+    "zone": "forge",
+    "tier": 15,
+    "name": "Thunder Affinity V",
+    "description": "+0.5% Thunder damage dealt.",
+    "cost": 3700,
+    "prerequisite": "upg.forge.thunder_atk_4",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "thunder",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.dark_atk_1",
+    "zone": "forge",
+    "tier": 16,
+    "name": "Shadow Affinity I",
+    "description": "+0.5% Dark damage dealt.",
+    "cost": 4700,
+    "prerequisite": "upg.forge.thunder_atk_5",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "dark",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.dark_atk_2",
+    "zone": "forge",
+    "tier": 17,
+    "name": "Shadow Affinity II",
+    "description": "+0.5% Dark damage dealt.",
+    "cost": 6000,
+    "prerequisite": "upg.forge.dark_atk_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "dark",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.dark_atk_3",
+    "zone": "forge",
+    "tier": 18,
+    "name": "Shadow Affinity III",
+    "description": "+0.5% Dark damage dealt.",
+    "cost": 7500,
+    "prerequisite": "upg.forge.dark_atk_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "dark",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.dark_atk_4",
+    "zone": "forge",
+    "tier": 19,
+    "name": "Shadow Affinity IV",
+    "description": "+0.5% Dark damage dealt.",
+    "cost": 9500,
+    "prerequisite": "upg.forge.dark_atk_3",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "dark",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.omni_atk",
+    "zone": "forge",
+    "tier": 20,
+    "name": "Elemental Mastery",
+    "description": "+2% to all damage types dealt.",
+    "cost": 18000,
+    "prerequisite": "upg.forge.dark_atk_4",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "physical",
+      "value": 0.02
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_1",
+    "zone": "forge",
+    "tier": 1,
+    "name": "Treasure Sense I",
+    "description": "+0.5% gold dropped.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_2",
+    "zone": "forge",
+    "tier": 2,
+    "name": "Treasure Sense II",
+    "description": "+0.5% gold dropped.",
+    "cost": 100,
+    "prerequisite": "upg.forge.gold_drop_1",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_3",
+    "zone": "forge",
+    "tier": 3,
+    "name": "Treasure Sense III",
+    "description": "+0.5% gold dropped.",
+    "cost": 150,
+    "prerequisite": "upg.forge.gold_drop_2",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_4",
+    "zone": "forge",
+    "tier": 4,
+    "name": "Treasure Sense IV",
+    "description": "+0.5% gold dropped.",
+    "cost": 200,
+    "prerequisite": "upg.forge.gold_drop_3",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_5",
+    "zone": "forge",
+    "tier": 5,
+    "name": "Treasure Sense V",
+    "description": "+0.5% gold dropped.",
+    "cost": 280,
+    "prerequisite": "upg.forge.gold_drop_4",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_6",
+    "zone": "forge",
+    "tier": 6,
+    "name": "Treasure Sense VI",
+    "description": "+0.5% gold dropped.",
+    "cost": 380,
+    "prerequisite": "upg.forge.gold_drop_5",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.upgrade_1",
+    "zone": "forge",
+    "tier": 7,
+    "name": "Upgrade Bench I",
+    "description": "Upgrade equipment tier 1 to 2.",
+    "cost": 500,
+    "prerequisite": "upg.forge.gold_drop_6",
+    "effect": {
+      "type": "unlock_upgrade_tier",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.forge.upgrade_2",
+    "zone": "forge",
+    "tier": 8,
+    "name": "Upgrade Bench II",
+    "description": "Upgrade equipment tier 2 to 3.",
+    "cost": 650,
+    "prerequisite": "upg.forge.upgrade_1",
+    "effect": {
+      "type": "unlock_upgrade_tier",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.forge.upgrade_3",
+    "zone": "forge",
+    "tier": 9,
+    "name": "Upgrade Bench III",
+    "description": "Upgrade equipment tier 3 to 4.",
+    "cost": 850,
+    "prerequisite": "upg.forge.upgrade_2",
+    "effect": {
+      "type": "unlock_upgrade_tier",
+      "value": 3
+    }
+  },
+  {
+    "id": "upg.forge.upgrade_4",
+    "zone": "forge",
+    "tier": 10,
+    "name": "Upgrade Bench IV",
+    "description": "Upgrade equipment tier 4 to 5 (max).",
+    "cost": 1100,
+    "prerequisite": "upg.forge.upgrade_3",
+    "effect": {
+      "type": "unlock_upgrade_tier",
+      "value": 4
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_7",
+    "zone": "forge",
+    "tier": 11,
+    "name": "Hoarder I",
+    "description": "+0.5% gold dropped.",
+    "cost": 1400,
+    "prerequisite": "upg.forge.upgrade_4",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_8",
+    "zone": "forge",
+    "tier": 12,
+    "name": "Hoarder II",
+    "description": "+0.5% gold dropped.",
+    "cost": 1800,
+    "prerequisite": "upg.forge.gold_drop_7",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_9",
+    "zone": "forge",
+    "tier": 13,
+    "name": "Hoarder III",
+    "description": "+0.5% gold dropped.",
+    "cost": 2300,
+    "prerequisite": "upg.forge.gold_drop_8",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_10",
+    "zone": "forge",
+    "tier": 14,
+    "name": "Hoarder IV",
+    "description": "+0.5% gold dropped.",
+    "cost": 2900,
+    "prerequisite": "upg.forge.gold_drop_9",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.forge.craft_1",
+    "zone": "forge",
+    "tier": 15,
+    "name": "Smelter I",
+    "description": "-1% craft cost.",
+    "cost": 3700,
+    "prerequisite": "upg.forge.gold_drop_10",
+    "effect": {
+      "type": "craft_discount",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.forge.craft_2",
+    "zone": "forge",
+    "tier": 16,
+    "name": "Smelter II",
+    "description": "-1% craft cost.",
+    "cost": 4700,
+    "prerequisite": "upg.forge.craft_1",
+    "effect": {
+      "type": "craft_discount",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.forge.craft_3",
+    "zone": "forge",
+    "tier": 17,
+    "name": "Smelter III",
+    "description": "-1% craft cost.",
+    "cost": 6000,
+    "prerequisite": "upg.forge.craft_2",
+    "effect": {
+      "type": "craft_discount",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_11",
+    "zone": "forge",
+    "tier": 18,
+    "name": "Dragon Hoard I",
+    "description": "+1% gold dropped.",
+    "cost": 7500,
+    "prerequisite": "upg.forge.craft_3",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.forge.gold_drop_12",
+    "zone": "forge",
+    "tier": 19,
+    "name": "Dragon Hoard II",
+    "description": "+1% gold dropped.",
+    "cost": 9500,
+    "prerequisite": "upg.forge.gold_drop_11",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.forge.gold_apex",
+    "zone": "forge",
+    "tier": 20,
+    "name": "Midas Touch",
+    "description": "+5% gold dropped (apex).",
+    "cost": 20000,
+    "prerequisite": "upg.forge.gold_drop_12",
+    "effect": {
+      "type": "gold_drop_bonus",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.talent_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Talent Scroll I",
+    "description": "Unlock talent trees.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "unlock_talent_tier",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.talent_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Talent Scroll II",
+    "description": "Unlock tier 2 talent trees.",
+    "cost": 100,
+    "prerequisite": "upg.shrine.talent_1",
+    "effect": {
+      "type": "unlock_talent_tier",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.shrine.talent_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Talent Scroll III",
+    "description": "Unlock tier 3 talent trees.",
+    "cost": 150,
+    "prerequisite": "upg.shrine.talent_2",
+    "effect": {
+      "type": "unlock_talent_tier",
+      "value": 2
+    }
+  },
+  {
+    "id": "upg.shrine.talent_4",
+    "zone": "shrine",
+    "tier": 4,
+    "name": "Talent Scroll IV",
+    "description": "Unlock tier 4 talent trees.",
+    "cost": 200,
+    "prerequisite": "upg.shrine.talent_3",
+    "effect": {
+      "type": "unlock_talent_tier",
+      "value": 3
+    }
+  },
+  {
+    "id": "upg.shrine.talent_5",
+    "zone": "shrine",
+    "tier": 5,
+    "name": "Talent Scroll V",
+    "description": "Unlock tier 5 talent trees.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.talent_4",
+    "effect": {
+      "type": "unlock_talent_tier",
+      "value": 4
+    }
+  },
+  {
+    "id": "upg.shrine.talent_6",
+    "zone": "shrine",
+    "tier": 6,
+    "name": "Talent Scroll VI",
+    "description": "Unlock legendary talent tier.",
+    "cost": 380,
+    "prerequisite": "upg.shrine.talent_5",
+    "effect": {
+      "type": "unlock_talent_tier",
+      "value": 5
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_1",
+    "zone": "shrine",
+    "tier": 7,
+    "name": "Oracle's Eye I",
+    "description": "+0.5% Crit Chance.",
+    "cost": 500,
+    "prerequisite": "upg.shrine.talent_6",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_2",
+    "zone": "shrine",
+    "tier": 8,
+    "name": "Oracle's Eye II",
+    "description": "+0.5% Crit Chance.",
+    "cost": 650,
+    "prerequisite": "upg.shrine.crit_ora_1",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_3",
+    "zone": "shrine",
+    "tier": 9,
+    "name": "Oracle's Eye III",
+    "description": "+0.5% Crit Chance.",
+    "cost": 850,
+    "prerequisite": "upg.shrine.crit_ora_2",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_4",
+    "zone": "shrine",
+    "tier": 10,
+    "name": "Oracle's Eye IV",
+    "description": "+0.5% Crit Chance.",
+    "cost": 1100,
+    "prerequisite": "upg.shrine.crit_ora_3",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_5",
+    "zone": "shrine",
+    "tier": 11,
+    "name": "Oracle's Eye V",
+    "description": "+0.5% Crit Chance.",
+    "cost": 1400,
+    "prerequisite": "upg.shrine.crit_ora_4",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_6",
+    "zone": "shrine",
+    "tier": 12,
+    "name": "Oracle's Eye VI",
+    "description": "+0.5% Crit Chance.",
+    "cost": 1800,
+    "prerequisite": "upg.shrine.crit_ora_5",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_7",
+    "zone": "shrine",
+    "tier": 13,
+    "name": "Oracle's Eye VII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 2300,
+    "prerequisite": "upg.shrine.crit_ora_6",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_8",
+    "zone": "shrine",
+    "tier": 14,
+    "name": "Oracle's Eye VIII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 2900,
+    "prerequisite": "upg.shrine.crit_ora_7",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_9",
+    "zone": "shrine",
+    "tier": 15,
+    "name": "Oracle's Eye IX",
+    "description": "+0.5% Crit Chance.",
+    "cost": 3700,
+    "prerequisite": "upg.shrine.crit_ora_8",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_10",
+    "zone": "shrine",
+    "tier": 16,
+    "name": "Oracle's Eye X",
+    "description": "+0.5% Crit Chance.",
+    "cost": 4700,
+    "prerequisite": "upg.shrine.crit_ora_9",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_11",
+    "zone": "shrine",
+    "tier": 17,
+    "name": "Oracle's Eye XI",
+    "description": "+0.5% Crit Chance.",
+    "cost": 6000,
+    "prerequisite": "upg.shrine.crit_ora_10",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_12",
+    "zone": "shrine",
+    "tier": 18,
+    "name": "Oracle's Eye XII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 7500,
+    "prerequisite": "upg.shrine.crit_ora_11",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_13",
+    "zone": "shrine",
+    "tier": 19,
+    "name": "Oracle's Eye XIII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 9500,
+    "prerequisite": "upg.shrine.crit_ora_12",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_apex",
+    "zone": "shrine",
+    "tier": 20,
+    "name": "Divine Precision",
+    "description": "+2% Crit Chance (apex).",
+    "cost": 16000,
+    "prerequisite": "upg.shrine.crit_ora_13",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.02
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Reaction Deck I",
+    "description": "Unlock 2nd Reaction slot.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Reaction Deck II",
+    "description": "Unlock 3nd Reaction slot.",
+    "cost": 100,
+    "prerequisite": "upg.shrine.reaction_1",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Reaction Deck III",
+    "description": "Unlock 4nd Reaction slot.",
+    "cost": 150,
+    "prerequisite": "upg.shrine.reaction_2",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_4",
+    "zone": "shrine",
+    "tier": 4,
+    "name": "Reaction Deck IV",
+    "description": "Unlock 5nd Reaction slot.",
+    "cost": 200,
+    "prerequisite": "upg.shrine.reaction_3",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_5",
+    "zone": "shrine",
+    "tier": 5,
+    "name": "Reaction Deck V",
+    "description": "Unlock 6nd Reaction slot.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.reaction_4",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_6",
+    "zone": "shrine",
+    "tier": 6,
+    "name": "Reaction Deck VI",
+    "description": "Unlock 7nd Reaction slot.",
+    "cost": 380,
+    "prerequisite": "upg.shrine.reaction_5",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_7",
+    "zone": "shrine",
+    "tier": 7,
+    "name": "Reaction Deck VII",
+    "description": "Unlock 8nd Reaction slot.",
+    "cost": 500,
+    "prerequisite": "upg.shrine.reaction_6",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_8",
+    "zone": "shrine",
+    "tier": 8,
+    "name": "Reaction Deck VIII",
+    "description": "Unlock 9nd Reaction slot.",
+    "cost": 650,
+    "prerequisite": "upg.shrine.reaction_7",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_9",
+    "zone": "shrine",
+    "tier": 9,
+    "name": "Reaction Deck IX",
+    "description": "Unlock 10nd Reaction slot.",
+    "cost": 850,
+    "prerequisite": "upg.shrine.reaction_8",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_10",
+    "zone": "shrine",
+    "tier": 10,
+    "name": "Reaction Deck X",
+    "description": "Unlock 11nd Reaction slot.",
+    "cost": 1100,
+    "prerequisite": "upg.shrine.reaction_9",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.combo_1",
+    "zone": "shrine",
+    "tier": 11,
+    "name": "Combo Devotion I",
+    "description": "+0.5% combo damage.",
+    "cost": 1400,
+    "prerequisite": "upg.shrine.reaction_10",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.combo_2",
+    "zone": "shrine",
+    "tier": 12,
+    "name": "Combo Devotion II",
+    "description": "+0.5% combo damage.",
+    "cost": 1800,
+    "prerequisite": "upg.shrine.combo_1",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.combo_3",
+    "zone": "shrine",
+    "tier": 13,
+    "name": "Combo Devotion III",
+    "description": "+0.5% combo damage.",
+    "cost": 2300,
+    "prerequisite": "upg.shrine.combo_2",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.combo_4",
+    "zone": "shrine",
+    "tier": 14,
+    "name": "Combo Devotion IV",
+    "description": "+0.5% combo damage.",
+    "cost": 2900,
+    "prerequisite": "upg.shrine.combo_3",
+    "effect": {
+      "type": "combo_damage_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.cascade_1",
+    "zone": "shrine",
+    "tier": 15,
+    "name": "Shrine Cascade I",
+    "description": "Combo refunds 1 stamina.",
+    "cost": 3700,
+    "prerequisite": "upg.shrine.combo_4",
+    "effect": {
+      "type": "combo_stamina_refund",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.cascade_2",
+    "zone": "shrine",
+    "tier": 16,
+    "name": "Shrine Cascade II",
+    "description": "Combo refunds 1 stamina.",
+    "cost": 4700,
+    "prerequisite": "upg.shrine.cascade_1",
+    "effect": {
+      "type": "combo_stamina_refund",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.cascade_3",
+    "zone": "shrine",
+    "tier": 17,
+    "name": "Shrine Cascade III",
+    "description": "Combo refunds 1 stamina.",
+    "cost": 6000,
+    "prerequisite": "upg.shrine.cascade_2",
+    "effect": {
+      "type": "combo_stamina_refund",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.cascade_4",
+    "zone": "shrine",
+    "tier": 18,
+    "name": "Shrine Cascade IV",
+    "description": "Combo refunds 1 stamina.",
+    "cost": 7500,
+    "prerequisite": "upg.shrine.cascade_3",
+    "effect": {
+      "type": "combo_stamina_refund",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.reaction_apex",
+    "zone": "shrine",
+    "tier": 19,
+    "name": "Boundless Arsenal",
+    "description": "Unlock 11th Reaction card slot.",
+    "cost": 9500,
+    "prerequisite": "upg.shrine.cascade_4",
+    "effect": {
+      "type": "reaction_slots_delta",
+      "value": 1
+    }
+  },
+  {
+    "id": "upg.shrine.combo_master_apex",
+    "zone": "shrine",
+    "tier": 20,
+    "name": "Sigilbound Master",
+    "description": "All combo damage bonuses ×1.10.",
+    "cost": 20000,
+    "prerequisite": "upg.shrine.reaction_apex",
+    "effect": {
+      "type": "all_combo_damage_mult",
+      "mult": 1.1
+    }
+  },
+  {
+    "id": "upg.shrine.sale_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Merchant Blessing I",
+    "description": "+0.5% all sales.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Merchant Blessing II",
+    "description": "+0.5% all sales.",
+    "cost": 100,
+    "prerequisite": "upg.shrine.sale_1",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Merchant Blessing III",
+    "description": "+0.5% all sales.",
+    "cost": 150,
+    "prerequisite": "upg.shrine.sale_2",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_4",
+    "zone": "shrine",
+    "tier": 4,
+    "name": "Merchant Blessing IV",
+    "description": "+0.5% all sales.",
+    "cost": 200,
+    "prerequisite": "upg.shrine.sale_3",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_5",
+    "zone": "shrine",
+    "tier": 5,
+    "name": "Merchant Blessing V",
+    "description": "+0.5% all sales.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.sale_4",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_6",
+    "zone": "shrine",
+    "tier": 6,
+    "name": "Merchant Blessing VI",
+    "description": "+0.5% all sales.",
+    "cost": 380,
+    "prerequisite": "upg.shrine.sale_5",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_7",
+    "zone": "shrine",
+    "tier": 7,
+    "name": "Merchant Blessing VII",
+    "description": "+0.5% all sales.",
+    "cost": 500,
+    "prerequisite": "upg.shrine.sale_6",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_8",
+    "zone": "shrine",
+    "tier": 8,
+    "name": "Merchant Blessing VIII",
+    "description": "+0.5% all sales.",
+    "cost": 650,
+    "prerequisite": "upg.shrine.sale_7",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_9",
+    "zone": "shrine",
+    "tier": 9,
+    "name": "Merchant Blessing IX",
+    "description": "+0.5% all sales.",
+    "cost": 850,
+    "prerequisite": "upg.shrine.sale_8",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_10",
+    "zone": "shrine",
+    "tier": 10,
+    "name": "Merchant Blessing X",
+    "description": "+0.5% all sales.",
+    "cost": 1100,
+    "prerequisite": "upg.shrine.sale_9",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_11",
+    "zone": "shrine",
+    "tier": 11,
+    "name": "Diamond Market I",
+    "description": "+0.5% all sales.",
+    "cost": 1400,
+    "prerequisite": "upg.shrine.sale_10",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_12",
+    "zone": "shrine",
+    "tier": 12,
+    "name": "Diamond Market II",
+    "description": "+0.5% all sales.",
+    "cost": 1800,
+    "prerequisite": "upg.shrine.sale_11",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_13",
+    "zone": "shrine",
+    "tier": 13,
+    "name": "Diamond Market III",
+    "description": "+0.5% all sales.",
+    "cost": 2300,
+    "prerequisite": "upg.shrine.sale_12",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_14",
+    "zone": "shrine",
+    "tier": 14,
+    "name": "Diamond Market IV",
+    "description": "+0.5% all sales.",
+    "cost": 2900,
+    "prerequisite": "upg.shrine.sale_13",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_15",
+    "zone": "shrine",
+    "tier": 15,
+    "name": "Diamond Market V",
+    "description": "+0.5% all sales.",
+    "cost": 3700,
+    "prerequisite": "upg.shrine.sale_14",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_16",
+    "zone": "shrine",
+    "tier": 16,
+    "name": "Merchant Tycoon I",
+    "description": "+0.5% all sales.",
+    "cost": 4700,
+    "prerequisite": "upg.shrine.sale_15",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_17",
+    "zone": "shrine",
+    "tier": 17,
+    "name": "Merchant Tycoon II",
+    "description": "+0.5% all sales.",
+    "cost": 6000,
+    "prerequisite": "upg.shrine.sale_16",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_18",
+    "zone": "shrine",
+    "tier": 18,
+    "name": "Merchant Tycoon III",
+    "description": "+0.5% all sales.",
+    "cost": 7500,
+    "prerequisite": "upg.shrine.sale_17",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_19",
+    "zone": "shrine",
+    "tier": 19,
+    "name": "Merchant Tycoon IV",
+    "description": "+0.5% all sales.",
+    "cost": 9500,
+    "prerequisite": "upg.shrine.sale_18",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.sale_apex",
+    "zone": "shrine",
+    "tier": 20,
+    "name": "Golden Age",
+    "description": "+5% all sales (apex).",
+    "cost": 18000,
+    "prerequisite": "upg.shrine.sale_19",
+    "effect": {
+      "type": "global_sale_mult",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Divine Eye I",
+    "description": "+0.5% Crit Chance.",
+    "cost": 60,
+    "prerequisite": null,
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Divine Eye II",
+    "description": "+0.5% Crit Chance.",
+    "cost": 100,
+    "prerequisite": "upg.shrine.crit_ora_b_1",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Divine Eye III",
+    "description": "+0.5% Crit Chance.",
+    "cost": 150,
+    "prerequisite": "upg.shrine.crit_ora_b_2",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_4",
+    "zone": "shrine",
+    "tier": 4,
+    "name": "Divine Eye IV",
+    "description": "+0.5% Crit Chance.",
+    "cost": 200,
+    "prerequisite": "upg.shrine.crit_ora_b_3",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_5",
+    "zone": "shrine",
+    "tier": 5,
+    "name": "Divine Eye V",
+    "description": "+0.5% Crit Chance.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.crit_ora_b_4",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_6",
+    "zone": "shrine",
+    "tier": 6,
+    "name": "Divine Eye VI",
+    "description": "+0.5% Crit Chance.",
+    "cost": 380,
+    "prerequisite": "upg.shrine.crit_ora_b_5",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_7",
+    "zone": "shrine",
+    "tier": 7,
+    "name": "Divine Eye VII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 500,
+    "prerequisite": "upg.shrine.crit_ora_b_6",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_8",
+    "zone": "shrine",
+    "tier": 8,
+    "name": "Divine Eye VIII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 650,
+    "prerequisite": "upg.shrine.crit_ora_b_7",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_9",
+    "zone": "shrine",
+    "tier": 9,
+    "name": "Divine Eye IX",
+    "description": "+0.5% Crit Chance.",
+    "cost": 850,
+    "prerequisite": "upg.shrine.crit_ora_b_8",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_10",
+    "zone": "shrine",
+    "tier": 10,
+    "name": "Divine Eye X",
+    "description": "+0.5% Crit Chance.",
+    "cost": 1100,
+    "prerequisite": "upg.shrine.crit_ora_b_9",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.combo_master_1",
+    "zone": "shrine",
+    "tier": 11,
+    "name": "Sigilbound Master I",
+    "description": "All combo bonuses ×1.05.",
+    "cost": 1400,
+    "prerequisite": "upg.shrine.crit_ora_b_10",
+    "effect": {
+      "type": "all_combo_damage_mult",
+      "mult": 1.05
+    }
+  },
+  {
+    "id": "upg.shrine.combo_master_2",
+    "zone": "shrine",
+    "tier": 12,
+    "name": "Sigilbound Master II",
+    "description": "All combo bonuses ×1.05.",
+    "cost": 1800,
+    "prerequisite": "upg.shrine.combo_master_1",
+    "effect": {
+      "type": "all_combo_damage_mult",
+      "mult": 1.05
+    }
+  },
+  {
+    "id": "upg.shrine.combo_master_3",
+    "zone": "shrine",
+    "tier": 13,
+    "name": "Sigilbound Master III",
+    "description": "All combo bonuses ×1.05.",
+    "cost": 2300,
+    "prerequisite": "upg.shrine.combo_master_2",
+    "effect": {
+      "type": "all_combo_damage_mult",
+      "mult": 1.05
+    }
+  },
+  {
+    "id": "upg.shrine.combo_master_4",
+    "zone": "shrine",
+    "tier": 14,
+    "name": "Sigilbound Master IV",
+    "description": "All combo bonuses ×1.05.",
+    "cost": 2900,
+    "prerequisite": "upg.shrine.combo_master_3",
+    "effect": {
+      "type": "all_combo_damage_mult",
+      "mult": 1.05
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_11",
+    "zone": "shrine",
+    "tier": 15,
+    "name": "Divine Eye XI",
+    "description": "+0.5% Crit Chance.",
+    "cost": 3700,
+    "prerequisite": "upg.shrine.combo_master_4",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_12",
+    "zone": "shrine",
+    "tier": 16,
+    "name": "Divine Eye XII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 4700,
+    "prerequisite": "upg.shrine.crit_ora_b_11",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.crit_ora_b_13",
+    "zone": "shrine",
+    "tier": 17,
+    "name": "Divine Eye XIII",
+    "description": "+0.5% Crit Chance.",
+    "cost": 6000,
+    "prerequisite": "upg.shrine.crit_ora_b_12",
+    "effect": {
+      "type": "crit_chance_bonus",
+      "value": 0.005
+    }
+  },
+  {
+    "id": "upg.shrine.combo_master_5",
+    "zone": "shrine",
+    "tier": 18,
+    "name": "Sigilbound Master V",
+    "description": "All combo bonuses ×1.10.",
+    "cost": 7500,
+    "prerequisite": "upg.shrine.crit_ora_b_13",
+    "effect": {
+      "type": "all_combo_damage_mult",
+      "mult": 1.1
+    }
+  },
+  {
+    "id": "upg.shrine.astral_1",
+    "zone": "shrine",
+    "tier": 19,
+    "name": "Astral Convergence I",
+    "description": "+1% chance action card fires twice.",
+    "cost": 9500,
+    "prerequisite": "upg.shrine.combo_master_5",
+    "effect": {
+      "type": "card_replicate_chance",
+      "value": 0.01
+    }
+  },
+  {
+    "id": "upg.shrine.astral_apex",
+    "zone": "shrine",
+    "tier": 20,
+    "name": "Astral Convergence II",
+    "description": "+2% chance action card fires twice.",
+    "cost": 16000,
+    "prerequisite": "upg.shrine.astral_1",
+    "effect": {
+      "type": "card_replicate_chance",
+      "value": 0.02
+    }
+  }
 ]

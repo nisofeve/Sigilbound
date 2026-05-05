@@ -1,5 +1,5 @@
 // EnemyCard — wraps GameCard with the enemy-specific data extraction.
-// Image assets live in /public/enemies/{id}.{png|jpg|webp}.
+// Image assets live in src/assets/enemies/{id}.{png|jpg|webp}.
 
 import type { EnemyDef } from '@engine/enemy';
 import {

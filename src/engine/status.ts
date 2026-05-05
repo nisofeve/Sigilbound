@@ -45,6 +45,7 @@ export interface StatusDef {
   id: StatusId;
   icon: string;
   name: string;
+  description: string;
   // The stacks of a given status either decay by 1/turn (Burn, Bleed) or only
   // expire when turnsRemaining hits 0 (Marked, Frozen). 'damage' kind decays
   // BOTH stacks AND turns; others decay only turns.
@@ -52,23 +53,23 @@ export interface StatusDef {
 }
 
 export const STATUS_DEFS: Record<StatusId, StatusDef> = {
-  burn:       { id: 'burn',       icon: '🔥', name: 'Burn',       decayKind: 'damage' },
-  bleed:      { id: 'bleed',      icon: '🩸', name: 'Bleed',      decayKind: 'damage' },
-  poison:     { id: 'poison',     icon: '☠️', name: 'Poison',     decayKind: 'damage' },
-  frozen:     { id: 'frozen',     icon: '❄️', name: 'Frozen',     decayKind: 'turns' },
-  chill:      { id: 'chill',      icon: '🧊', name: 'Chill',      decayKind: 'turns' },
-  sleep:      { id: 'sleep',      icon: '💤', name: 'Sleep',      decayKind: 'turns' },
-  stun:       { id: 'stun',       icon: '💫', name: 'Stun',       decayKind: 'turns' },
-  entangled:  { id: 'entangled',  icon: '🌿', name: 'Entangled',  decayKind: 'turns' },
-  charmed:    { id: 'charmed',    icon: '💛', name: 'Charmed',    decayKind: 'turns' },
-  weakened:   { id: 'weakened',   icon: '🌀', name: 'Weakened',   decayKind: 'turns' },
-  empowered:  { id: 'empowered',  icon: '💪', name: 'Empowered',  decayKind: 'turns' },
-  marked:     { id: 'marked',     icon: '👁',  name: 'Marked',     decayKind: 'turns' },
-  vulnerable: { id: 'vulnerable', icon: '💥', name: 'Vulnerable', decayKind: 'turns' },
-  curse:      { id: 'curse',      icon: '💀', name: 'Curse',      decayKind: 'turns' },
-  regen:      { id: 'regen',      icon: '💚', name: 'Regen',      decayKind: 'turns' },
-  block:      { id: 'block',      icon: '🛡️', name: 'Block',      decayKind: 'permanent' },
-  hasted:     { id: 'hasted',     icon: '⚡', name: 'Hasted',      decayKind: 'turns' },
+  burn:       { id: 'burn',       icon: '🔥', name: 'Burn',       description: 'Deals 30 damage per stack at end of turn. Loses 1 stack each tick.',                              decayKind: 'damage' },
+  bleed:      { id: 'bleed',      icon: '🩸', name: 'Bleed',      description: 'Deals 40 damage per stack at end of turn. Loses 1 stack each tick.',                              decayKind: 'damage' },
+  poison:     { id: 'poison',     icon: '☠️', name: 'Poison',     description: 'Deals 20 damage per stack at end of turn. Stacks accumulate and decay by 1 each tick.',           decayKind: 'damage' },
+  frozen:     { id: 'frozen',     icon: '❄️', name: 'Frozen',     description: 'Skips the target\'s next action phase entirely.',                                                 decayKind: 'turns' },
+  chill:      { id: 'chill',      icon: '🧊', name: 'Chill',      description: 'Slows the target. At 3 or more stacks the target loses its next turn.',                           decayKind: 'turns' },
+  sleep:      { id: 'sleep',      icon: '💤', name: 'Sleep',      description: 'Target skips turns while asleep. Any damage wakes them immediately.',                              decayKind: 'turns' },
+  stun:       { id: 'stun',       icon: '💫', name: 'Stun',       description: 'Target loses its next action.',                                                                    decayKind: 'turns' },
+  entangled:  { id: 'entangled',  icon: '🌿', name: 'Entangled',  description: 'Target cannot gain Block and deals reduced damage while bound.',                                   decayKind: 'turns' },
+  charmed:    { id: 'charmed',    icon: '💛', name: 'Charmed',    description: 'Target attacks allies instead of enemies on its next turn.',                                       decayKind: 'turns' },
+  weakened:   { id: 'weakened',   icon: '🌀', name: 'Weakened',   description: 'Reduces damage dealt by 25% for the duration.',                                                    decayKind: 'turns' },
+  empowered:  { id: 'empowered',  icon: '💪', name: 'Empowered',  description: 'Increases damage dealt by 30% for the duration.',                                                  decayKind: 'turns' },
+  marked:     { id: 'marked',     icon: '👁',  name: 'Marked',     description: 'The next attack against this target deals 50% extra damage.',                                     decayKind: 'turns' },
+  vulnerable: { id: 'vulnerable', icon: '💥', name: 'Vulnerable', description: 'Target takes 50% increased damage from all sources for the duration.',                            decayKind: 'turns' },
+  curse:      { id: 'curse',      icon: '💀', name: 'Curse',      description: 'Drains 1 Stamina from the player (or reduces enemy ATK by 1) at the start of each turn.',         decayKind: 'turns' },
+  regen:      { id: 'regen',      icon: '💚', name: 'Regen',      description: 'Restores 30 HP per stack at the start of each turn.',                                              decayKind: 'turns' },
+  block:      { id: 'block',      icon: '🛡️', name: 'Block',      description: 'Absorbs incoming damage before HP is reduced. Resets to zero at the start of your turn.',         decayKind: 'permanent' },
+  hasted:     { id: 'hasted',     icon: '⚡', name: 'Hasted',      description: 'All Sigils gain +1 charge at the end of each turn.',                                              decayKind: 'turns' },
 };
 
 // === Apply / clear ===
@@ -104,34 +105,47 @@ export function statusStacks(bag: StatusBag, id: StatusId): number {
 
 // === Tick helpers ===
 
-// Damage from DoT effects at end of owner's turn. Returns total damage and
-// the bag with stacks decayed. Does NOT apply HP — caller does.
-export function tickDamageOverTime(bag: StatusBag): { damage: number; bag: StatusBag } {
+// Damage from DoT effects at end of owner's turn. Returns total damage, the
+// per-status breakdown (so callers can drive per-status VFX), and the bag
+// with stacks decayed. Does NOT apply HP — caller does.
+export interface DotTickResult {
+  damage: number;
+  bag: StatusBag;
+  breakdown: { burn: number; bleed: number; poison: number };
+}
+export function tickDamageOverTime(bag: StatusBag): DotTickResult {
   let damage = 0;
   let next: StatusBag = bag;
+  const breakdown = { burn: 0, bleed: 0, poison: 0 };
   const burn = bag.burn;
   if (burn && burn.stacks > 0) {
-    damage += 3 * burn.stacks;
+    const d = 30 * burn.stacks;
+    damage += d;
+    breakdown.burn = d;
     next = applyStackChange(next, 'burn', -1);
   }
   const bleed = bag.bleed;
   if (bleed && bleed.stacks > 0) {
-    damage += 4 * bleed.stacks;
+    const d = 40 * bleed.stacks;
+    damage += d;
+    breakdown.bleed = d;
     next = applyStackChange(next, 'bleed', -1);
   }
   const poison = bag.poison;
   if (poison && poison.stacks > 0) {
-    damage += 2 * poison.stacks; // 2 dmg per stack (Nature signature)
+    const d = 20 * poison.stacks; // 20 dmg per stack (Nature signature)
+    damage += d;
+    breakdown.poison = d;
     next = applyStackChange(next, 'poison', -1);
   }
-  return { damage, bag: next };
+  return { damage, bag: next, breakdown };
 }
 
 // Heal-over-time from regen.
 export function tickHealOverTime(bag: StatusBag): { heal: number; bag: StatusBag } {
   const regen = bag.regen;
   if (!regen || regen.stacks <= 0) return { heal: 0, bag };
-  return { heal: 3 * regen.stacks, bag };
+  return { heal: 30 * regen.stacks, bag };
 }
 
 // Decrement turn counters, drop expired effects. Run at end of turn AFTER

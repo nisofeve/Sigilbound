@@ -9,6 +9,7 @@ import type {
   AchievementPredicate,
   RunResult,
 } from './types';
+import { bpTierFromXp as canonicalBpTierFromXp } from './bp';
 
 const ALL_ACHIEVEMENTS = achievementsJson as Achievement[];
 const byId = new Map(ALL_ACHIEVEMENTS.map(a => [a.id, a]));
@@ -58,9 +59,9 @@ function ratingAtLeast(actual: Rating, min: Rating): boolean {
   return ACTUAL_RATING_ORDER.indexOf(actual) >= ACTUAL_RATING_ORDER.indexOf(min);
 }
 
-function bpTierFromXp(xp: number): number {
-  return Math.max(1, Math.min(40, Math.floor(xp / 1000) + 1));
-}
+// Use the canonical BP tier formula from engine/bp.ts so achievements and
+// the BP screen agree on what tier the player is at.
+const bpTierFromXp = canonicalBpTierFromXp;
 
 function predicateMet(p: AchievementPredicate, ctx: AchievementContext): boolean {
   switch (p.type) {

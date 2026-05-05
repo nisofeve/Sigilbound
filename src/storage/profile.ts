@@ -12,6 +12,9 @@
 
 import {
   ACHIEVEMENT_REWARDS,
+  allAchievements,
+  allActions,
+  allTactics,
   allPerks,
   allTalents,
   applyQuestProgress,
@@ -19,6 +22,11 @@ import {
   rewardsForLevel,
   levelFromXp,
   todayKey,
+  weekKey,
+  monthKey,
+  questsByPeriod,
+  applyActionQuestProgress,
+  type QuestAction,
   getStageDef,
   starsFor,
   replayRewardsFor,
@@ -29,6 +37,10 @@ import {
   XP_PER_RUN_COIN,
   XP_FROM_ACHIEVEMENT_BY_RARITY,
   MAX_LEVEL,
+  TOTAL_BP_TIERS,
+  XP_PER_TIER,
+  VIP_PASS_GEM_COST,
+  allBpTiers,
   type CardId,
   type Grade,
   type LevelReward,
@@ -37,6 +49,7 @@ import {
   type StageReward,
   type CombatStageDef,
   type CombatStageReward,
+  type BpRewardItem,
   sumUpgradeEffect,
   rollStageDrops,
   type ItemDrop,
@@ -44,6 +57,7 @@ import {
   getLoreMilestone,
 } from '@engine/index';
 import { addPerkCharges, isStarterPerk } from './perks';
+import questsJson from '@data/quests.json';
 import {
   MAX_COMBAT_DECK_SETS,
   STARTER_DECK_IDS,
@@ -86,6 +100,7 @@ const empty: Profile = {
   perkShards: 0,
   rejectedRunCount: 0,
   achievementsUnlocked: [],
+  achievementsClaimed: [],
   tutorialSeen: false,
   cardInventory: {},
   deckPresets: [],
@@ -129,6 +144,10 @@ const empty: Profile = {
   activeCardBack: null,
   bpSeasonISO: null,
   bpSeasonNumber: 0,
+  weekQuestsISO: null,
+  weekQuestsState: {},
+  monthQuestsISO: null,
+  monthQuestsState: {},
 };
 
 // Default starter combat collection. Loaded on first run + topped up by
@@ -211,8 +230,15 @@ function withDefaults(partial: Partial<Profile>): Profile {
     activeCardBack: partial.activeCardBack ?? empty.activeCardBack,
     bpSeasonISO: partial.bpSeasonISO ?? empty.bpSeasonISO,
     bpSeasonNumber: partial.bpSeasonNumber ?? empty.bpSeasonNumber,
+    weekQuestsISO: partial.weekQuestsISO ?? empty.weekQuestsISO,
+    weekQuestsState: { ...empty.weekQuestsState, ...partial.weekQuestsState },
+    monthQuestsISO: partial.monthQuestsISO ?? empty.monthQuestsISO,
+    monthQuestsState: { ...empty.monthQuestsState, ...partial.monthQuestsState },
   };
   p = seedCombatStarter(p);
+  // Migration: legacy saves have no achievementsClaimed field. Mark all
+  // already-unlocked achievements as claimed so existing players keep rewards.
+  if (!p.achievementsClaimed) p.achievementsClaimed = [...p.achievementsUnlocked];
   // Migration: ensure combatDeckSets exists. Promote the active combatDeck
   // to Set 0 if sets are empty so existing saves keep their deck.
   if (!p.combatDeckSets || p.combatDeckSets.length === 0) {
@@ -331,6 +357,7 @@ export function resetProfile(opts: { keepTutorialSeen?: boolean } = {}): Profile
   const keepTutorialSeen = opts.keepTutorialSeen ?? true;
   if (typeof localStorage !== 'undefined') {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('sigilbound:redeemedCodes');
   }
   const fresh = withDefaults({});
   if (keepTutorialSeen) fresh.tutorialSeen = true;
@@ -354,17 +381,109 @@ export function setAvatarEmoji(profile: Profile, emoji: string): Profile {
   return next;
 }
 
+// === Achievement evaluation ===
+
+// Run the achievement predicates against the current profile (and an optional
+// last-run snapshot for per-run-only predicates), award rarity-based coin/gem
+// rewards for any newly satisfied entries, and return the updated profile +
+// the list of unlocked Achievement objects so the caller can surface them.
+//
+// Caller is responsible for saveProfile/persistence — this helper is pure.
+export function applyAchievementUnlocks(
+  profile: Profile,
+  lastRun?: RunResult,
+): { profile: Profile; unlocked: Array<{ id: string; rarity: string; name: string; icon: string; rewardCoins: number; rewardGems: number }> } {
+  // Guard against minimal test profiles that don't populate every field
+  // the evaluator reads. Real loaded profiles always have these via
+  // withDefaults; this just prevents test scaffolding from blowing up.
+  if (!profile.achievementsUnlocked) return { profile, unlocked: [] };
+  const newly = evaluateNewlyUnlocked({ profile, lastRun });
+  if (newly.length === 0) return { profile, unlocked: [] };
+  const next: Profile = {
+    ...profile,
+    achievementsUnlocked: [...profile.achievementsUnlocked, ...newly.map(a => a.id)],
+  };
+  const unlocked: Array<{ id: string; rarity: string; name: string; icon: string; rewardCoins: number; rewardGems: number }> = [];
+  for (const a of newly) {
+    const reward = ACHIEVEMENT_REWARDS[a.rarity];
+    unlocked.push({
+      id: a.id, rarity: a.rarity, name: a.name, icon: a.icon,
+      rewardCoins: reward.coins, rewardGems: reward.gems,
+    });
+  }
+  return { profile: next, unlocked };
+}
+
+// Claim the reward for a single unlocked achievement. No-op if already claimed
+// or not yet unlocked. Caller must persist.
+export function claimAchievementReward(profile: Profile, achievementId: string): Profile | null {
+  if (!profile.achievementsUnlocked.includes(achievementId)) return null;
+  if ((profile.achievementsClaimed ?? []).includes(achievementId)) return null;
+  const a = allAchievements().find(x => x.id === achievementId);
+  if (!a) return null;
+  const reward = ACHIEVEMENT_REWARDS[a.rarity];
+  return {
+    ...profile,
+    achievementsClaimed: [...(profile.achievementsClaimed ?? []), achievementId],
+    bankCoins: profile.bankCoins + reward.coins,
+    totalCoinsEarned: profile.totalCoinsEarned + reward.coins,
+    gems: profile.gems + reward.gems,
+  };
+}
+
 // === Upgrade purchase ===
 
 export function buyUpgrade(profile: Profile, upgradeId: string, cost: number): Profile {
   if (profile.upgradesOwned.includes(upgradeId)) return profile;
   if (profile.bankCoins < cost) return profile;
-  const next: Profile = {
+  let next: Profile = {
     ...profile,
     bankCoins: profile.bankCoins - cost,
     upgradesOwned: [...profile.upgradesOwned, upgradeId],
   };
+  // Daily/weekly/monthly quest progress for buy_stronghold_upgrade.
+  next = applyQuestActionToProfile(next, { kind: 'buy_stronghold_upgrade' });
+  // Eval achievements that depend on upgrades_owned / bank_coins_at_least.
+  const { profile: withAch } = applyAchievementUnlocks(next);
+  next = withAch;
   saveProfile(next);
+  return next;
+}
+
+// Roll an out-of-combat action through all three quest period buckets,
+// award quest rewards, and return the updated profile. Used by shop buys,
+// card upgrades, stronghold buys, app open, etc. Intentionally cheap — no
+// IO; caller is responsible for saveProfile() after composing other
+// changes if any.
+export function applyQuestActionToProfile(profile: Profile, action: QuestAction): Profile {
+  let next = profile;
+  // Daily.
+  const today = todayKey();
+  const dailyState = next.todayQuestsISO === today ? next.todayQuestsState : {};
+  const d = applyActionQuestProgress(dailyState, action, questsByPeriod('daily'));
+  // Weekly.
+  const wKey = weekKey();
+  const weekState = next.weekQuestsISO === wKey ? next.weekQuestsState : {};
+  const w = applyActionQuestProgress(weekState, action, questsByPeriod('weekly'));
+  // Monthly.
+  const mKey = monthKey();
+  const monthState = next.monthQuestsISO === mKey ? next.monthQuestsState : {};
+  const m = applyActionQuestProgress(monthState, action, questsByPeriod('monthly'));
+
+  next = {
+    ...next,
+    todayQuestsISO: today,
+    todayQuestsState: d.state,
+    weekQuestsISO: wKey,
+    weekQuestsState: w.state,
+    monthQuestsISO: mKey,
+    monthQuestsState: m.state,
+    bankCoins: next.bankCoins + (d.coinsAwarded ?? 0) + (w.coinsAwarded ?? 0) + (m.coinsAwarded ?? 0),
+    totalCoinsEarned: next.totalCoinsEarned + (d.coinsAwarded ?? 0) + (w.coinsAwarded ?? 0) + (m.coinsAwarded ?? 0),
+    gems: next.gems + d.gemsAwarded + w.gemsAwarded + m.gemsAwarded,
+    perkShards: next.perkShards + (d.shardsAwarded ?? 0) + (w.shardsAwarded ?? 0) + (m.shardsAwarded ?? 0),
+    bpXp: Math.min(TOTAL_BP_TIERS * XP_PER_TIER, next.bpXp + (d.bpXpAwarded ?? 0) + (w.bpXpAwarded ?? 0) + (m.bpXpAwarded ?? 0)),
+  };
   return next;
 }
 
@@ -393,17 +512,42 @@ export function recordRun(result: RunResult): RecordRunOutcome {
     p.todayQuestsISO = today;
     p.todayQuestsState = {};
   }
-  const update = applyQuestProgress(p.todayQuestsState, result);
+  const update = applyQuestProgress(p.todayQuestsState, result, questsByPeriod('daily'));
   p.todayQuestsState = update.state;
   p.gems += update.gemsAwarded;
+  p.bankCoins += update.coinsAwarded ?? 0;
+  p.perkShards += update.shardsAwarded ?? 0;
+  p.bpXp = Math.min(TOTAL_BP_TIERS * XP_PER_TIER, p.bpXp + (update.bpXpAwarded ?? 0));
+
+  // Weekly + monthly buckets.
+  const wKey = weekKey();
+  if (p.weekQuestsISO !== wKey) {
+    p.weekQuestsISO = wKey;
+    p.weekQuestsState = {};
+  }
+  const weekly = applyQuestProgress(p.weekQuestsState, result, questsByPeriod('weekly'));
+  p.weekQuestsState = weekly.state;
+  p.gems += weekly.gemsAwarded;
+  p.bankCoins += weekly.coinsAwarded ?? 0;
+  p.perkShards += weekly.shardsAwarded ?? 0;
+  p.bpXp = Math.min(TOTAL_BP_TIERS * XP_PER_TIER, p.bpXp + (weekly.bpXpAwarded ?? 0));
+
+  const mKey = monthKey();
+  if (p.monthQuestsISO !== mKey) {
+    p.monthQuestsISO = mKey;
+    p.monthQuestsState = {};
+  }
+  const monthly = applyQuestProgress(p.monthQuestsState, result, questsByPeriod('monthly'));
+  p.monthQuestsState = monthly.state;
+  p.gems += monthly.gemsAwarded;
+  p.bankCoins += monthly.coinsAwarded ?? 0;
+  p.perkShards += monthly.shardsAwarded ?? 0;
+  p.bpXp = Math.min(TOTAL_BP_TIERS * XP_PER_TIER, p.bpXp + (monthly.bpXpAwarded ?? 0));
 
   // Phase 6: evaluate achievements against the now-updated profile + this run.
   const newAchievements = evaluateNewlyUnlocked({ profile: p, lastRun: result });
   let achievementXp = 0;
   for (const a of newAchievements) {
-    const reward = ACHIEVEMENT_REWARDS[a.rarity];
-    p.bankCoins += reward.coins;
-    p.gems += reward.gems;
     p.achievementsUnlocked = [...p.achievementsUnlocked, a.id];
     achievementXp += XP_FROM_ACHIEVEMENT_BY_RARITY[a.rarity] ?? 0;
   }
@@ -422,8 +566,8 @@ export function recordRun(result: RunResult): RecordRunOutcome {
   saveProfile(p);
   return {
     profile: p,
-    questsCompleted: update.completedNow,
-    gemsAwarded: update.gemsAwarded,
+    questsCompleted: [...update.completedNow, ...weekly.completedNow, ...monthly.completedNow],
+    gemsAwarded: update.gemsAwarded + weekly.gemsAwarded + monthly.gemsAwarded,
     achievementsUnlocked: newAchievements.map((a) => a.id),
     stageOutcome,
   };
@@ -526,6 +670,11 @@ export interface CombatClearOutcome {
   rewardsGranted: CombatStageReward[];
   itemDrops: ItemDrop[];                   // equipment / talent / card drops (first-clear only)
   newCurrentStage: number;                 // stage after this clear (unchanged on defeat)
+  loreUnlocked: number[];                  // stage numbers of lore milestones newly unlocked this clear
+  achievementsUnlocked: Array<{
+    id: string; rarity: string; name: string; icon: string;
+    rewardCoins: number; rewardGems: number;
+  }>;
 }
 
 /**
@@ -538,7 +687,17 @@ export interface CombatClearOutcome {
 export function applyCombatClearToProfile(
   profile: Profile,
   stage: CombatStageDef,
-  result: { cleared: boolean; currentHp: number; maxHp: number; hardcore?: boolean },
+  result: {
+    cleared: boolean;
+    currentHp: number;
+    maxHp: number;
+    hardcore?: boolean;
+    /** Total combos triggered this run. Sigilbound's engine has one combo
+     *  type (element_chain); we credit it equally to all three legacy
+     *  achievement combo buckets so onslaught/triadic/relentless predicates
+     *  can fire from a single combat run. */
+    combosTriggered?: number;
+  },
 ): { profile: Profile; outcome: CombatClearOutcome } {
   const stars = combatStarsFor({
     cleared: result.cleared,
@@ -549,12 +708,12 @@ export function applyCombatClearToProfile(
   if (stars === 0) {
     return {
       profile,
-      outcome: { stars: 0, firstClearAtTier: 0, rewardsGranted: [], itemDrops: [], newCurrentStage: profile.currentStage },
+      outcome: { stars: 0, firstClearAtTier: 0, rewardsGranted: [], itemDrops: [], newCurrentStage: profile.currentStage, loreUnlocked: [], achievementsUnlocked: [] },
     };
   }
 
   // Clone the profile so we don't mutate the caller's reference.
-  const next: Profile = {
+  let next: Profile = {
     ...profile,
     stageStars: { ...profile.stageStars },
     stageRewardsClaimed: { ...profile.stageRewardsClaimed },
@@ -640,6 +799,8 @@ export function applyCombatClearToProfile(
 
   // === F1-F4: Retention feature updates ===
 
+  const loreUnlocked: number[] = [];
+
   // F1 + F2: Boss clear detection. On boss first-clear, unlock hardmode stages and increment prestige.
   if (stage.isBoss && firstClearAtTier > 0) {
     const isBossFirstClear = !profile.bossesDefeatedByStage[stageNum];
@@ -658,14 +819,56 @@ export function applyCombatClearToProfile(
       if (loreMilestone && !next.loreMilestonesUnlocked.includes(stageNum)) {
         next.loreMilestonesUnlocked = [...next.loreMilestonesUnlocked, stageNum];
         next.cosmeticsUnlocked = [...next.cosmeticsUnlocked, loreMilestone.rewardCosmetic];
+        loreUnlocked.push(stageNum);
       }
     }
   }
 
+  // Lifetime counters that achievements key off. Sigilbound combat used to
+  // skip these; without them lifetime_seasons / best_rating predicates never
+  // fired.
+  next.seasonsPlayed = (next.seasonsPlayed ?? 0) + 1;
+  next.lastPlayedISO = new Date().toISOString();
+  // Combo counters: credit each legacy combo bucket with this run's combos
+  // so the achievements that key off onslaught/triadic/relentless can fire.
+  const combos = result.combosTriggered ?? 0;
+  if (combos > 0) {
+    const cur = next.lifetimeCombos ?? { onslaught: 0, triadic: 0, relentless: 0 };
+    next.lifetimeCombos = {
+      onslaught: (cur.onslaught ?? 0) + combos,
+      triadic: (cur.triadic ?? 0) + combos,
+      relentless: (cur.relentless ?? 0) + combos,
+    };
+  }
+  // Map combat star count → rating tier so best_rating predicates trigger.
+  // 1★ → bronze, 2★ → silver, 3★ → gold. Hardmode 3★ promotes to mythic.
+  const ratingFromStars: Rating =
+    stars === 3 ? (result.hardcore ? 'mythic' : 'gold')
+    : stars === 2 ? 'silver'
+    : stars === 1 ? 'bronze'
+    : 'survive';
+  if (isBetterRating(ratingFromStars, next.bestRating ?? 'fail')) {
+    next.bestRating = ratingFromStars;
+  }
+
+  // Evaluate achievements against the just-updated profile. Coin/gem
+  // rewards are folded in here; the unlocked list flows out via the
+  // outcome so the result screen can celebrate them.
+  const { profile: withAch, unlocked } = applyAchievementUnlocks(next);
+  next = withAch;
+
   saveProfile(next);
   return {
     profile: next,
-    outcome: { stars, firstClearAtTier, rewardsGranted, itemDrops, newCurrentStage: next.currentStage },
+    outcome: {
+      stars,
+      firstClearAtTier,
+      rewardsGranted,
+      itemDrops,
+      newCurrentStage: next.currentStage,
+      loreUnlocked,
+      achievementsUnlocked: unlocked,
+    },
   };
 }
 
@@ -704,4 +907,178 @@ export function claimLevelReward(profile: Profile, level: number): { profile: Pr
   }
   saveProfile(next);
   return { profile: next, rewards };
+}
+
+// === Card pack rolling ===
+
+// Rarity weights: higher rarity = harder to get.
+// Rolls 2–4 cards (uniform) from all combat cards (actions + tactics).
+const RARITY_WEIGHTS: Record<string, number> = {
+  common: 55, uncommon: 27, rare: 12, epic: 5, legendary: 1,
+};
+
+export function rollCardPack(packCount: number): string[] {
+  const pool = [...allActions(), ...allTactics()];
+  // Group by rarity
+  const byRarity: Record<string, string[]> = {};
+  for (const c of pool) {
+    if (!byRarity[c.rarity]) byRarity[c.rarity] = [];
+    byRarity[c.rarity].push(c.id);
+  }
+  // Build weighted flat pool
+  const weighted: string[] = [];
+  for (const [rarity, ids] of Object.entries(byRarity)) {
+    const w = RARITY_WEIGHTS[rarity] ?? 1;
+    for (const id of ids) {
+      for (let i = 0; i < w; i++) weighted.push(id);
+    }
+  }
+
+  const result: string[] = [];
+  const totalCards = 2 + Math.floor(Math.random() * 3); // 2–4
+  const totalDraws = totalCards * packCount;
+  for (let i = 0; i < totalDraws; i++) {
+    const idx = Math.floor(Math.random() * weighted.length);
+    result.push(weighted[idx]);
+  }
+  return result;
+}
+
+// === Battle Pass — local claim + VIP purchase ===
+
+// Claims a single tier reward locally. Used when offline or when cloud is
+// unavailable. Returns the updated profile + the granted reward, or null if
+// the claim is invalid (tier not reached, already claimed, VIP track without
+// VIP, or no reward defined).
+export function claimBpTierLocal(
+  profile: Profile,
+  tier: number,
+  track: 'free' | 'premium',
+): { profile: Profile; reward: BpRewardItem; rolledCardIds?: string[] } | null {
+  if (tier < 1 || tier > TOTAL_BP_TIERS) return null;
+  const playerTier = Math.min(TOTAL_BP_TIERS, Math.floor(profile.bpXp / XP_PER_TIER) + 1);
+  if (playerTier < tier) return null;
+  const tierDef = allBpTiers().find(t => t.tier === tier);
+  if (!tierDef) return null;
+  const reward = track === 'free' ? tierDef.free : tierDef.premium;
+  if (!reward) return null;
+  if (track === 'premium' && !profile.bpPremium) return null;
+  const claimedList = track === 'free' ? profile.bpClaimedFree : profile.bpClaimedPremium;
+  if (claimedList.includes(tier)) return null;
+
+  let next: Profile = { ...profile };
+  // Apply the reward.
+  switch (reward.type) {
+    case 'coins':
+      next = { ...next, bankCoins: next.bankCoins + (reward.value as number) };
+      break;
+    case 'gems':
+      next = { ...next, gems: next.gems + (reward.value as number) };
+      break;
+    case 'shards':
+      next = { ...next, perkShards: next.perkShards + (reward.value as number) };
+      break;
+    case 'combat_card_copies': {
+      // intentionally handled after the switch — needs rolledCardIds
+      break;
+    }
+    case 'talent_charge': {
+      // Stand-in: convert into shards so charges stay valuable. Cloud-side
+      // implementation will grant a tracked charge instead.
+      next = { ...next, perkShards: next.perkShards + (reward.value as number) * 100 };
+      break;
+    }
+    case 'cosmetic': {
+      const id = reward.value as string;
+      if (!next.cosmeticsUnlocked.includes(id)) {
+        next = { ...next, cosmeticsUnlocked: [...next.cosmeticsUnlocked, id] };
+      }
+      break;
+    }
+    case 'perk': {
+      next = addPerkCharges(next, reward.value as string, 1);
+      break;
+    }
+  }
+
+  // Roll card pack after switch so we can return the card IDs.
+  let rolledCardIds: string[] | undefined;
+  if (reward.type === 'combat_card_copies') {
+    rolledCardIds = rollCardPack(reward.value as number);
+    const inv = { ...next.combatCardInventory };
+    for (const id of rolledCardIds) {
+      inv[id] = (inv[id] ?? 0) + 1;
+    }
+    next = { ...next, combatCardInventory: inv };
+  }
+
+  // Mark claimed.
+  if (track === 'free') {
+    next = { ...next, bpClaimedFree: [...next.bpClaimedFree, tier] };
+  } else {
+    next = { ...next, bpClaimedPremium: [...next.bpClaimedPremium, tier] };
+  }
+  // Eval — bank coins / bp_tier-adjacent achievements may now satisfy.
+  const { profile: withAch } = applyAchievementUnlocks(next);
+  next = withAch;
+  saveProfile(next);
+  return { profile: next, reward, rolledCardIds };
+}
+
+// Buy the VIP (premium) pass locally with gems. Returns null if the player
+// can't afford or the pass is already owned.
+export function buyVipPassLocal(profile: Profile): Profile | null {
+  if (profile.bpPremium) return null;
+  if (profile.gems < VIP_PASS_GEM_COST) return null;
+  let next: Profile = { ...profile, gems: profile.gems - VIP_PASS_GEM_COST, bpPremium: true };
+  // bp_premium predicate trips immediately.
+  const { profile: withAch } = applyAchievementUnlocks(next);
+  next = withAch;
+  saveProfile(next);
+  return next;
+}
+
+// Claim a daily/weekly/monthly challenge reward locally. The progress is
+// already tracked in *QuestsState; this just marks the quest as claimed and
+// pays out coins/gems/shards/BP-XP. Returns null if the quest doesn't exist,
+// isn't complete, or has already been claimed.
+export function claimQuestRewardLocal(
+  profile: Profile,
+  questId: string,
+): { profile: Profile; coins: number; gems: number; shards: number; bpXp: number } | null {
+  // Find the quest and which state bucket it belongs to.
+  const allQuests = questsJson as Array<{
+    id: string; period: 'daily' | 'weekly' | 'monthly'; goal: number;
+    rewardCoins: number; rewardGems: number; rewardShards: number; rewardBpXp: number;
+  }>;
+  const q = allQuests.find(x => x.id === questId);
+  if (!q) return null;
+  const bucket: 'todayQuestsState' | 'weekQuestsState' | 'monthQuestsState' =
+    q.period === 'daily' ? 'todayQuestsState' :
+    q.period === 'weekly' ? 'weekQuestsState' : 'monthQuestsState';
+  const state = profile[bucket] ?? {};
+  const cur = state[questId];
+  if (!cur || cur.progress < q.goal || cur.claimed) return null;
+
+  const nextState = { ...state, [questId]: { progress: cur.progress, claimed: true } };
+  let next: Profile = {
+    ...profile,
+    [bucket]: nextState,
+    bankCoins: profile.bankCoins + q.rewardCoins,
+    totalCoinsEarned: profile.totalCoinsEarned + q.rewardCoins,
+    gems: profile.gems + q.rewardGems,
+    perkShards: profile.perkShards + q.rewardShards,
+    bpXp: Math.min(TOTAL_BP_TIERS * XP_PER_TIER, profile.bpXp + q.rewardBpXp),
+  };
+  // Eval — lifetime_coins, bank_coins_at_least, bp_tier may now satisfy.
+  const { profile: withAch } = applyAchievementUnlocks(next);
+  next = withAch;
+  saveProfile(next);
+  return {
+    profile: next,
+    coins: q.rewardCoins,
+    gems: q.rewardGems,
+    shards: q.rewardShards,
+    bpXp: q.rewardBpXp,
+  };
 }
