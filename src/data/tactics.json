@@ -3,7 +3,7 @@
   { "id": "tac_002", "type": "tactic", "name": "Bandage",       "rarity": "common",    "cost": 1, "emoji": "🩹", "description": "Heal 50 HP.",                                     "effect": { "kind": "heal",   "amount": 50 } },
   { "id": "tac_003", "type": "tactic", "name": "Brace",         "rarity": "common",    "cost": 2, "emoji": "🛡️", "description": "Gain 120 block.",                                 "effect": { "kind": "block",  "amount": 120 } },
   { "id": "tac_004", "type": "tactic", "name": "Heal Potion",   "rarity": "common",    "cost": 1, "emoji": "🧪", "description": "Heal 100 HP.",                                    "effect": { "kind": "heal",   "amount": 100 } },
-  { "id": "tac_005", "type": "tactic", "name": "Inspire",       "rarity": "common",    "cost": 1, "emoji": "🎺", "description": "Draw 2 cards.",                                  "effect": { "kind": "draw",   "cards": 2 } },
+  { "id": "tac_005", "type": "tactic", "name": "Inspire",       "rarity": "common",    "cost": 1, "emoji": "🎺", "description": "Draw 1 card. Gain +20% damage this turn.",        "effect": { "kind": "draw_and_buff", "cards": 1, "buffPct": 0.2, "turns": 1 } },
   { "id": "tac_006", "type": "tactic", "name": "Adrenaline",    "rarity": "uncommon",  "cost": 0, "emoji": "💉", "description": "+2 stamina this turn.",                          "effect": { "kind": "gain_stamina", "amount": 2 } },
   { "id": "tac_007", "type": "tactic", "name": "Smoke Screen",  "rarity": "uncommon",  "cost": 2, "emoji": "💨", "description": "−50% enemy damage next turn.",                   "effect": { "kind": "enemy_damage_debuff", "pct": 0.5, "turns": 1 } },
   { "id": "tac_008", "type": "tactic", "name": "War Cry",       "rarity": "uncommon",  "cost": 1, "emoji": "📯", "description": "+25% damage this turn.",                         "effect": { "kind": "damage_buff", "pct": 0.25, "turns": 1 } },
@@ -19,6 +19,6 @@
   { "id": "tac_018", "type": "tactic", "name": "Mass Heal",     "rarity": "epic",      "cost": 3, "emoji": "✨", "description": "Heal 300 HP.",                                    "effect": { "kind": "heal",   "amount": 300 } },
   { "id": "tac_019", "type": "tactic", "name": "Damage Mirror", "rarity": "epic",      "cost": 2, "emoji": "🪞", "description": "Reflect 100% next attack.",                      "effect": { "kind": "reflect_next_attack", "pct": 1 } },
   { "id": "tac_020", "type": "tactic", "name": "Astral Pact",      "rarity": "legendary", "cost": 5, "emoji": "🌌", "description": "This turn: every card +50% damage and costs 0.", "persistent": false, "effect": { "kind": "all_cards_buffed_zero_cost", "pct": 0.5 } },
-  { "id": "tac_021", "type": "tactic", "name": "Quick Study",      "rarity": "uncommon",  "cost": 2, "emoji": "📖", "description": "Draw 3 cards.",                                   "effect": { "kind": "draw", "cards": 3 } },
+  { "id": "tac_021", "type": "tactic", "name": "Quick Study",      "rarity": "common",    "cost": 1, "emoji": "📖", "description": "Draw 2 cards.",                                   "effect": { "kind": "draw", "cards": 2 } },
   { "id": "tac_022", "type": "tactic", "name": "Calculated Risk",  "rarity": "uncommon",  "cost": 0, "emoji": "🎲", "description": "Discard 2 cards, then draw 3.",                   "effect": { "kind": "discard_draw", "discard": 2, "draw": 3 } }
 ]

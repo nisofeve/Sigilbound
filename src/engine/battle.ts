@@ -679,6 +679,10 @@ export class BattleRunner {
       case 'draw':
         this.drawCards(effect.cards);
         break;
+      case 'draw_and_buff':
+        this.drawCards(effect.cards);
+        this.state.player = applyPlayerStatus(this.state.player, 'empowered', Math.round(effect.buffPct / 0.10), effect.turns);
+        break;
       case 'gain_stamina':
         this.state.staminaThisTurn += effect.amount;
         break;
