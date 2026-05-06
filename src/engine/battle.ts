@@ -653,8 +653,49 @@ export class BattleRunner {
     this.state.staminaThisTurn -= effectiveCost;
     this.discardFromHand(handIndex);
 
-    this.applyTacticEffect(def.effect, targetEnemyId, this.tierMults[cardId] ?? 1);
+    const level = this.tierMults[cardId] ?? 1;
+    this.applyTacticEffect(def.effect, targetEnemyId, level);
+    // Level riders — small bonus buff/debuff that fires starting at level 2
+    // for select tactics. Doesn't replace the original effect; it's purely
+    // additive flavor that scales mildly with level.
+    this.applyTacticLevelRider(cardId, level);
     return 'played';
+  }
+
+  /**
+   * Apply a small per-card "rider" effect at level >= 2. The original
+   * effect is unchanged; this is a flavor bonus on top. Stacks scale
+   * linearly: 1 stack at L2, +1 per level → 9 stacks at L10. Empowered
+   * uses 1% per stack and weakened (-1% per stack) so the magnitudes feel
+   * like a small bonus, not a replacement effect.
+   */
+  private applyTacticLevelRider(cardId: string, level: number): void {
+    if (level < 2) return;
+    const lvBonus = Math.max(1, level - 1); // 1 at L2 .. 9 at L10
+    switch (cardId) {
+      case 'tac_006': // Adrenaline — pumped up, small damage buff this turn
+      case 'tac_014': // Mana Tap — mystical surge, small damage buff
+      case 'tac_017': // Time Warp — bent time, small damage buff
+      case 'tac_022': // Calculated Risk — calculated edge, small damage buff
+        this.state.player = applyPlayerStatus(this.state.player, 'empowered', lvBonus + 1, 1);
+        break;
+      case 'tac_021': // Quick Study — sharper focus, smaller damage buff
+        this.state.player = applyPlayerStatus(this.state.player, 'empowered', lvBonus, 1);
+        break;
+      case 'tac_009': { // Sigil Refresh — magical ward, small block self
+        const block = 5 * lvBonus;
+        this.state.player = addBlock(this.state.player, block);
+        this.fireReactionTrigger('onBlockApplied');
+        break;
+      }
+      case 'tac_016': // Soulburn — drained souls, small weaken on all enemies
+        this.state.enemies = this.state.enemies.map(e =>
+          isEnemyAlive(e)
+            ? { ...e, statuses: applyStatus(e.statuses, 'weakened', lvBonus, 2) }
+            : e,
+        );
+        break;
+    }
   }
 
   /** Resolve a tactic effect against the current state. Visible internally
@@ -682,32 +723,41 @@ export class BattleRunner {
         break;
       case 'draw_and_buff':
         this.drawCards(effect.cards);
-        this.state.player = applyPlayerStatus(this.state.player, 'empowered', Math.round(effect.buffPct / 0.10), effect.turns);
+        // Empowered now uses 1% per stack — convert pct (0..1) → stacks.
+        // Card-level scaling: +3% damage per level above 1 layered on top
+        // of the authored buffPct so leveling Inspire actually grows it.
+        {
+          const levelBonusPct = (level - 1) * 0.03;
+          const totalPct = effect.buffPct + levelBonusPct;
+          const stacks = Math.max(1, Math.round(totalPct * 100));
+          this.state.player = applyPlayerStatus(this.state.player, 'empowered', stacks, effect.turns);
+        }
         break;
       case 'gain_stamina':
         this.state.staminaThisTurn += effect.amount;
         break;
-      case 'damage_buff':
-        // Stored on the player as a transient status — we use the existing
-        // outgoing-damage pipeline by stacking a one-turn flag. Phase 6
-        // approximation: bump the player's atk for this turn; cleared at
-        // end-of-turn alongside block.
-        // (A real status would use the tickEndOfPlayerTurn decay, but the
-        // current outgoingDamageMult only honours weakened. Adding a
-        // dedicated 'damage_buff' status would require status-bag work; the
-        // simpler path here is to bank the bonus on the player.)
-        // For Phase 6, simply heal back equivalent stamina to indicate the
-        // buff and document the gap — a TODO marker for Phase 6+.
-        // TODO: wire damage_buff into outgoingDamageMult via a 'empowered'
-        // status. Until then, War Cry effectively no-ops.
-        void effect;
+      case 'damage_buff': {
+        // Maps to 'empowered' player status. Uses 1% per stack now, plus
+        // +3% per card level above 1 (War Cry gets stronger as it levels).
+        const levelBonusPct = (level - 1) * 0.03;
+        const totalPct = effect.pct + levelBonusPct;
+        const stacks = Math.max(1, Math.round(totalPct * 100));
+        this.state.player = applyPlayerStatus(this.state.player, 'empowered', stacks, effect.turns);
         break;
-      case 'enemy_damage_debuff':
-        // Apply Weakened to all living enemies — closest existing parallel.
-        // Phase 6 tactics sweep will refine this once enemy status apply
-        // hooks are wired.
-        // No-op for now; tracked.
+      }
+      case 'enemy_damage_debuff': {
+        // Apply Weakened to all living enemies. 1% per stack — convert pct.
+        // +3% per card level above 1 (Smoke Screen scales).
+        const levelBonusPct = (level - 1) * 0.03;
+        const totalPct = effect.pct + levelBonusPct;
+        const stacks = Math.max(1, Math.round(totalPct * 100));
+        this.state.enemies = this.state.enemies.map(e =>
+          isEnemyAlive(e)
+            ? { ...e, statuses: applyStatus(e.statuses, 'weakened', stacks, effect.turns) }
+            : e,
+        );
         break;
+      }
       case 'apply_status_self':
         this.state.player = applyPlayerStatus(this.state.player, effect.id, effect.stacks, effect.turns);
         break;

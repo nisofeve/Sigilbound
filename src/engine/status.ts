@@ -62,8 +62,8 @@ export const STATUS_DEFS: Record<StatusId, StatusDef> = {
   stun:       { id: 'stun',       icon: '💫', name: 'Stun',       description: 'Target loses its next action.',                                                                    decayKind: 'turns' },
   entangled:  { id: 'entangled',  icon: '🌿', name: 'Entangled',  description: 'Target cannot gain Block and deals reduced damage while bound.',                                   decayKind: 'turns' },
   charmed:    { id: 'charmed',    icon: '💛', name: 'Charmed',    description: 'Target attacks allies instead of enemies on its next turn.',                                       decayKind: 'turns' },
-  weakened:   { id: 'weakened',   icon: '🌀', name: 'Weakened',   description: 'Reduces damage dealt by 25% for the duration.',                                                    decayKind: 'turns' },
-  empowered:  { id: 'empowered',  icon: '💪', name: 'Empowered',  description: 'Increases damage dealt by 10% per stack for the duration.',                                         decayKind: 'turns' },
+  weakened:   { id: 'weakened',   icon: '🌀', name: 'Weakened',   description: 'Reduces damage dealt by 1% per stack (capped at 50%) for the duration.',                          decayKind: 'turns' },
+  empowered:  { id: 'empowered',  icon: '💪', name: 'Empowered',  description: 'Increases damage dealt by 1% per stack for the duration.',                                          decayKind: 'turns' },
   marked:     { id: 'marked',     icon: '👁',  name: 'Marked',     description: 'The next attack against this target deals 50% extra damage.',                                     decayKind: 'turns' },
   vulnerable: { id: 'vulnerable', icon: '💥', name: 'Vulnerable', description: 'Target takes 50% increased damage from all sources for the duration.',                            decayKind: 'turns' },
   curse:      { id: 'curse',      icon: '💀', name: 'Curse',      description: 'Drains 1 Stamina from the player (or reduces enemy ATK by 1) at the start of each turn.',         decayKind: 'turns' },
@@ -179,11 +179,18 @@ export function decayStatuses(bag: StatusBag): StatusBag {
 // === Damage modifiers ===
 
 // Multiplier applied to damage the owner DEALS.
-// Weakened: -25%. Empowered: +30%. Stack multiplicatively.
+// Weakened: -1% per stack (clamped to -50% floor). Empowered: +1% per stack.
+// Stack multiplicatively across both.
 export function outgoingDamageMult(bag: StatusBag): number {
   let m = 1;
-  if (hasStatus(bag, 'weakened'))  m *= 0.75;
-  if (hasStatus(bag, 'empowered')) m *= 1 + 0.10 * (bag.empowered?.stacks ?? 1);
+  if (hasStatus(bag, 'weakened')) {
+    const stacks = bag.weakened?.stacks ?? 1;
+    m *= Math.max(0.5, 1 - 0.01 * stacks);
+  }
+  if (hasStatus(bag, 'empowered')) {
+    const stacks = bag.empowered?.stacks ?? 1;
+    m *= 1 + 0.01 * stacks;
+  }
   return m;
 }
 
