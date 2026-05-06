@@ -452,13 +452,14 @@ export class BattleRunner {
 
   // === Card flow helpers (Phase 6) ===
 
-  /** The effective hand cap: base HAND_HARD_CAP + any talent bonus. */
+  /** The effective hand cap: base HAND_HARD_CAP + any talent bonus, capped
+   *  at the design ceiling MAX_HAND_CAP (matches MAX_HAND_SIZE in player.ts). */
   handCap(): number {
     const bonus = this.state.talents.list.reduce((acc, t) => {
       if (t.modifier?.type === 'hand_cap_delta') return acc + (t.modifier.value as number);
       return acc;
     }, 0);
-    return HAND_HARD_CAP + bonus;
+    return Math.min(9, HAND_HARD_CAP + bonus);
   }
 
   /** Draw N cards from the deck into the hand. Reshuffles discard into deck

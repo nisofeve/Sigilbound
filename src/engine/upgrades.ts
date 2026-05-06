@@ -37,7 +37,11 @@ export function sumUpgradeEffect(ownedIds: string[], type: UpgradeEffect['type']
   return total;
 }
 
+// Hard ceiling — design cap on talent / perk slot count regardless of
+// owned upgrades. Excess perk_slots_delta tiers contribute nothing.
+const MAX_PERK_SLOTS = 5;
+
 export function maxPerkSlots(ownedIds: string[]): number {
-  // Base is 2 (per GDD §Perks). Perk Slot upgrades add.
-  return 2 + sumUpgradeEffect(ownedIds, 'perk_slots_delta');
+  // Base is 2 (per GDD §Perks). Perk Slot upgrades add, capped at MAX_PERK_SLOTS.
+  return Math.min(MAX_PERK_SLOTS, 2 + sumUpgradeEffect(ownedIds, 'perk_slots_delta'));
 }

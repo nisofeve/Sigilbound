@@ -58,6 +58,11 @@ const BASE_SPEED = 1.0;
 const BASE_STAMINA = 3;
 const BASE_SIGIL_SLOTS = 3;
 const BASE_HAND_SIZE = 5;
+// Design ceilings on stackable stats. Upgrades + talents + equipment can
+// stack contributions, but computePlayerStats clamps the final value to
+// these maxima so excess tiers contribute nothing.
+const MAX_HAND_SIZE = 9;
+const MAX_STAMINA = 5;
 
 export function baseStatsForLevel(level: number): PlayerStats {
   const lv = Math.max(1, Math.min(MAX_LEVEL, Math.floor(level)));
@@ -122,8 +127,8 @@ export function computePlayerStats(input: ComputeStatsInput): PlayerStats {
   out.critChance = clamp01(out.critChance);
   out.maxHp = Math.max(1, out.maxHp);
   out.sigilSlots = Math.max(1, Math.min(6, out.sigilSlots));
-  out.handSize = Math.max(1, out.handSize);
-  out.stamina = Math.max(0, out.stamina);
+  out.handSize = Math.max(1, Math.min(MAX_HAND_SIZE, out.handSize));
+  out.stamina = Math.max(0, Math.min(MAX_STAMINA, out.stamina));
   return out;
 }
 

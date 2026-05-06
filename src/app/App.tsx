@@ -439,15 +439,22 @@ export default function App() {
           profile={profile}
           currentStage={profile.currentStage}
           ownedUpgradeIds={profile.upgradesOwned}
-          onBegin={({ stageNumber, talents, equipment, hardcore }) =>
+          onBegin={({ stageNumber, talents, equipment, hardcore }) => {
+            // Burn one charge of every equipped consumable talent. Starter
+            // talents are exempt and stay permanent. Done at run-commit so
+            // a quit / defeat / retry still costs the charge — same trade
+            // as gem spends. The currently-equipped Perk objects in
+            // `talents` keep the run buffed; charge depletion only affects
+            // the next stage selection.
+            persistProfile(consumeEquippedPerksForRun(profile));
             setScreen({
               kind: 'combat', stageNumber, talents, equipment, hardcore,
               // Phase 7: forward the player's custom combat deck.
               customDeck: profile.combatDeck,
               // Stronghold upgrades — flow into combat as stat mods + buffs.
               ownedUpgradeIds: profile.upgradesOwned,
-            })
-          }
+            });
+          }}
           onBack={() => setScreen({ kind: 'sigilbound_hub' })}
           onDeck={() => setScreen({ kind: 'deck' })}
           onProfileChange={persistProfile}
@@ -573,7 +580,10 @@ export default function App() {
           stageNumber={screen.stageNumber}
           profile={profile}
           ownedUpgradeIds={profile.upgradesOwned}
-          onBegin={({ stageNumber, talents, equipment, hardcore }) =>
+          onBegin={({ stageNumber, talents, equipment, hardcore }) => {
+            // See combat_home onBegin — burn one consumable-talent charge
+            // per equipped slot at run-commit. Starter talents skip.
+            persistProfile(consumeEquippedPerksForRun(profile));
             setScreen({
               kind: 'combat',
               stageNumber,
@@ -582,8 +592,8 @@ export default function App() {
               hardcore,
               customDeck: profile.combatDeck,
               ownedUpgradeIds: profile.upgradesOwned,
-            })
-          }
+            });
+          }}
           onQuit={() => setScreen({ kind: 'sigilbound_hub' })}
           onDeck={() => navigateTo({ kind: 'deck', from: 'stage_info' })}
           onProfileChange={persistProfile}
