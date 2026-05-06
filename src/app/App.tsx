@@ -482,6 +482,8 @@ export default function App() {
                 maxHp: runner.state.player.stats.maxHp,
                 hardcore: screen.hardcore,
                 combosTriggered: runner.state.combosTriggeredThisStage.element_chain,
+                damageDealtByType: runner.state.player.damageDealtByType,
+                damageTakenThisStage: runner.state.player.damageTakenThisStage,
               },
             );
             if (nextProfile !== profile) {

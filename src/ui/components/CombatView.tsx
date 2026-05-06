@@ -99,11 +99,12 @@ function intentDisplay(intent: Intent): string {
 //   arcane_orb — pulsing magic orb with halo ring
 //   smash      — heavy chunky impact, slight knockback
 //   beam       — straight glowing line connecting source → target
-type VfxArchetype = 'slash' | 'fireball' | 'ice_shard' | 'bolt' | 'arcane_orb' | 'smash' | 'beam';
+type VfxArchetype = 'slash' | 'fireball' | 'ice_shard' | 'bolt' | 'arcane_orb' | 'smash' | 'beam' | 'lightning';
 
 function vfxArchetypeFor(cardName: string, damageType: string): VfxArchetype {
   const n = cardName.toLowerCase();
   // Name-driven matchers — most specific first.
+  if (/thunder|lightning|electric|shock|spark|zap|jolt|storm|tempest|arc/.test(n)) return 'lightning';
   if (/fire|flame|inferno|phoenix|ember|firebolt|fireball/.test(n)) return 'fireball';
   if (/frost|ice|blizzard|glacial|cold|snap|chill/.test(n)) return 'ice_shard';
   if (/slash|cleave|swing|blade dance|dance/.test(n)) return 'slash';
@@ -113,10 +114,14 @@ function vfxArchetypeFor(cardName: string, damageType: string): VfxArchetype {
   if (/strike|stab|riposte|edge/.test(n)) return 'slash';
   // Damage-type fallback.
   switch (damageType) {
+    case 'thunder': return 'lightning';
+    case 'fire':
     case 'pyre':   return 'fireball';
+    case 'ice':
     case 'frost':  return 'ice_shard';
     case 'pierce': return 'bolt';
     case 'arcane': return 'arcane_orb';
+    case 'physical':
     case 'steel':
     default:       return 'slash';
   }
@@ -286,6 +291,13 @@ export default function CombatView({
     id: number; x: number; y: number; size: number;
   }>>([]);
   const fireballExplosionIdRef = useRef(0);
+  // Lightning arcs — jagged polylines connecting source → target. Used for
+  // thunder-typed strikes; chains travel target → next target on AOE hits.
+  const [lightningArcs, setLightningArcs] = useState<Array<{
+    id: number; from: { x: number; y: number }; to: { x: number; y: number };
+    color: string; durationMs: number; thickness: number;
+  }>>([]);
+  const lightningArcIdRef = useRef(0);
   // Screen shake — applied to the playfield container.
   const [screenShake, setScreenShake] = useState<'light' | 'heavy' | null>(null);
   const screenShakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -483,6 +495,8 @@ export default function CombatView({
     // Tear down.
     setTacticPlay(null);
     setDrawingCards(prev => { const n = new Set(prev); n.delete(realHandIndex); return n; });
+    setHoveredHandIdx(null);
+    setSelectedHandIdx(null);
 
     if (drawnIndices.length > 0) {
       await dealNewCards(drawnIndices);
@@ -516,12 +530,19 @@ export default function CombatView({
   // === Damage-type colors for VFX projectiles ===
   const damageTypeVfxColor = (t: string): string => {
     switch (t) {
-      case 'pyre':   return '#ff7a1a';
-      case 'frost':  return '#7ec4ff';
-      case 'arcane': return '#c97cff';
-      case 'pierce': return '#ffd569';
+      case 'thunder': return '#a8e6ff';
+      case 'fire':
+      case 'pyre':    return '#ff7a1a';
+      case 'ice':
+      case 'frost':   return '#7ec4ff';
+      case 'arcane':  return '#c97cff';
+      case 'pierce':  return '#ffd569';
+      case 'nature':  return '#7be38a';
+      case 'holy':    return '#fff1a8';
+      case 'dark':    return '#9d6bff';
+      case 'physical':
       case 'steel':
-      default:       return '#e2e2e2';
+      default:        return '#e2e2e2';
     }
   };
 
@@ -626,6 +647,28 @@ export default function CombatView({
     setTimeout(() => setFireballExplosions(list => list.filter(e => e.id !== id)), 1200);
   }
 
+  // Lightning arc — instant jagged bolt from `from` → `to`. Resolves once
+  // the bolt has reached the target (durationMs is the visible lifetime).
+  // Used for thunder strikes and chain-target hops between enemies.
+  function spawnLightningArc(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    color: string,
+    durationMs = 280,
+    thickness = 3,
+  ): Promise<void> {
+    return new Promise(resolve => {
+      const id = ++lightningArcIdRef.current;
+      setLightningArcs(list => [...list, { id, from, to, color, durationMs, thickness }]);
+      // Travel time: the arc appears almost instantly but we wait a fraction
+      // of its visible window so the impact spark fires while the bolt is
+      // still drawn — feels like the energy lands before fading.
+      const travelMs = Math.max(60, Math.floor(durationMs * 0.35));
+      setTimeout(() => resolve(), travelMs);
+      setTimeout(() => setLightningArcs(list => list.filter(a => a.id !== id)), durationMs);
+    });
+  }
+
   // Screen shake — applied to the root playfield container. Light = small
   // jitter for impacts. Heavy = bigger shake for crits/kills/bosses.
   function shakeScreen(intensity: 'light' | 'heavy' = 'light'): void {
@@ -712,7 +755,32 @@ export default function CombatView({
           await playComboVolley(run, comboSlotMap);
           i = j;
         } else {
-          await playActionResolve(ev as Extract<ResolveEvent, { kind: 'action_resolve' }>);
+          // Detect a lightning AOE: a contiguous run of action_resolves with
+          // the same slot + card whose archetype resolves to 'lightning'.
+          // The first hit fires from the slot; each subsequent hit chains
+          // from the previous target's center (energy hops enemy-to-enemy).
+          const aev = ev as Extract<ResolveEvent, { kind: 'action_resolve' }>;
+          const firstName = getAction(aev.cardId)?.name ?? '';
+          const firstArch = vfxArchetypeFor(firstName, aev.damageType);
+          if (firstArch === 'lightning') {
+            const chain: Extract<ResolveEvent, { kind: 'action_resolve' }>[] = [aev];
+            let k = i + 1;
+            while (k < log.length && log[k].kind === 'action_resolve') {
+              const nxt = log[k] as Extract<ResolveEvent, { kind: 'action_resolve' }>;
+              if (nxt.slotIndex !== aev.slotIndex) break;
+              if (nxt.cardId !== aev.cardId) break;
+              if (comboSlotMap.has(nxt.slotIndex)) break; // combo path handled elsewhere
+              if (!nxt.targetEnemyId || nxt.targetEnemyId === aev.targetEnemyId) break;
+              chain.push(nxt);
+              k++;
+            }
+            if (chain.length >= 2) {
+              await playLightningChain(chain);
+              i = k;
+              continue;
+            }
+          }
+          await playActionResolve(aev);
           i++;
         }
       } else if (ev.kind === 'combo') {
@@ -788,6 +856,30 @@ export default function CombatView({
     await wait(ev.enemyKilled ? 480 : 320);
   }
 
+  // Lightning chain — first hit fires slot→enemy normally; each subsequent
+  // hit hops from the previous target's center, skipping wind-up so the
+  // arc reads as a continuous current jumping enemy-to-enemy.
+  async function playLightningChain(
+    events: ReadonlyArray<Extract<ResolveEvent, { kind: 'action_resolve' }>>,
+  ): Promise<void> {
+    let prevPos: { x: number; y: number } | null = null;
+    for (let idx = 0; idx < events.length; idx++) {
+      const ev = events[idx];
+      await playSingleStrike(ev, /* skipSlotPulse */ idx > 0, idx === 0 ? null : prevPos);
+      // Capture the impact point of this hit so the next chain hop arcs
+      // from here. Read the enemy rect AFTER the strike resolved.
+      if (ev.targetEnemyId) {
+        const el = enemyRefs.current.get(ev.targetEnemyId);
+        if (el) {
+          const r = el.getBoundingClientRect();
+          prevPos = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        }
+      }
+      // Tight stagger between hops keeps the chain feeling instant.
+      await wait(idx === events.length - 1 ? (ev.enemyKilled ? 360 : 220) : 90);
+    }
+  }
+
   // Per-archetype timing profile. Each strike is divided into 3 phases:
   //   chargeMs  — slot pulses + aura gathers + SFX cue (anticipation)
   //   flightMs  — projectile travels (or slash blink delay)
@@ -813,6 +905,7 @@ export default function CombatView({
   async function playSingleStrike(
     ev: Extract<ResolveEvent, { kind: 'action_resolve' }>,
     skipSlotPulse: boolean,
+    chainFrom?: { x: number; y: number } | null,
   ): Promise<void> {
     const slotEl = ev.slotIndex >= 0 ? slotRefs.current.get(ev.slotIndex) : undefined;
     const enemyEl = ev.targetEnemyId ? enemyRefs.current.get(ev.targetEnemyId) : undefined;
@@ -833,13 +926,17 @@ export default function CombatView({
 
     const sRect = slotEl.getBoundingClientRect();
     const eRect = enemyEl.getBoundingClientRect();
-    const from = { x: sRect.left + sRect.width / 2, y: sRect.top + sRect.height / 2 };
+    // For chained lightning strikes, the source is the previous target's
+    // impact position, not the slot — energy hops from enemy to enemy.
+    const slotCenter = { x: sRect.left + sRect.width / 2, y: sRect.top + sRect.height / 2 };
+    const from = (archetype === 'lightning' && chainFrom) ? chainFrom : slotCenter;
     const to = { x: eRect.left + eRect.width / 2, y: eRect.top + eRect.height / 2 };
+    const isChainHop = archetype === 'lightning' && !!chainFrom;
 
     // ============================================================
     // PHASE 1: CHARGE-UP — slot pulses, aura gathers, SFX cue
     // ============================================================
-    if (!skipSlotPulse) {
+    if (!skipSlotPulse && !isChainHop) {
       // Slot pulse during charge — scale + outer box-shadow only. NO
       // `filter: brightness()` (washes the emoji white) and NO `inset`
       // box-shadow (paints color over the icon area inside the hex
@@ -857,35 +954,54 @@ export default function CombatView({
         { duration: timing.chargeMs, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
       );
     }
-    // Charge-up SFX: soft breath at the start of the wind-up.
-    sfx.cardLift();
-    // Aura gathering on the slot.
-    void spawnChargeAura(from.x, from.y, color, sRect.width * 1.2, timing.chargeMs, archetype);
-    await wait(timing.chargeMs);
+    if (!isChainHop) {
+      // Charge-up SFX: soft breath at the start of the wind-up.
+      sfx.cardLift();
+      // Aura gathering on the slot.
+      void spawnChargeAura(slotCenter.x, slotCenter.y, color, sRect.width * 1.2, timing.chargeMs, archetype);
+      await wait(timing.chargeMs);
+    } else {
+      // Chain hop — no wind-up, lightning is already coursing through the
+      // previous target. Brief delay so impacts read as a sequence, not a
+      // simultaneous flash.
+      await wait(80);
+    }
 
     // ============================================================
     // PHASE 2: PROJECTILE FLIGHT
     // ============================================================
     // Damage-type SFX fires at launch (apex of the wind-up).
     switch (ev.damageType) {
-      case 'pyre':   sfx.pyreHit();   break;
-      case 'frost':  sfx.frostHit();  break;
-      case 'arcane': sfx.arcaneHit(); break;
-      case 'pierce': sfx.pierceHit(); break;
+      case 'pyre':
+      case 'fire':    sfx.pyreHit();   break;
+      case 'frost':
+      case 'ice':     sfx.frostHit();  break;
+      case 'arcane':  sfx.arcaneHit(); break;
+      case 'pierce':  sfx.pierceHit(); break;
+      case 'thunder': sfx.arcaneHit(); break;
+      case 'physical':
       case 'steel':
-      default:       sfx.steelHit();  break;
+      default:        sfx.steelHit();  break;
     }
-    // Reset the slot transform + glow smoothly. fill: 'none' so the
-    // animation doesn't pin the slot at scale(1) and break later React-
-    // driven hover/scale styles. Outer glow only — no inset shadow.
-    slotEl.animate(
-      [
-        { transform: 'scale(1.08)', boxShadow: `0 0 18px ${color}, 0 0 32px ${color}66` },
-        { transform: 'scale(1)',    boxShadow: `0 0 0 transparent` },
-      ],
-      { duration: 200, easing: 'cubic-bezier(0.33, 1, 0.68, 1)' },
-    );
-    if (archetype !== 'slash' && archetype !== 'smash') {
+    if (!isChainHop) {
+      // Reset the slot transform + glow smoothly. fill: 'none' so the
+      // animation doesn't pin the slot at scale(1) and break later React-
+      // driven hover/scale styles. Outer glow only — no inset shadow.
+      slotEl.animate(
+        [
+          { transform: 'scale(1.08)', boxShadow: `0 0 18px ${color}, 0 0 32px ${color}66` },
+          { transform: 'scale(1)',    boxShadow: `0 0 0 transparent` },
+        ],
+        { duration: 200, easing: 'cubic-bezier(0.33, 1, 0.68, 1)' },
+      );
+    }
+    if (archetype === 'lightning') {
+      // Instant arc — slightly thicker and longer-lived for the initial
+      // slot→enemy bolt; chain hops use thinner, faster arcs.
+      const arcDuration = isChainHop ? 220 : 320;
+      const arcThickness = isChainHop ? 2.5 : 4;
+      await spawnLightningArc(from, to, color, arcDuration, arcThickness);
+    } else if (archetype !== 'slash' && archetype !== 'smash') {
       await spawnProjectile(from, to, ev.damageType, archetype, timing.flightMs);
     } else {
       // Slash/smash — short delay then blink the slash arc on the target.
@@ -960,6 +1076,16 @@ export default function CombatView({
           // Quick puncture: tiny ring + sparks.
           spawnImpactRing(cx, cy, color, r.width * 0.8, 450);
           spawnParticles(cx, cy, color, 'bolt', 6);
+          break;
+        case 'lightning':
+          // Electric burst: bright white core flash, cyan shockwave, jagged
+          // sparks radiating outward. Crit / chain hops keep their punch.
+          spawnImpactRing(cx, cy, '#ffffff', r.width * 0.7, 280);
+          spawnImpactRing(cx, cy, color, r.width * 1.3, 520);
+          spawnImpactRing(cx, cy, color, r.width * 1.9, 760);
+          spawnParticles(cx, cy, color, 'bolt', isChainHop ? 8 : 14);
+          spawnParticles(cx, cy, '#ffffff', 'bolt', 6);
+          shakeScreen(ev.wasCrit ? 'heavy' : 'light');
           break;
         case 'slash': {
           // Per-attack jitter so back-to-back slashes never look identical:
@@ -1660,6 +1786,18 @@ export default function CombatView({
     if (tac) return { kind: 'tactic' as const, def: tac, realIndex: i };
     return null;
   }).filter((x): x is HandEntry => x !== null);
+
+  // Stable per-instance keys so React reuses DOM elements when indices shift
+  // after a splice (e.g. tactic play). Without this, cards after the removed
+  // card get new keys → unmount/remount → no CSS transition → positions jump.
+  const handStableKeys = (() => {
+    const counts = new Map<string, number>();
+    return runner.state.hand.map(id => {
+      const n = counts.get(id) ?? 0;
+      counts.set(id, n + 1);
+      return `${id}_${n}`;
+    });
+  })();
 
   const pendingDiscard = runner.state.pendingDiscardCount > 0;
 
@@ -2778,12 +2916,13 @@ export default function CombatView({
 
   // Unified hand card renderer — action cards behave exactly as before
   // (drag/select/bind); tactic cards show a green tint and play on click.
-  function HandCard({ entry, i, total, cardW, cardH, fan, isDiscardPicking, selectedForDiscard }: {
+  function HandCard({ entry, i, total, cardW, cardH, fan, isDiscardPicking, selectedForDiscard, stableKey }: {
     entry: HandEntry; i: number; total: number;
     cardW: number; cardH: number;
     fan: { spacing: number; arcMul: number; rotMax: number };
     isDiscardPicking: boolean;
     selectedForDiscard: boolean;
+    stableKey: string;
   }) {
     const { realIndex } = entry;
     const dragging = draggingHandIdx === realIndex;
@@ -2809,7 +2948,7 @@ export default function CombatView({
 
     return (
       <div
-        key={`${entry.def.id}-${realIndex}`}
+        key={stableKey}
         ref={(el) => {
           if (el) cardRefs.current.set(realIndex, el);
           else cardRefs.current.delete(realIndex);
@@ -2886,7 +3025,16 @@ export default function CombatView({
           filter: selectedForDiscard ? 'brightness(1.2) drop-shadow(0 0 8px rgba(239,68,68,0.7))' : undefined,
         }}
       >
-        <div className={isDiscardPicking && !selectedForDiscard ? 'sb-hand-discard-shake' : ''} style={{ width: '100%', height: '100%' }}>
+        <div
+          className={isDiscardPicking && !selectedForDiscard ? 'sb-hand-discard-shake' : ''}
+          style={{
+            width: '100%',
+            height: '100%',
+            // Pseudo-random negative animation delay per card so each shakes
+            // out of phase — uses realIndex via a prime hash for stability.
+            ['--shake-delay' as string]: `-${((realIndex * 137) % 280)}ms`,
+          } as React.CSSProperties}
+        >
           {isTactic
             ? <TacticCardDisplay
                 card={entry.def as NonNullable<ReturnType<typeof getTactic>>}
@@ -3941,6 +4089,65 @@ export default function CombatView({
     </div>
   );
 
+  // Lightning arc layer — jagged SVG polylines connecting from→to with a
+  // bright white core stroke under a thicker glowing color stroke. Each arc
+  // is rendered into a fixed-position SVG that spans the viewport so screen
+  // coords map 1:1 onto SVG coords. Auto-fades via CSS animation.
+  const LightningArcLayer = lightningArcs.length > 0 && (
+    <svg
+      aria-hidden
+      style={{
+        position: 'fixed', inset: 0, width: '100vw', height: '100vh',
+        pointerEvents: 'none', zIndex: 252, overflow: 'visible',
+      }}
+    >
+      {lightningArcs.map(arc => {
+        // Build a jagged polyline by perturbing N midpoints along the
+        // straight segment from→to. Magnitude scales with distance so
+        // shorter hops stay tight while long bolts swagger.
+        const segments = 7;
+        const dx = arc.to.x - arc.from.x;
+        const dy = arc.to.y - arc.from.y;
+        const dist = Math.max(20, Math.hypot(dx, dy));
+        const nx = -dy / dist;
+        const ny = dx / dist;
+        const jagMax = Math.min(40, dist * 0.18);
+        const pts: Array<[number, number]> = [];
+        for (let s = 0; s <= segments; s++) {
+          const t = s / segments;
+          const lx = arc.from.x + dx * t;
+          const ly = arc.from.y + dy * t;
+          // No jitter at endpoints so the bolt actually meets source/target.
+          const j = (s === 0 || s === segments) ? 0 : (Math.random() * 2 - 1) * jagMax;
+          pts.push([lx + nx * j, ly + ny * j]);
+        }
+        const path = pts.map(([x, y]) => `${x},${y}`).join(' ');
+        return (
+          <g key={arc.id} className="sb-lightning-arc" style={{ ['--arc-duration' as string]: `${arc.durationMs}ms` } as React.CSSProperties}>
+            <polyline
+              points={path}
+              fill="none"
+              stroke={arc.color}
+              strokeWidth={arc.thickness * 2.4}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.55}
+              style={{ filter: `drop-shadow(0 0 8px ${arc.color}) drop-shadow(0 0 16px ${arc.color})` }}
+            />
+            <polyline
+              points={path}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={arc.thickness}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+
   // Fireball explosion layer — flash disc + rising flame licks + smoke puff.
   // Rendered between the impact rings and the generic particles so the smoke
   // sits on top of the rings but under the ember sparks.
@@ -4358,6 +4565,7 @@ export default function CombatView({
             ['🛡  DEF',     String(stats.def),                  '#60a5fa'],
             ['🔰  BLOCK',   String(p.block),                    '#93c5fd'],
             ['✦  CRIT',    `${Math.round(stats.critChance * 100)}%`, '#c084fc'],
+            ['✋  HAND',    `${runner.state.hand.length} / ${stats.handSize}`, '#fde68a'],
             ['🃏  DECK',    String(runner.state.deck.length),   '#94a3b8'],
             ['♻  DISCARD', String(runner.state.discard.length), '#64748b'],
           ];
@@ -5063,10 +5271,20 @@ export default function CombatView({
               aria-label="Toggle card info popup"
             >📖</button>
           </div>
-          {/* Row 2: resource chips — stamina / deck / discard */}
+          {/* Row 2: resource chips — stamina / hand / deck / discard */}
           <div className="flex items-center justify-end gap-1.5">
             <span className="sb-chip sb-chip-gold" style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0 }}>
               ⚡ {runner.state.staminaThisTurn}
+            </span>
+            <span
+              className="sb-chip"
+              style={{
+                fontSize: 10, padding: '3px 8px', flexShrink: 0,
+                color: runner.state.hand.length >= runner.state.player.stats.handSize ? '#fde68a' : undefined,
+              }}
+              title="Cards in hand / max hand size"
+            >
+              ✋ {runner.state.hand.length}/{runner.state.player.stats.handSize}
             </span>
             <span className="sb-chip" style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0 }}>
               🃏 {runner.state.deck.length}
@@ -5125,6 +5343,7 @@ export default function CombatView({
                 fan: { spacing, arcMul: 0.8, rotMax: 4 },
                 isDiscardPicking: pendingDiscard,
                 selectedForDiscard: discardPickSelected.has(entry.realIndex),
+                stableKey: handStableKeys[entry.realIndex] ?? `${entry.def.id}_${i}`,
               }))}
           </div>
         </div>
@@ -5239,6 +5458,7 @@ export default function CombatView({
         {TacticPlayOverlay}
         {ProjectileLayer}
         {ImpactRingLayer}
+        {LightningArcLayer}
         {FireballExplosionLayer}
         {SlashLayer}
         {ParticleLayer}
@@ -5334,6 +5554,13 @@ export default function CombatView({
 
       <div className="absolute top-4 right-2 z-20 flex flex-col items-end gap-1.5 pointer-events-none">
         <span className="sb-chip sb-chip-gold" style={{ fontSize: '12px' }}>⚡ {runner.state.staminaThisTurn} STAMINA</span>
+        <span
+          className="sb-chip"
+          style={{ color: runner.state.hand.length >= runner.state.player.stats.handSize ? '#fde68a' : undefined }}
+          title="Cards in hand / max hand size"
+        >
+          ✋ {runner.state.hand.length}/{runner.state.player.stats.handSize} HAND
+        </span>
         <span className="sb-chip">🃏 {runner.state.deck.length} DECK</span>
         <span className="sb-chip" style={{ opacity: 0.75 }}>🗑 {runner.state.discard.length} DISCARD</span>
       </div>
@@ -5382,6 +5609,7 @@ export default function CombatView({
               fan: { spacing: 118, arcMul: 1.8, rotMax: 6 },
               isDiscardPicking: pendingDiscard,
               selectedForDiscard: discardPickSelected.has(entry.realIndex),
+              stableKey: handStableKeys[entry.realIndex] ?? `${entry.def.id}_${i}`,
             }))}
         </div>
       </div>
@@ -5489,6 +5717,7 @@ export default function CombatView({
       {TacticPlayOverlay}
       {ProjectileLayer}
       {ImpactRingLayer}
+      {LightningArcLayer}
       {FireballExplosionLayer}
       {SlashLayer}
       {ParticleLayer}

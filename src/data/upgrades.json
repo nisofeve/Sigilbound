@@ -4,12 +4,12 @@
     "zone": "armory",
     "tier": 1,
     "name": "Whetstone I",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 60,
     "prerequisite": null,
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -17,12 +17,12 @@
     "zone": "armory",
     "tier": 2,
     "name": "Whetstone II",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 100,
     "prerequisite": "upg.armory.atk_1",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -30,12 +30,12 @@
     "zone": "armory",
     "tier": 3,
     "name": "Whetstone III",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 150,
     "prerequisite": "upg.armory.atk_2",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -43,12 +43,12 @@
     "zone": "armory",
     "tier": 4,
     "name": "Whetstone IV",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 200,
     "prerequisite": "upg.armory.atk_3",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -56,12 +56,12 @@
     "zone": "armory",
     "tier": 5,
     "name": "Whetstone V",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 280,
     "prerequisite": "upg.armory.atk_4",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -69,12 +69,12 @@
     "zone": "armory",
     "tier": 6,
     "name": "Whetstone VI",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 380,
     "prerequisite": "upg.armory.atk_5",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -82,12 +82,12 @@
     "zone": "armory",
     "tier": 7,
     "name": "Whetstone VII",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 500,
     "prerequisite": "upg.armory.atk_6",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -95,12 +95,12 @@
     "zone": "armory",
     "tier": 8,
     "name": "Whetstone VIII",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 650,
     "prerequisite": "upg.armory.atk_7",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -108,12 +108,12 @@
     "zone": "armory",
     "tier": 9,
     "name": "Whetstone IX",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 850,
     "prerequisite": "upg.armory.atk_8",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -121,12 +121,12 @@
     "zone": "armory",
     "tier": 10,
     "name": "Whetstone X",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 1100,
     "prerequisite": "upg.armory.atk_9",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -134,12 +134,12 @@
     "zone": "armory",
     "tier": 11,
     "name": "Whetstone XI",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 1400,
     "prerequisite": "upg.armory.atk_10",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -147,12 +147,12 @@
     "zone": "armory",
     "tier": 12,
     "name": "Whetstone XII",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 1800,
     "prerequisite": "upg.armory.atk_11",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -160,12 +160,12 @@
     "zone": "armory",
     "tier": 13,
     "name": "Whetstone XIII",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 2300,
     "prerequisite": "upg.armory.atk_12",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -173,12 +173,12 @@
     "zone": "armory",
     "tier": 14,
     "name": "Whetstone XIV",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 2900,
     "prerequisite": "upg.armory.atk_13",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -186,12 +186,12 @@
     "zone": "armory",
     "tier": 15,
     "name": "Whetstone XV",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 3700,
     "prerequisite": "upg.armory.atk_14",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -199,12 +199,12 @@
     "zone": "armory",
     "tier": 16,
     "name": "Whetstone XVI",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 4700,
     "prerequisite": "upg.armory.atk_15",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -212,12 +212,12 @@
     "zone": "armory",
     "tier": 17,
     "name": "Whetstone XVII",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 6000,
     "prerequisite": "upg.armory.atk_16",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -225,12 +225,12 @@
     "zone": "armory",
     "tier": 18,
     "name": "Whetstone XVIII",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 7500,
     "prerequisite": "upg.armory.atk_17",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -238,12 +238,12 @@
     "zone": "armory",
     "tier": 19,
     "name": "Whetstone XIX",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 9500,
     "prerequisite": "upg.armory.atk_18",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -251,12 +251,12 @@
     "zone": "armory",
     "tier": 20,
     "name": "Mythic Blade",
-    "description": "+5 Attack.",
+    "description": "+15 Attack.",
     "cost": 16000,
     "prerequisite": "upg.armory.atk_19",
     "effect": {
       "type": "atk_bonus",
-      "value": 5
+      "value": 15
     }
   },
   {
