@@ -22,6 +22,9 @@ coverage
 # Plotbound v0.1 baseline binary (111 MB) — kept locally as a reference
 # but excluded from git because it exceeds GitHub's 100 MB single-file limit.
 Plotbound_v0.1.zip
+dist-standalone/
+dist-itch/
+*.zip
 
 # Claude Code workspace metadata.
 .claude/
