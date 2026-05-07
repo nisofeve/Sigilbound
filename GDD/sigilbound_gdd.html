@@ -504,7 +504,7 @@ body {
   <div class="sidebar-logo">
     <div class="game-title">⚔ SIGILBOUND</div>
     <div class="game-subtitle">A Roguelike Deckbuilder</div>
-    <div class="sidebar-version">GDD v1.0 · Built on Plotbound v2.1</div>
+    <div class="sidebar-version">GDD v1.3 · Built on Plotbound v2.1</div>
   </div>
 
   <div class="nav-section">
@@ -580,7 +580,7 @@ body {
 <!-- ======= OVERVIEW ======= -->
 <section class="section active" id="sec-overview">
   <div class="section-header">
-    <div class="section-tag">Game Design Document v1.0</div>
+    <div class="section-tag">Game Design Document v1.3</div>
     <div class="section-title">⚔ Sigilbound</div>
     <div class="section-desc">A single-player roguelike deck-building card game about turn-based fantasy combat. Clear 100+ hand-tuned dungeon stages, master 3 simple combos, slay enemies and bosses, and forge your legendary stronghold — one battle at a time.</div>
   </div>
@@ -896,9 +896,11 @@ body {
         <tr><th>Parameter</th><th>Base Value</th></tr>
         <tr><td>Max Turns per Stage</td><td><span class="pill pill-crimson">15 turns (soft)</span></td></tr>
         <tr><td>Starting Hand Size</td><td>5 cards</td></tr>
+        <tr><td>Max Hand Size (hard cap)</td><td>9 cards</td></tr>
         <tr><td>Starting Sigil Slots</td><td>3 slots</td></tr>
         <tr><td>Starting Deck Size</td><td>12 cards</td></tr>
-        <tr><td>Max Talent Slots</td><td>2 (upgradeable to 4)</td></tr>
+        <tr><td>Max Talent Slots</td><td>2 (upgradeable to 5, hard cap)</td></tr>
+        <tr><td>Max Stamina (hard cap)</td><td>5</td></tr>
         <tr><td>Equipment Slots</td><td>6 (always all available)</td></tr>
         <tr><td>Win Condition</td><td>All enemies defeated, player HP &gt; 0</td></tr>
         <tr><td>Fail Condition</td><td>Player HP reaches 0, OR turn limit exceeded with enemies alive</td></tr>
@@ -1282,57 +1284,175 @@ body {
   </div>
 
   <div class="tab-content" id="cards-tactic">
-    <div class="info-box">Tactic cards are played from hand and have an immediate effect. They go to discard after use. Some tactics persist (marked 🔁). <strong>Maps directly to Plotbound Tool cards.</strong></div>
+    <div class="info-box">Tactic cards are played from hand for an immediate effect, then go to discard. Stats below are at <strong>Level 1 (60% of authored value)</strong>; Level 10 reaches ~127% of authored. Level riders (L2+) add small passive bonuses per card character. <strong>Maps directly to Plotbound Tool cards.</strong></div>
     <div class="grid-3" style="margin-top:16px;">
       <div class="game-card card-perk-common">
-        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON</div>
-        <span class="game-card-icon">⚡</span>
-        <div class="game-card-name">Quickdraw</div>
-        <div class="game-card-desc">Advances one charging Sigil by 1 turn.</div>
-        <div class="game-card-stats"><span class="game-card-stat">+1 charge</span></div>
-      </div>
-      <div class="game-card card-perk-common">
-        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON</div>
-        <span class="game-card-icon">💚</span>
-        <div class="game-card-name">Healing Salve</div>
-        <div class="game-card-desc">Restore 8 HP.</div>
-        <div class="game-card-stats"><span class="game-card-stat">+8 HP</span></div>
-      </div>
-      <div class="game-card card-perk-common">
-        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON</div>
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON · Cost 1</div>
         <span class="game-card-icon">🛡️</span>
-        <div class="game-card-name">Brace</div>
-        <div class="game-card-desc">Gain 6 Block (absorbs damage this turn only).</div>
-        <div class="game-card-stats"><span class="game-card-stat">🛡 6</span></div>
+        <div class="game-card-name">Block (tac_001)</div>
+        <div class="game-card-desc">Gain 80 Block. Scales with level.</div>
+        <div class="game-card-stats"><span class="game-card-stat">🛡 80</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON · Cost 1</div>
+        <span class="game-card-icon">🩹</span>
+        <div class="game-card-name">Bandage (tac_002)</div>
+        <div class="game-card-desc">Heal 50 HP. Scales with level.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+50 HP</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON · Cost 2</div>
+        <span class="game-card-icon">🛡️</span>
+        <div class="game-card-name">Brace (tac_003)</div>
+        <div class="game-card-desc">Gain 120 Block. Scales with level.</div>
+        <div class="game-card-stats"><span class="game-card-stat">🛡 120</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON · Cost 1</div>
+        <span class="game-card-icon">🧪</span>
+        <div class="game-card-name">Heal Potion (tac_004)</div>
+        <div class="game-card-desc">Heal 100 HP. Scales with level.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+100 HP</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON · Cost 1</div>
+        <span class="game-card-icon">🎺</span>
+        <div class="game-card-name">Inspire (tac_005)</div>
+        <div class="game-card-desc">Draw 1 card. Gain Empowered (+20% damage) this turn. <em>L2+: bonus Empowered stacks per level.</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">+1 draw</span><span class="game-card-stat">+20% dmg</span></div>
+      </div>
+      <div class="game-card card-perk-common">
+        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — COMMON · Cost 1</div>
+        <span class="game-card-icon">📖</span>
+        <div class="game-card-name">Quick Study (tac_021)</div>
+        <div class="game-card-desc">Draw 2 cards. <em>L2+: gain Empowered stacks (scaling with level).</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">+2 draw</span></div>
       </div>
       <div class="game-card card-perk-uncommon">
-        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — UNCOMMON</div>
-        <span class="game-card-icon">🔮</span>
-        <div class="game-card-name">Sigil Vault</div>
-        <div class="game-card-desc">Open a temporary Sigil Slot for 2 turns. Draw 1 extra card.</div>
-        <div class="game-card-stats"><span class="game-card-stat">+1 slot</span><span class="game-card-stat">+1 draw</span></div>
+        <div class="game-card-type" style="color:var(--emerald);">🧪 TACTIC — UNCOMMON · Cost 0</div>
+        <span class="game-card-icon">💉</span>
+        <div class="game-card-name">Adrenaline (tac_006)</div>
+        <div class="game-card-desc">+2 Stamina this turn. <em>L2+: gain Empowered stacks (scaling with level).</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">+2 stamina</span></div>
       </div>
       <div class="game-card card-perk-uncommon">
-        <div class="game-card-type" style="color:var(--frost);">🧪 TACTIC — UNCOMMON</div>
-        <span class="game-card-icon">📜</span>
-        <div class="game-card-name">Echo Scroll</div>
-        <div class="game-card-desc">Duplicate the top discarded Action to your hand.</div>
-        <div class="game-card-stats"><span class="game-card-stat">🔁 Duplicate</span></div>
+        <div class="game-card-type" style="color:var(--emerald);">🧪 TACTIC — UNCOMMON · Cost 2</div>
+        <span class="game-card-icon">💨</span>
+        <div class="game-card-name">Smoke Screen (tac_007)</div>
+        <div class="game-card-desc">−30% enemy damage next turn (applies Weakened to all enemies). <em>L2+: also apply Weakened stacks (scaling with level).</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">−30% enemy</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--emerald);">🧪 TACTIC — UNCOMMON · Cost 1</div>
+        <span class="game-card-icon">📯</span>
+        <div class="game-card-name">War Cry (tac_008)</div>
+        <div class="game-card-desc">+25% damage this turn (applies Empowered). <em>L2+: bonus Empowered stacks (scaling with level).</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">+25% dmg</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--emerald);">🧪 TACTIC — UNCOMMON · Cost 2</div>
+        <span class="game-card-icon">🌬️</span>
+        <div class="game-card-name">Second Wind (tac_010)</div>
+        <div class="game-card-desc">Heal 150 HP, +1 stamina next turn. Scales with level.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+150 HP</span><span class="game-card-stat">+1 stamina</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--emerald);">🧪 TACTIC — UNCOMMON · Cost 1</div>
+        <span class="game-card-icon">🩺</span>
+        <div class="game-card-name">Reinforce (tac_012)</div>
+        <div class="game-card-desc">+50 max HP this stage. Scales with level.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+50 HP</span></div>
+      </div>
+      <div class="game-card card-perk-uncommon">
+        <div class="game-card-type" style="color:var(--emerald);">🧪 TACTIC — UNCOMMON · Cost 0</div>
+        <span class="game-card-icon">🎲</span>
+        <div class="game-card-name">Calculated Risk (tac_022)</div>
+        <div class="game-card-desc">Discard 2 cards, draw 3. <em>L2+: gain Empowered stacks (scaling with level).</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">−2/+3 draw</span></div>
       </div>
       <div class="game-card card-perk-rare">
-        <div class="game-card-type" style="color:var(--arcane);">🧪 TACTIC — RARE</div>
-        <span class="game-card-icon">⚗️</span>
-        <div class="game-card-name">Catalyst Vial</div>
-        <div class="game-card-desc">Instantly fully charges one Sigil. Resolves immediately.</div>
-        <div class="game-card-stats"><span class="game-card-stat">⚡ Instant</span></div>
+        <div class="game-card-type" style="color:var(--arcane);">🧪 TACTIC — RARE · Cost 2</div>
+        <span class="game-card-icon">♻️</span>
+        <div class="game-card-name">Sigil Refresh (tac_009)</div>
+        <div class="game-card-desc">Clear all Sigil Slots, draw equal cards. <em>L2+: also gain Block (5 × level bonus).</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">⚡ Reset</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🧪 TACTIC — RARE · Cost 2</div>
+        <span class="game-card-icon">📜</span>
+        <div class="game-card-name">Tactical Prep (tac_011)</div>
+        <div class="game-card-desc">Tutor: pick 1 card from your deck. Scales with level.</div>
+        <div class="game-card-stats"><span class="game-card-stat">🔍 Tutor</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🧪 TACTIC — RARE · Cost 3</div>
+        <span class="game-card-icon">🧱</span>
+        <div class="game-card-name">Iron Wall (tac_013)</div>
+        <div class="game-card-desc">Gain 250 Block. Scales with level.</div>
+        <div class="game-card-stats"><span class="game-card-stat">🛡 250</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🧪 TACTIC — RARE · Cost 0</div>
+        <span class="game-card-icon">💧</span>
+        <div class="game-card-name">Mana Tap (tac_014)</div>
+        <div class="game-card-desc">Gain 1 Stamina + draw 1. <em>L2+: gain Empowered stacks (scaling with level).</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">+1 stamina</span><span class="game-card-stat">+1 draw</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🧪 TACTIC — RARE · Cost 1</div>
+        <span class="game-card-icon">👁</span>
+        <div class="game-card-name">Foresight (tac_015)</div>
+        <div class="game-card-desc">Reveal all enemy intents this stage.</div>
+        <div class="game-card-stats"><span class="game-card-stat">👁 Reveal</span></div>
+      </div>
+      <div class="game-card card-perk-rare">
+        <div class="game-card-type" style="color:var(--arcane);">🧪 TACTIC — RARE · Cost 2</div>
+        <span class="game-card-icon">🔥</span>
+        <div class="game-card-name">Soulburn (tac_016)</div>
+        <div class="game-card-desc">Apply 5 Burn to all enemies. <em>L2+: also Weaken all enemies (scaling stacks).</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">🔥 Burn×5 AOE</span></div>
+      </div>
+      <div class="game-card card-perk-epic">
+        <div class="game-card-type" style="color:var(--orange);">🧪 TACTIC — EPIC · Cost 4</div>
+        <span class="game-card-icon">⏳</span>
+        <div class="game-card-name">Time Warp (tac_017)</div>
+        <div class="game-card-desc">Take an extra turn. <em>L2+: gain Empowered stacks (scaling with level).</em></div>
+        <div class="game-card-stats"><span class="game-card-stat">+1 turn</span></div>
+      </div>
+      <div class="game-card card-perk-epic">
+        <div class="game-card-type" style="color:var(--orange);">🧪 TACTIC — EPIC · Cost 3</div>
+        <span class="game-card-icon">✨</span>
+        <div class="game-card-name">Mass Heal (tac_018)</div>
+        <div class="game-card-desc">Heal 300 HP. Scales with level.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+300 HP</span></div>
+      </div>
+      <div class="game-card card-perk-epic">
+        <div class="game-card-type" style="color:var(--orange);">🧪 TACTIC — EPIC · Cost 2</div>
+        <span class="game-card-icon">🪞</span>
+        <div class="game-card-name">Damage Mirror (tac_019)</div>
+        <div class="game-card-desc">Reflect 100% of next attack back to attacker.</div>
+        <div class="game-card-stats"><span class="game-card-stat">🪞 Reflect 100%</span></div>
       </div>
       <div class="game-card card-perk-legendary">
-        <div class="game-card-type" style="color:var(--bronze);">🧪 TACTIC — LEGENDARY</div>
-        <span class="game-card-icon">🌈</span>
-        <div class="game-card-name">Aether Conduit</div>
-        <div class="game-card-desc">🔁 Persistent. All charging Sigils advance +1 turn every turn.</div>
-        <div class="game-card-stats"><span class="game-card-stat">🔁 Permanent</span></div>
+        <div class="game-card-type" style="color:var(--bronze);">🧪 TACTIC — LEGENDARY · Cost 5</div>
+        <span class="game-card-icon">🌌</span>
+        <div class="game-card-name">Astral Pact (tac_020)</div>
+        <div class="game-card-desc">This turn: every card deals +50% damage and costs 0 stamina.</div>
+        <div class="game-card-stats"><span class="game-card-stat">+50% all dmg</span><span class="game-card-stat">0 cost</span></div>
       </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">📈 Tactic Card Upgrade Scaling</div>
+      <p style="font-size:13px;line-height:1.7;">All tactic numeric values (heal amount, block amount) scale with card level using the universal multiplier. <strong>Level 1 = 60% of authored value. Level 10 = ~127.5% of authored value.</strong> Per-level multiplier: <code>0.6 + (level − 1) × 0.075</code>.</p>
+      <table class="data-table" style="font-size:12px;margin-top:10px;">
+        <tr><th>Level</th><th>Multiplier</th><th>Example: Block (80 base)</th><th>Example: Heal Potion (100 base)</th></tr>
+        <tr><td>1</td><td>0.600×</td><td>48</td><td>60</td></tr>
+        <tr><td>3</td><td>0.750×</td><td>60</td><td>75</td></tr>
+        <tr><td>5</td><td>0.900×</td><td>72</td><td>90</td></tr>
+        <tr><td>7</td><td>1.050×</td><td>84</td><td>105</td></tr>
+        <tr><td>10</td><td>1.275×</td><td>102</td><td>128</td></tr>
+      </table>
+      <div class="info-box" style="margin-top:10px;font-size:12px;"><strong>Level Riders (L2+):</strong> Cards with purely draw/utility effects (no numeric stat to scale) gain small passive bonuses starting at L2. E.g., Adrenaline applies Empowered stacks equal to (level − 1) + 1 at L2+; Quick Study gains Empowered stacks equal to (level − 1). These riders reward upgrading otherwise-flat utility cards without overriding their core purpose.</div>
     </div>
   </div>
 
@@ -1459,7 +1579,7 @@ body {
         <tr><td><strong>Defense</strong></td><td>0</td><td>+25</td><td>Armor + Off-hand + Talents (flat damage reduction)</td></tr>
         <tr><td><strong>Crit Chance</strong></td><td>5%</td><td>30%</td><td>Ring + Talents (chance to deal +50% damage)</td></tr>
         <tr><td><strong>Speed</strong></td><td>1.0</td><td>1.5</td><td>Boots/Helm + Talents (affects card draw extras and dodge)</td></tr>
-        <tr><td><strong>Stamina</strong></td><td>3</td><td>6</td><td>Amulet + Talents (consumed by some Tactics)</td></tr>
+        <tr><td><strong>Stamina</strong></td><td>3</td><td>5 (hard cap)</td><td>Amulet + Talents (consumed by some Tactics)</td></tr>
       </table>
     </div>
     <div class="card">
@@ -1491,18 +1611,29 @@ body {
   </div>
 
   <div class="card">
-    <div class="card-title">🩹 Status Effects (Player)</div>
+    <div class="card-title">🩹 Status Effects — Full System</div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Statuses track <strong>stacks</strong> (intensity) and <strong>turnsRemaining</strong>. Reapplying a status adds stacks and takes the max duration. DoT statuses decay 1 stack per tick.</p>
     <table class="data-table" style="font-size:12px;">
-      <tr><th>Status</th><th>Effect</th><th>Source</th></tr>
-      <tr><td>🔥 Burn</td><td>3 dmg/turn for 3 turns</td><td>Pyre enemy attacks</td></tr>
-      <tr><td>🩸 Bleed</td><td>4 dmg/turn for 2 turns</td><td>Brute enemies</td></tr>
+      <tr><th>Status</th><th>Effect</th><th>Source / Notes</th></tr>
+      <tr><td>🔥 Burn</td><td>15 dmg × stacks at end of turn; loses 1 stack per tick</td><td>Pyre attacks, Soulburn tactic</td></tr>
+      <tr><td>🩸 Bleed</td><td>20 dmg × stacks at end of turn; loses 1 stack per tick</td><td>Physical/brute enemy attacks</td></tr>
+      <tr><td>☠️ Poison</td><td>10 dmg × stacks at end of turn; loses 1 stack per tick</td><td>Nature signature attacks</td></tr>
       <tr><td>❄️ Frozen</td><td>Skip Plan Phase next turn (Actions still resolve!)</td><td>Frost casters</td></tr>
-      <tr><td>🌀 Weakened</td><td>-25% damage dealt for 2 turns</td><td>Witches, hex casters</td></tr>
-      <tr><td>👁 Marked</td><td>Next attack against you +50%</td><td>Boss telegraphs</td></tr>
-      <tr><td>💚 Regen</td><td>+3 HP/turn for N turns</td><td>Self via Tactics, allies</td></tr>
-      <tr><td>🛡 Block</td><td>Absorbs damage this turn (resets EOT)</td><td>Brace, Reactions</td></tr>
+      <tr><td>🧊 Chill</td><td>≥3 stacks = target loses next turn</td><td>Ice combo marker</td></tr>
+      <tr><td>💤 Sleep</td><td>Skip turns while asleep; cleared on any damage</td><td>Sleep-type attacks</td></tr>
+      <tr><td>💫 Stun</td><td>Target loses next action</td><td>Stun attacks</td></tr>
+      <tr><td>🌿 Entangled</td><td>Cannot gain Block; deals reduced damage</td><td>Nature signature</td></tr>
+      <tr><td>💛 Charmed</td><td>Attacks own side next turn</td><td>Holy signature</td></tr>
+      <tr><td>🌀 Weakened</td><td>−1% damage dealt per stack (capped −50%) for N turns</td><td>Witches, hex casters, Smoke Screen tactic</td></tr>
+      <tr><td>💪 Empowered</td><td>+1% damage dealt per stack for N turns</td><td>War Cry tactic, Inspire tactic, level riders</td></tr>
+      <tr><td>👁 Marked</td><td>Next attack vs. this target +50%; consumed on hit</td><td>Boss telegraphs</td></tr>
+      <tr><td>💥 Vulnerable</td><td>Takes +50% damage for N turns</td><td>Special attacks</td></tr>
+      <tr><td>💀 Curse</td><td>−1 Stamina (player) / −1 ATK (enemy) per turn start</td><td>Sunken Crypts biome, curse attacks</td></tr>
+      <tr><td>💚 Regen</td><td>+30 HP × stacks at turn start</td><td>Self via Tactics, allies</td></tr>
+      <tr><td>🛡️ Block</td><td>Absorbs incoming damage before HP; resets at turn start</td><td>Block tactic, Brace, Reactions</td></tr>
       <tr><td>⚡ Hasted</td><td>+1 charge to all Sigils end of turn</td><td>Talents, rare Reactions</td></tr>
     </table>
+    <div class="info-box" style="margin-top:10px;font-size:12px;"><strong>Empowered / Weakened are fine-grained:</strong> Each stack = 1% (not a flat 25%/30% swing). Stacks accumulate from multiple sources — War Cry (L1) applies 1 stack Empowered for 1 turn; at L5 it applies 5 stacks; Inspire at L7 applies 7 stacks. This allows granular scaling via tactic upgrades.</div>
   </div>
 </section>
 
@@ -1656,7 +1787,8 @@ body {
       <tr><td><span class="pill pill-pink">Epic</span></td><td>3</td><td>Max 1 per run</td><td>8%</td></tr>
       <tr><td><span class="pill pill-mythic">Legendary</span></td><td>2</td><td>Max 1 per run · mutually exclusive with Epic</td><td>2%</td></tr>
     </table>
-    <p style="font-size:12px;margin-top:8px;color:var(--text-muted);"><strong>Slot scaling:</strong> Base 2 slots → +1 from "Bigger Hand" Uncommon → +1 from "Extra Sigil" Uncommon → +1 from "Heart of the Sigilkeeper" Legendary amulet. Theoretical max 4 active talents in one run.</p>
+    <p style="font-size:12px;margin-top:8px;color:var(--text-muted);"><strong>Slot scaling:</strong> Base 2 slots → additional slots from Stronghold upgrades (perk_slots_delta type). <strong>Hard cap: 5 perk slots total.</strong> Excess upgrade tiers beyond cap are automatically converted to other upgrade types (def_bonus, max_hp_bonus, crit_chance_bonus, gold_drop_bonus).</p>
+    <div class="info-box" style="font-size:12px;margin-top:10px;"><strong>Consumable Talents:</strong> Talents are consumable — each equipped talent card has a charge count. One charge is consumed at the start of each combat stage. When all charges of a talent are used, it is removed from the loadout. Charges are earned from stage clears and boss rewards.</div>
   </div>
 
   <div class="card">
@@ -1898,6 +2030,29 @@ body {
     </table>
   </div>
 
+  <div class="card">
+    <div class="card-title">⚔️ Whetstone Line — ATK Upgrades (Armory sub-track)</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:10px;">The Whetstone upgrade line grants permanent Attack bonuses. Tuned so early upgrades feel meaningful and late-tier Mythic Blade delivers a dramatic final payoff.</p>
+    <table class="data-table" style="font-size:12px;">
+      <tr><th>Tiers</th><th>Name</th><th>ATK Bonus per Upgrade</th><th>Running Total</th></tr>
+      <tr><td>I–X (tiers 1–10)</td><td>Whetstone I–X</td><td><strong>+3 ATK</strong></td><td>+30 ATK at tier X</td></tr>
+      <tr><td>XI–XIX (tiers 11–19)</td><td>Whetstone XI–XIX</td><td><strong>+5 ATK</strong></td><td>+75 ATK total at tier XIX</td></tr>
+      <tr><td>XX (tier 20)</td><td>Mythic Blade</td><td><strong>+15 ATK</strong></td><td>+90 ATK total (fully maxed)</td></tr>
+    </table>
+    <div class="info-box" style="margin-top:10px;font-size:12px;">Old values (+1/+2/+5) were too weak relative to enemy scaling. New values bring max ATK bonus to +90, meaningful in late-game stages where enemies have 1,000–3,000+ HP.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔒 Hard Caps — Upgrade Limits</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:10px;">Three stats have absolute hard caps enforced in the engine. Upgrade tiers that would exceed these caps are automatically converted to alternative beneficial upgrades (Defense bonus, Max HP bonus, Crit Chance bonus, Gold Drop bonus).</p>
+    <table class="data-table" style="font-size:12px;">
+      <tr><th>Stat</th><th>Hard Cap</th><th>Notes</th></tr>
+      <tr><td>Hand Size</td><td><strong>9 cards</strong></td><td>Base 5 + upgrades, capped at 9. Engine enforces via <code>MAX_HAND_SIZE</code>.</td></tr>
+      <tr><td>Stamina</td><td><strong>5</strong></td><td>Base 3 + upgrades, capped at 5. Engine enforces via <code>MAX_STAMINA</code>.</td></tr>
+      <tr><td>Perk Slots</td><td><strong>5</strong></td><td>Base 2 + <code>perk_slots_delta</code> upgrades, capped at 5. Engine enforces via <code>MAX_PERK_SLOTS</code>.</td></tr>
+    </table>
+  </div>
+
   <div class="highlight-box">
     <strong>Engineering note:</strong> The upgrade tree data structure in Plotbound (<code>FarmsteadTree.js</code>) maps directly. Rename keys: <code>land → keep, barn → archive, greenhouse → armory, market → treasury</code>. Effect handlers stay structurally identical; only the modifier targets change (e.g., <code>+1 plot</code> → <code>+1 sigil_slot</code>).
   </div>
@@ -2017,6 +2172,15 @@ body {
   </div>
 
   <div class="card">
+    <div class="card-title">🔑 Card Identity & Stability Rules</div>
+    <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
+      <li><strong>Stable React keys:</strong> Each hand card is keyed by <em>occurrence-count per card ID</em> (e.g., the 2nd copy of act_003 in hand → key <code>act_003_2</code>). This prevents React from remounting cards when the hand reorders after playing a tactic, ensuring CSS transitions remain smooth.</li>
+      <li><strong>Tactic hand smoothness:</strong> After playing a tactic, hover/selected state is cleared immediately (<code>setHoveredHandIdx(null)</code>) before the new hand renders to prevent stale highlight state.</li>
+      <li><strong>Discard selection shake:</strong> The discard-pick shake animation uses a negative CSS delay (<code>--shake-delay: -(realIndex × 137 mod 280)ms</code>) per card so each card starts at a different phase, creating an asynchronous/random-looking shake rather than synchronized oscillation.</li>
+    </ul>
+  </div>
+
+  <div class="card">
     <div class="card-title">⏱️ Timing Reference Table</div>
     <table class="data-table">
       <tr><th>Action</th><th>Duration</th><th>Easing</th></tr>
@@ -2029,6 +2193,9 @@ body {
       <tr><td>Enemy attack lunge</td><td>360ms</td><td>ease-out-back, return ease-in-cubic</td></tr>
       <tr><td>HP bar tween</td><td>400ms</td><td>ease-out-quart</td></tr>
       <tr><td>Stage clear banner</td><td>900ms in · hold · fade</td><td>ease-out-elastic</td></tr>
+      <tr><td>Discard-pick card shake</td><td>280ms per cycle · staggered offset per card</td><td>5-stop keyframe (rotate ±4deg)</td></tr>
+      <tr><td>Lightning arc (single)</td><td>300ms total · spark at 35% mark</td><td>flicker keyframe</td></tr>
+      <tr><td>Lightning chain hop stagger</td><td>120ms delay per additional enemy</td><td>sequential</td></tr>
     </table>
   </div>
 </section>
@@ -2070,6 +2237,30 @@ body {
 
   <div class="info-box">
     <strong>Quantity targets:</strong> 30 Action cards · 20 Tactic cards · 10 Reaction cards = <strong>60 cards at launch</strong>. Plotbound shipped with 58. Engineering can re-use <code>CardDatabase.js</code> shape — just swap the data file.
+  </div>
+
+  <div class="card">
+    <div class="card-title">⬆️ Card Level & Upgrade System</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:10px;">Every Action and Tactic card has a level from 1 to 10. Upgrading consumes duplicate copies of the same card plus gold. Higher rarity cards need fewer copies per upgrade but cost more gold.</p>
+    <table class="data-table" style="font-size:12px;">
+      <tr><th>Level</th><th>Stat Multiplier</th><th>Notes</th></tr>
+      <tr><td>1</td><td>0.600× (60%)</td><td>Starting level — intentionally below authored stat</td></tr>
+      <tr><td>3</td><td>0.750× (75%)</td><td>—</td></tr>
+      <tr><td>5</td><td>0.900× (90%)</td><td>Feels "full power"</td></tr>
+      <tr><td>7</td><td>1.050× (105%)</td><td>Slightly above designed value</td></tr>
+      <tr><td>10</td><td>1.275× (127.5%)</td><td>Max level — meaningful endgame payoff</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Formula: <code>mult = 0.6 + (level − 1) × 0.075</code>. Applied to all numeric stats (damage, heal, block amount).</p>
+    <table class="data-table" style="font-size:12px;margin-top:12px;">
+      <tr><th>Rarity</th><th>Copy Factor</th><th>Gold Factor</th><th>Notes</th></tr>
+      <tr><td>Common</td><td>1.00×</td><td>1.0×</td><td>Base cost; cheapest copies to get</td></tr>
+      <tr><td>Uncommon</td><td>0.75×</td><td>1.5×</td><td>Fewer copies needed, pricier gold</td></tr>
+      <tr><td>Rare</td><td>0.55×</td><td>2.5×</td><td>—</td></tr>
+      <tr><td>Epic</td><td>0.40×</td><td>4.0×</td><td>—</td></tr>
+      <tr><td>Legendary</td><td>0.30×</td><td>7.0×</td><td>—</td></tr>
+      <tr><td>Mythic</td><td>0.20×</td><td>12.0×</td><td>Fewest copies, highest gold cost</td></tr>
+    </table>
+    <div class="info-box" style="margin-top:10px;font-size:12px;"><strong>Card tier cap:</strong> Max level is gated by bosses defeated — starts at 3, +1 per boss cleared, capped at 10. So cards cannot be fully upgraded until the player has beaten 7 bosses. UI shows a badge <em>★ L{n}</em> on all tactic cards to indicate current level.</div>
   </div>
 
   <div class="card">
@@ -2280,7 +2471,7 @@ body {
   </div>
 
   <div class="info-box">
-    <strong>Total to max: 25,400 gold.</strong> Identical to Plotbound's farmstead total. Pacing: a player earning ~500g per stage clear should max stronghold around stage 50, leaving the second half of progression for equipment & talent collection.
+    <strong>Live implementation note:</strong> The actual upgrades.json has a richer upgrade tree than the simplified 4×5 GDD table above. The Armory zone includes the full Whetstone ATK line (20 tiers: I–X at +3 ATK, XI–XIX at +5 ATK, Mythic Blade at +15 ATK). Stats that hit hard caps (hand size 9, stamina 5, perk slots 5) are replaced with alternative upgrade types: <code>def_bonus</code>, <code>max_hp_bonus</code>, <code>crit_chance_bonus</code>, <code>gold_drop_bonus</code>.
   </div>
 </section>
 
@@ -2478,6 +2669,8 @@ body {
   <h1 class="section-title">🎫 Battle Pass — 40 Tiers per Season</h1>
   <p class="section-subtitle">28-day seasonal cycle, $2.99 premium track. Mirrors Plotbound's BP exactly.</p>
 
+  <div class="info-box"><strong>Local / Offline Challenge Progression:</strong> Battle Pass challenges (daily, weekly, monthly) are tracked and evaluated locally — no server required. Progression accumulates based on actual combat stats: damage dealt by type, damage taken, combos triggered, stage clears. Data is persisted locally and synced to the server when online. This allows offline play to still contribute to BP progress.</div>
+
   <div class="card">
     <div class="card-title">📋 Sample Tier Reward Table (Season 1)</div>
     <table class="data-table">
@@ -2610,7 +2803,7 @@ body {
       <li><strong>Sigil row (~14%):</strong> 3-6 sigil slots, each ~85×120px with bound card preview</li>
       <li><strong>Player HUD (~8%):</strong> HP bar, block badge, stamina pips, gold counter</li>
       <li><strong>Hand (~28%):</strong> Cards fanned along bottom — drag-up to play onto a sigil slot</li>
-      <li><strong>Bottom action bar (~8%):</strong> [End Turn] · [Discard Pile] · [Deck] · [Settings]</li>
+      <li><strong>Bottom action bar (~8%):</strong> [End Turn] · [Discard Pile] · [Deck] · <strong>✋ N/M hand count chip</strong> · [Settings]</li>
     </ul>
   </div>
 
@@ -2640,7 +2833,7 @@ body {
     <div class="card-title">📐 Desktop Combat Layout (1440×900 base)</div>
     <ul style="font-size:13px;line-height:1.8;padding-left:18px;">
       <li><strong>Left rail (~18%):</strong> Combat log scroll · turn-by-turn damage history</li>
-      <li><strong>Center stage (~64%):</strong> Same vertical stack as mobile (enemies / sigils / hud / hand) but wider</li>
+      <li><strong>Center stage (~64%):</strong> Same vertical stack as mobile (enemies / sigils / hud / hand) but wider. Includes <strong>✋ N/M hand count display</strong> showing current cards in hand vs. hand size cap.</li>
       <li><strong>Right rail (~18%):</strong> Active talents card view · equipped gear preview</li>
       <li><strong>Top bar:</strong> Currencies + settings + minimize</li>
     </ul>
@@ -2768,10 +2961,15 @@ EnemyState {
     <table class="data-table">
       <tr><th>Event</th><th>VFX</th><th>Plotbound Equivalent</th></tr>
       <tr><td>Damage hit (Steel)</td><td>Spark sheet + slash arc</td><td>Crop slash particles</td></tr>
-      <tr><td>Damage hit (Pyre)</td><td>Fire burst + ember particles</td><td>Sun burst (fruit harvest)</td></tr>
-      <tr><td>Damage hit (Frost)</td><td>Crystal shatter + frost mist</td><td>Snowfall effect (winter season)</td></tr>
+      <tr><td>Damage hit (Pyre/Fire)</td><td>Fire burst + ember particles</td><td>Sun burst (fruit harvest)</td></tr>
+      <tr><td>Damage hit (Frost/Ice)</td><td>Crystal shatter + frost mist</td><td>Snowfall effect (winter season)</td></tr>
       <tr><td>Damage hit (Pierce)</td><td>Pinpoint impact + dust</td><td>Sharp pop</td></tr>
       <tr><td>Damage hit (Arcane)</td><td>Purple rune circle + glow</td><td>Magic event sparkle</td></tr>
+      <tr><td>Damage hit (Thunder/Lightning)</td><td>⚡ <strong>Electric arc bolt</strong> from Sigil Slot → target; electric spark on impact. <em>See Lightning System below.</em></td><td>NEW</td></tr>
+      <tr><td>Damage hit (Nature)</td><td>Green leaf burst + thorns VFX</td><td>NEW</td></tr>
+      <tr><td>Damage hit (Holy)</td><td>Golden beam + cross-halo burst</td><td>NEW</td></tr>
+      <tr><td>Damage hit (Dark)</td><td>Shadow tendril + void particles</td><td>NEW</td></tr>
+      <tr><td>Damage hit (Physical)</td><td>Impact dust + shockwave ring</td><td>NEW</td></tr>
       <tr><td>Block applied</td><td>Translucent shield arc + chime</td><td>Tool sparkle</td></tr>
       <tr><td>Heal</td><td>Green leaf rise + soft pulse</td><td>Compost healing animation</td></tr>
       <tr><td>Combo trigger</td><td>Golden shockwave + cascade</td><td>Harvest cascade — direct port</td></tr>
@@ -2779,6 +2977,35 @@ EnemyState {
       <tr><td>Enemy death</td><td>Sprite dissolve + soul wisp</td><td>Order completion sparkle</td></tr>
       <tr><td>Boss arrival</td><td>Screen darken + spotlight + name banner</td><td>Big Order intro animation</td></tr>
     </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚡ Lightning / Thunder VFX System</div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:10px;">Thunder-type attacks use a dedicated <strong>lightning arc</strong> VFX archetype instead of a projectile. The arc is an SVG jagged polyline rendered in a fullscreen overlay layer.</p>
+    <div class="grid-2">
+      <div>
+        <p style="font-size:12px;font-weight:700;margin-bottom:6px;">Single Target (Thunder hit)</p>
+        <ul style="font-size:12px;line-height:1.7;padding-left:16px;">
+          <li>Jagged SVG polyline from Sigil Slot position → enemy center</li>
+          <li>7 segments with random perpendicular offset (±40px, tapers toward target)</li>
+          <li>Cyan-to-white gradient stroke, 2px, animated flicker over 300ms</li>
+          <li>Electric spark VFX fires at target on <em>resolveAt</em> (35% of total duration)</li>
+          <li>Arc fades and disappears after full duration</li>
+        </ul>
+      </div>
+      <div>
+        <p style="font-size:12px;font-weight:700;margin-bottom:6px;">AOE Chain Lightning</p>
+        <ul style="font-size:12px;line-height:1.7;padding-left:16px;">
+          <li>Detected when consecutive hits from same Sigil/card are all Thunder-type</li>
+          <li>First arc: Slot → Enemy 1 (same as single target)</li>
+          <li>Each subsequent arc: <em>Enemy N</em> → <em>Enemy N+1</em> (chain hop)</li>
+          <li>Chain hops stagger by 120ms delay each</li>
+          <li>Electric spark fires on each enemy individually</li>
+          <li>Visual chain conveys "arc jumps" between targets</li>
+        </ul>
+      </div>
+    </div>
+    <div class="highlight-box" style="margin-top:10px;font-size:12px;"><strong>Trigger pattern:</strong> Cards or enemies with "thunder", "lightning", "storm", "volt", "electric", "zap" in name, OR <code>damageType === "thunder"</code>, trigger lightning archetype. All other damage types use the projectile + impact archetype.</div>
   </div>
 
   <div class="card">
