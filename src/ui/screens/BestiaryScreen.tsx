@@ -243,6 +243,32 @@ function EnemyDetailPopover({ enemy, onClose }: { enemy: EnemyDef; onClose: () =
         padding: '16px 12px',
       }}
     >
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          background: 'rgba(255,255,255,0.07)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: 8,
+          color: '#94a3b8',
+          width: 36,
+          height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          fontSize: '1.1rem',
+          lineHeight: 1,
+          transition: 'background 120ms ease, color 120ms ease',
+          zIndex: 10,
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.14)'; (e.currentTarget as HTMLButtonElement).style.color = '#f1f5f9'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)'; (e.currentTarget as HTMLButtonElement).style.color = '#94a3b8'; }}
+      >
+        ✕
+      </button>
       <div
         onClick={e => e.stopPropagation()}
         style={{
@@ -384,26 +410,6 @@ function EnemyDetailPopover({ enemy, onClose }: { enemy: EnemyDef; onClose: () =
             </div>
           )}
 
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: `1px solid ${accentColor}30`,
-              borderRadius: 10,
-              color: '#64748b',
-              padding: '9px 0',
-              cursor: 'pointer',
-              fontFamily: "'Nunito', sans-serif",
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              letterSpacing: '0.1em',
-              width: '100%',
-              transition: 'all 120ms ease',
-            }}
-          >
-            CLOSE
-          </button>
         </div>
       </div>
     </div>

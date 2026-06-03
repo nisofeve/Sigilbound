@@ -59,7 +59,7 @@ import {
 import { getAction as getActionDef, getTactic as getTacticDef, type TacticEffect } from './actionCards';
 import { scaleStatForLevel } from './cardLevels';
 import type { DamageType } from './damage';
-import { clearSleepOnHit, applyStatus, tickDamageOverTime, tickHealOverTime, decayStatuses } from './status';
+import { clearSleepOnHit, applyStatus, tickDamageOverTime, tickHealOverTime, decayStatuses, isSkippingTurn, isEntangled, outgoingDamageMult } from './status';
 import type { CardId, Perk } from './types';
 import { compileUpgradeBuffs, emptyUpgradeBuffs, type UpgradeBuffs } from './upgradeBuffs';
 
@@ -832,10 +832,11 @@ export class BattleRunner {
     // Snapshot damage-taken so Swift Recovery can tell if this turn was clean.
     this.damageTakenAtTurnStart = this.state.player.damageTakenThisStage;
 
-    // 1. Charge phase: tick down each bound slot.
+    // 1. Charge phase: tick down each bound slot. Hasted gives +1 tick per stack.
+    const hastedStacks = this.state.player.statuses.hasted?.stacks ?? 0;
     for (const slot of this.state.slots) {
       if (slot.bound && slot.bound.charge > 0) {
-        slot.bound = { ...slot.bound, charge: slot.bound.charge - 1 };
+        slot.bound = { ...slot.bound, charge: Math.max(0, slot.bound.charge - 1 - hastedStacks) };
       }
     }
 
@@ -864,6 +865,7 @@ export class BattleRunner {
     // 3. Enemy turn: each living enemy executes its current intent.
     for (const enemy of this.state.enemies) {
       if (!isEnemyAlive(enemy)) continue;
+      if (isSkippingTurn(enemy.statuses)) continue;
       this.executeEnemyIntent(enemy);
       if (this.state.outcome !== 'in_progress') return this.state.outcome;
     }
@@ -970,6 +972,11 @@ export class BattleRunner {
     // the UI will prompt the player to discard before they can act next turn.
     this.drawCards(DRAW_PER_TURN);
     this.state.staminaThisTurn = this.state.player.stats.stamina;
+    // Curse: drain 1 stamina per stack at turn start.
+    const playerCurseStacks = this.state.player.statuses.curse?.stacks ?? 0;
+    if (playerCurseStacks > 0) {
+      this.state.staminaThisTurn = Math.max(0, this.state.staminaThisTurn - playerCurseStacks);
+    }
 
     this.state.turn += 1;
     return this.state.outcome;
@@ -1342,14 +1349,34 @@ export class BattleRunner {
     }
 
     switch (intent.kind) {
-      case 'attack':
-        this.applyEnemyAttack(enemy, intent);
+      case 'attack': {
+        if (enemy.statuses.charmed) {
+          // Charmed: attack redirected to self. Enemy takes its own attack damage.
+          const hits = intent.hits ?? 1;
+          const totalDmg = intent.damage * hits;
+          const blocked = Math.min(enemy.block, totalDmg);
+          const hpDelta = Math.max(0, totalDmg - blocked);
+          this.state.enemies = this.state.enemies.map(e =>
+            e.id === enemy.id ? applyEnemyDamage(e, hpDelta, blocked) : e,
+          );
+        } else {
+          // Curse: reduce enemy attack damage by 1 per curse stack.
+          const curseStacks = enemy.statuses.curse?.stacks ?? 0;
+          const effectiveIntent = curseStacks > 0
+            ? { ...intent, damage: Math.max(0, intent.damage - curseStacks) }
+            : intent;
+          this.applyEnemyAttack(enemy, effectiveIntent);
+        }
         break;
+      }
       case 'block':
-        this.state.enemies = this.state.enemies.map(e =>
-          e.id === enemy.id ? { ...e, block: e.block + intent.amount } : e,
-        );
-        this.resolveLog.push({ kind: 'enemy_block', enemyId: enemy.id, amount: intent.amount });
+        // Entangled enemies cannot gain block.
+        if (!isEntangled(enemy.statuses)) {
+          this.state.enemies = this.state.enemies.map(e =>
+            e.id === enemy.id ? { ...e, block: e.block + intent.amount } : e,
+          );
+          this.resolveLog.push({ kind: 'enemy_block', enemyId: enemy.id, amount: intent.amount });
+        }
         break;
       case 'debuff':
         this.state.player = applyPlayerStatus(this.state.player, intent.status, intent.stacks, intent.turns);
@@ -1374,7 +1401,7 @@ export class BattleRunner {
         source: 'enemy',
       });
 
-      let raw = intent.damage;
+      let raw = Math.round(intent.damage * outgoingDamageMult(enemy.statuses));
       if (incomingPatch.cancelIncomingDamage) raw = 0;
       if (incomingPatch.reduceIncomingDamageBy) raw = Math.max(0, raw - incomingPatch.reduceIncomingDamageBy);
       if (incomingPatch.reduceIncomingDamagePct) raw = Math.round(raw * (1 - incomingPatch.reduceIncomingDamagePct));

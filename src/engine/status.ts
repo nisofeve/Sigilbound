@@ -194,9 +194,11 @@ export function outgoingDamageMult(bag: StatusBag): number {
   return m;
 }
 
-// Returns true if the entity is unable to act this turn (sleep, stun, frozen, charmed).
+// Returns true if the entity is unable to act this turn (sleep, stun, frozen, chill≥3).
+// Charmed is NOT a skip — the entity redirects its attack to its own side instead.
 export function isSkippingTurn(bag: StatusBag): boolean {
-  return hasStatus(bag, 'sleep') || hasStatus(bag, 'stun') || hasStatus(bag, 'frozen') || hasStatus(bag, 'charmed');
+  const chillStacks = bag.chill?.stacks ?? 0;
+  return hasStatus(bag, 'sleep') || hasStatus(bag, 'stun') || hasStatus(bag, 'frozen') || chillStacks >= 3;
 }
 
 // Called when a sleeping entity is hit — clears sleep immediately.

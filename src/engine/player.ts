@@ -21,6 +21,7 @@ import {
   applyStatus,
   decayStatuses,
   incomingDamageMult,
+  isEntangled,
   outgoingDamageMult,
   tickDamageOverTime,
   tickHealOverTime,
@@ -200,8 +201,10 @@ export function healPlayer(c: PlayerCombatant, amount: number): PlayerCombatant 
 }
 
 // Add block (from Brace/Bulwark/talents). Block stacks within a turn.
+// Entangled entities cannot gain block.
 export function addBlock(c: PlayerCombatant, amount: number): PlayerCombatant {
   if (amount <= 0) return c;
+  if (isEntangled(c.statuses)) return c;
   return { ...c, block: c.block + amount };
 }
 

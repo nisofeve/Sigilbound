@@ -236,6 +236,7 @@ export default function CombatView({
   // source/target positions.
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const slotRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const touchDragState = useRef<{ cardIdx: number; startX: number; startY: number; dragging: boolean } | null>(null);
   const enemyRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const playerHpRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -2986,6 +2987,7 @@ export default function CombatView({
         onMouseEnter={() => setHoveredHandIdx(realIndex)}
         onMouseLeave={() => setHoveredHandIdx(prev => (prev === realIndex ? null : prev))}
         onDragStart={!isTactic ? (ev) => {
+          cancelLongPress();
           ev.dataTransfer.setData('text/plain', String(realIndex));
           ev.dataTransfer.effectAllowed = 'move';
           setDraggingHandIdx(realIndex);
@@ -2993,6 +2995,60 @@ export default function CombatView({
           setHandCardPopup(null);
         } : undefined}
         onDragEnd={!isTactic ? () => { setDraggingHandIdx(null); setHoverSlotIdx(null); } : undefined}
+        onTouchStart={!isTactic && !isDiscardPicking ? (ev) => {
+          cancelLongPress();
+          const touch = ev.touches[0];
+          touchDragState.current = { cardIdx: realIndex, startX: touch.clientX, startY: touch.clientY, dragging: false };
+        } : undefined}
+        onTouchMove={!isTactic && !isDiscardPicking ? (ev) => {
+          const state = touchDragState.current;
+          if (!state || state.cardIdx !== realIndex) return;
+          const touch = ev.touches[0];
+          if (!touch) return;
+          if (!state.dragging) {
+            const dist = Math.hypot(touch.clientX - state.startX, touch.clientY - state.startY);
+            if (dist < 10) return;
+            state.dragging = true;
+            setDraggingHandIdx(realIndex);
+            setSelectedHandIdx(null);
+            setHandCardPopup(null);
+          }
+          ev.preventDefault();
+          let found: number | null = null;
+          slotRefs.current.forEach((el, idx) => {
+            const rect = el.getBoundingClientRect();
+            if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+              found = idx;
+            }
+          });
+          setHoverSlotIdx(found);
+        } : undefined}
+        onTouchEnd={!isTactic && !isDiscardPicking ? (ev) => {
+          const state = touchDragState.current;
+          touchDragState.current = null;
+          if (state?.dragging) {
+            const touch = ev.changedTouches[0];
+            if (touch) {
+              let found: number | null = null;
+              slotRefs.current.forEach((el, idx) => {
+                const rect = el.getBoundingClientRect();
+                if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                    touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                  found = idx;
+                }
+              });
+              if (found !== null) handleBindToSlot(realIndex, found);
+            }
+            setDraggingHandIdx(null);
+            setHoverSlotIdx(null);
+          }
+        } : undefined}
+        onTouchCancel={!isTactic && !isDiscardPicking ? () => {
+          touchDragState.current = null;
+          setDraggingHandIdx(null);
+          setHoverSlotIdx(null);
+        } : undefined}
         title={isTactic
           ? `${entry.def.name} — click to play`
           : `${entry.def.name} — tap a slot to bind`}
@@ -3018,6 +3074,7 @@ export default function CombatView({
             : `transform 480ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 90ms ease-out`,
           willChange: 'transform',
           userSelect: 'none',
+          touchAction: !isTactic && !isDiscardPicking ? 'none' : 'auto',
           pointerEvents: 'auto',
           zIndex: selectedForDiscard ? 200 : (selected ? 200 : (hovered ? 150 : 10 + i)),
           outline: selectedForDiscard ? '2px solid #ef4444' : undefined,
