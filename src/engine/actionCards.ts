@@ -56,6 +56,7 @@ export type TacticEffect =
   | { kind: 'draw'; cards: number }
   | { kind: 'draw_and_buff'; cards: number; buffPct: number; turns: number }
   | { kind: 'gain_stamina'; amount: number }
+  | { kind: 'gain_stamina_and_draw'; amount: number; cards: number }
   | { kind: 'damage_buff'; pct: number; turns: number }
   | { kind: 'enemy_damage_debuff'; pct: number; turns: number }
   | { kind: 'apply_status_self'; id: StatusId; stacks: number; turns: number }

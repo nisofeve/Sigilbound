@@ -57,8 +57,9 @@ interface SizingProps {
 // ─── ActionCard ───────────────────────────────────────────────────────────────
 
 function nameAlternates(name: string): string[] {
-  const under = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-  const dash  = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const base  = name.toLowerCase().replace(/'/g, '');
+  const under = base.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const dash  = base.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return [under, dash];
 }
 

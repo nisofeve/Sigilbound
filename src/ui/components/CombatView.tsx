@@ -67,7 +67,7 @@ interface Props {
 }
 
 function cardImageUrl(cardId: string, cardName: string): string | null {
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const norm = (s: string) => s.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const ids = [cardId, norm(cardName), cardId.replace(/\./g, '-'), cardId.replace(/\./g, '_')];
   for (const id of ids) {
     const hit = IMAGE_MANIFEST[`cards/${id}`];

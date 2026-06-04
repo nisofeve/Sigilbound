@@ -736,6 +736,10 @@ export class BattleRunner {
       case 'gain_stamina':
         this.state.staminaThisTurn += effect.amount;
         break;
+      case 'gain_stamina_and_draw':
+        this.state.staminaThisTurn += effect.amount;
+        this.drawCards(effect.cards);
+        break;
       case 'damage_buff': {
         // Maps to 'empowered' player status. Uses 1% per stack now, plus
         // +3% per card level above 1 (War Cry gets stronger as it levels).
