@@ -12,6 +12,7 @@ import {
   getPerk,
   levelProgress,
   rewardsForLevel,
+  upgradesUnlockedAtLevel,
   type Achievement,
   type LevelReward,
   type Rarity,
@@ -25,7 +26,7 @@ import {
 } from '@storage/index';
 import type { AuthStatus } from '@firebase-app/auth';
 import { signOut } from '@firebase-app/auth';
-import RewardClaimModal, { type ClaimableReward } from '@ui/modals/RewardClaimModal';
+import RewardClaimModal, { type ClaimableReward, type UnlockedUpgrade } from '@ui/modals/RewardClaimModal';
 
 interface Props {
   profile: Profile;
@@ -55,7 +56,7 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
   const [nameDraft, setNameDraft] = useState(profile.displayName ?? '');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
-  const [claimPopup, setClaimPopup] = useState<{ level: number; rewards: ClaimableReward[] } | null>(null);
+  const [claimPopup, setClaimPopup] = useState<{ level: number; rewards: ClaimableReward[]; unlockedUpgrades: UnlockedUpgrade[] } | null>(null);
 
   const lp = levelProgress(profile.playerXp);
 
@@ -91,7 +92,12 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
       }
       return r;
     });
-    setClaimPopup({ level, rewards });
+    const unlockedUpgrades: UnlockedUpgrade[] = upgradesUnlockedAtLevel(level).map(u => ({
+      name: u.name,
+      description: u.description,
+      zone: u.zone,
+    }));
+    setClaimPopup({ level, rewards, unlockedUpgrades });
   }
 
   return (
@@ -210,6 +216,7 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
           source="level"
           subtitle={`Level ${claimPopup.level}`}
           rewards={claimPopup.rewards}
+          unlockedUpgrades={claimPopup.unlockedUpgrades}
           onClose={() => setClaimPopup(null)}
         />
       )}

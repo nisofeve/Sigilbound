@@ -18,6 +18,8 @@ import {
   allPerks,
   allTalents,
   applyQuestProgress,
+  applyCombatQuestProgress,
+  type CombatRunResult,
   evaluateNewlyUnlocked,
   rewardsForLevel,
   levelFromXp,
@@ -678,6 +680,7 @@ export interface CombatClearOutcome {
     id: string; rarity: string; name: string; icon: string;
     rewardCoins: number; rewardGems: number;
   }>;
+  questsCompleted?: string[];              // BP combat-quest IDs completed by this clear (local mode)
 }
 
 /**
@@ -700,6 +703,11 @@ export function applyCombatClearToProfile(
      *  achievement combo buckets so onslaught/triadic/relentless predicates
      *  can fire from a single combat run. */
     combosTriggered?: number;
+    /** Damage dealt per element type this run — used for damage_type quests. */
+    damageDealtByType?: Partial<Record<string, number>>;
+    /** Total damage taken across the whole stage. 0 → "no-damage clear" used
+     *  as proxy for the no_damage_turns quest kind in local mode. */
+    damageTakenThisStage?: number;
   },
 ): { profile: Profile; outcome: CombatClearOutcome } {
   const stars = combatStarsFor({
@@ -863,6 +871,83 @@ export function applyCombatClearToProfile(
   );
   next.bpXp = Math.min(TOTAL_BP_TIERS * XP_PER_TIER, next.bpXp + combatBpXp);
 
+  // BP combat-quest progression (local mode). Daily/weekly/monthly buckets
+  // roll over by date key, then increment damage_type / combo_count /
+  // defeat_boss / no_damage_turns kinds from this run's combat data. Cloud
+  // mode would normally do this server-side; this path keeps the BP
+  // challenges working when offline or when running standalone.
+  const damageByType: Record<string, number> = {};
+  if (result.damageDealtByType) {
+    for (const [k, v] of Object.entries(result.damageDealtByType)) {
+      if (typeof v === 'number' && v > 0) damageByType[k] = v;
+    }
+  }
+  const combatRunResult: CombatRunResult = {
+    cleared: result.cleared,
+    isBoss: stage.isBoss ?? false,
+    damageDealtByType: damageByType,
+    combosTriggered: result.combosTriggered ?? 0,
+    // Per-turn tracking isn't kept; treat a no-damage stage clear as 1 unit
+    // of "no_damage_turns" progress so the quest can advance in local play.
+    noConsecutiveDamageTurns:
+      result.cleared && (result.damageTakenThisStage ?? 0) === 0 ? 1 : 0,
+    enemyIdsDefeated: [],
+  };
+
+  const today = todayKey();
+  if (next.todayQuestsISO !== today) {
+    next.todayQuestsISO = today;
+    next.todayQuestsState = {};
+  }
+  const dailyUpdate = applyCombatQuestProgress(
+    next.todayQuestsState,
+    combatRunResult,
+    questsByPeriod('daily'),
+  );
+  next.todayQuestsState = dailyUpdate.state;
+  next.gems += dailyUpdate.gemsAwarded;
+  next.bankCoins += dailyUpdate.coinsAwarded ?? 0;
+  next.perkShards += dailyUpdate.shardsAwarded ?? 0;
+  next.bpXp = Math.min(TOTAL_BP_TIERS * XP_PER_TIER, next.bpXp + (dailyUpdate.bpXpAwarded ?? 0));
+
+  const wKey = weekKey();
+  if (next.weekQuestsISO !== wKey) {
+    next.weekQuestsISO = wKey;
+    next.weekQuestsState = {};
+  }
+  const weeklyUpdate = applyCombatQuestProgress(
+    next.weekQuestsState,
+    combatRunResult,
+    questsByPeriod('weekly'),
+  );
+  next.weekQuestsState = weeklyUpdate.state;
+  next.gems += weeklyUpdate.gemsAwarded;
+  next.bankCoins += weeklyUpdate.coinsAwarded ?? 0;
+  next.perkShards += weeklyUpdate.shardsAwarded ?? 0;
+  next.bpXp = Math.min(TOTAL_BP_TIERS * XP_PER_TIER, next.bpXp + (weeklyUpdate.bpXpAwarded ?? 0));
+
+  const mKey = monthKey();
+  if (next.monthQuestsISO !== mKey) {
+    next.monthQuestsISO = mKey;
+    next.monthQuestsState = {};
+  }
+  const monthlyUpdate = applyCombatQuestProgress(
+    next.monthQuestsState,
+    combatRunResult,
+    questsByPeriod('monthly'),
+  );
+  next.monthQuestsState = monthlyUpdate.state;
+  next.gems += monthlyUpdate.gemsAwarded;
+  next.bankCoins += monthlyUpdate.coinsAwarded ?? 0;
+  next.perkShards += monthlyUpdate.shardsAwarded ?? 0;
+  next.bpXp = Math.min(TOTAL_BP_TIERS * XP_PER_TIER, next.bpXp + (monthlyUpdate.bpXpAwarded ?? 0));
+
+  const questsCompleted = [
+    ...dailyUpdate.completedNow,
+    ...weeklyUpdate.completedNow,
+    ...monthlyUpdate.completedNow,
+  ];
+
   // Evaluate achievements against the just-updated profile. Coin/gem
   // rewards are folded in here; the unlocked list flows out via the
   // outcome so the result screen can celebrate them.
@@ -881,6 +966,7 @@ export function applyCombatClearToProfile(
       loreUnlocked,
       bpXpAwarded: combatBpXp,
       achievementsUnlocked: unlocked,
+      questsCompleted,
     },
   };
 }

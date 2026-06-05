@@ -1,7 +1,22 @@
 import { useState } from 'react';
 import type { Profile } from '@storage/index';
 import type { AuthStatus } from '@firebase-app/auth';
-import { allQuests, levelProgress, todayKey, type Quest } from '@engine/index';
+import { allQuests, levelProgress, levelFromXp, upgradesUnlockedAtLevel, todayKey, type Quest } from '@engine/index';
+
+const STRONGHOLD_SEEN_LEVEL_KEY = 'sb_stronghold_seen_level';
+
+function hasNewStrongholdUpgrades(profile: Profile): boolean {
+  const playerLevel = levelFromXp(profile.playerXp);
+  try {
+    const seen = parseInt(localStorage.getItem(STRONGHOLD_SEEN_LEVEL_KEY) ?? '0', 10);
+    if (playerLevel <= seen) return false;
+    // Check if any level between seen+1 and playerLevel unlocks upgrades.
+    for (let lv = seen + 1; lv <= playerLevel; lv++) {
+      if (upgradesUnlockedAtLevel(lv).length > 0) return true;
+    }
+  } catch { /* ignore */ }
+  return false;
+}
 import AnimatedBackground from '@ui/components/AnimatedBackground';
 import StarRatingTooltip from '@ui/components/StarRatingTooltip';
 import QuestDetailModal from '@ui/modals/QuestDetailModal';
@@ -66,6 +81,7 @@ export default function HomeScreen({ profile, auth, onStart, onStartStage, onSta
   const lp = levelProgress(profile.playerXp);
   const stage = profile.currentStage;
   const stageStars = profile.stageStars[stage] ?? 0;
+  const strongholdHasNew = hasNewStrongholdUpgrades(profile);
 
   return (
     <div className="h-full w-full relative overflow-hidden text-white safe-top safe-bottom flex flex-col">
@@ -186,7 +202,7 @@ export default function HomeScreen({ profile, auth, onStart, onStartStage, onSta
         <DockButton onClick={onDeck} icon="🃏" label="Deck"
           badge={profile.deckPresets[profile.activeDeckPreset]?.entries.reduce((n, e) => n + e.count, 0) ?? 0} />
         <DockButton onClick={onFarmstead} icon="🏰" label="Stronghold"
-          badge={profile.bankCoins > 0 ? profile.bankCoins : undefined} />
+          badge={strongholdHasNew ? 'NEW' : (profile.bankCoins > 0 ? profile.bankCoins : undefined)} />
         <DockButton onClick={onShop} icon="🛒" label="Shop" highlight
           disabled={auth.kind === 'cloud_disabled'} />
         <DockButton onClick={onBattlePass} icon="🎫" label="Pass"

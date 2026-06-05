@@ -697,6 +697,22 @@ html, body, #root {
 }
 .sb-impact-ring { animation: sb-impact-ring var(--ring-duration, 700ms) cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+/* Lightning arc — flicker the bolt brightness as it fades. The strokes
+   flash bright at start, jitter in opacity for an electric crackle, then
+   die out. Duration is provided by --arc-duration so spawnLightningArc
+   controls the lifetime per-arc. */
+@keyframes sb-lightning-arc {
+  0%   { opacity: 0;   transform: scale(1.02); }
+  8%   { opacity: 1;   }
+  18%  { opacity: 0.55; }
+  28%  { opacity: 1;   }
+  42%  { opacity: 0.7; }
+  60%  { opacity: 0.95; }
+  78%  { opacity: 0.4; }
+  100% { opacity: 0;   transform: scale(1); }
+}
+.sb-lightning-arc { animation: sb-lightning-arc var(--arc-duration, 280ms) linear both; transform-origin: center; }
+
 /* Particle burst — small particles flying outward from impact, rotating
    slightly as they fly. Each particle picks its own dx/dy/rot via
    inline CSS variables so the burst pattern feels organic. */
@@ -1143,14 +1159,19 @@ html, body, #root {
 .sb-intro-shake {
   animation: sb-intro-shake 0.55s ease-out both;
 }
-/* Hand card shake to indicate need for selection */
+/* Hand card shake to indicate need for selection. Each card gets its own
+   --shake-delay (negative offset, set inline by the renderer) so the row
+   doesn't pulse in sync — cards jitter independently for a "nervous" feel. */
 @keyframes sb-hand-discard-shake {
-  0%,100% { transform: translate(0, 0); }
-  25%     { transform: translate(-3px, 0); }
-  75%     { transform: translate(3px, 0); }
+  0%,100% { transform: translate(0, 0) rotate(0deg); }
+  20%     { transform: translate(-2px, -1px) rotate(-1.2deg); }
+  40%     { transform: translate(2px, 1px) rotate(1deg); }
+  60%     { transform: translate(-2px, 1px) rotate(-0.8deg); }
+  80%     { transform: translate(2px, -1px) rotate(1.4deg); }
 }
 .sb-hand-discard-shake {
-  animation: sb-hand-discard-shake 0.6s linear infinite;
+  animation: sb-hand-discard-shake 0.28s linear infinite;
+  animation-delay: var(--shake-delay, 0s);
 }
 /* Shockwave ring on enemy land */
 @keyframes sb-intro-ring {

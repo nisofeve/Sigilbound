@@ -16,22 +16,30 @@ interface CodeResult {
 }
 
 // ── Code definitions ────────────────────────────────────────────────────────
-const CODE_REWARDS: Record<string, (profile: Profile) => { profile: Profile; result: CodeResult }> = {
-  kulbaq: (profile) => {
-    const next: Profile = {
-      ...profile,
-      bankCoins: profile.bankCoins + 100_000,
-      gems: profile.gems + 100_000,
-    };
-    saveProfile(next);
-    return {
-      profile: next,
-      result: {
-        success: true,
-        message: '✦ CODE ACCEPTED ✦',
-        detail: '+100,000 Coins  ·  +100,000 Gems',
-      },
-    };
+interface CodeDef {
+  reusable?: boolean;
+  apply: (profile: Profile) => { profile: Profile; result: CodeResult };
+}
+
+const CODE_REWARDS: Record<string, CodeDef> = {
+  kulbaq: {
+    reusable: true,
+    apply: (profile) => {
+      const next: Profile = {
+        ...profile,
+        bankCoins: profile.bankCoins + 100_000,
+        gems: profile.gems + 100_000,
+      };
+      saveProfile(next);
+      return {
+        profile: next,
+        result: {
+          success: true,
+          message: '✦ CODE ACCEPTED ✦',
+          detail: '+100,000 Coins  ·  +100,000 Gems',
+        },
+      };
+    },
   },
 };
 
@@ -89,12 +97,6 @@ export default function SettingsScreen({ profile, onProfileChange, onBack }: Pro
     const code = codeInput.trim().toLowerCase();
     if (!code) return;
 
-    if (getRedeemed().has(code)) {
-      setShowCodeModal(false);
-      setCodeNotif({ success: false, message: '✦ ALREADY REDEEMED ✦', detail: 'This code has already been used.' });
-      return;
-    }
-
     const handler = CODE_REWARDS[code];
     if (!handler) {
       setShowCodeModal(false);
@@ -102,9 +104,15 @@ export default function SettingsScreen({ profile, onProfileChange, onBack }: Pro
       return;
     }
 
-    const { profile: next, result } = handler(profile);
+    if (!handler.reusable && getRedeemed().has(code)) {
+      setShowCodeModal(false);
+      setCodeNotif({ success: false, message: '✦ ALREADY REDEEMED ✦', detail: 'This code has already been used.' });
+      return;
+    }
+
+    const { profile: next, result } = handler.apply(profile);
     onProfileChange(next);
-    markRedeemed(code);
+    if (!handler.reusable) markRedeemed(code);
     setShowCodeModal(false);
     setCodeNotif(result);
   }

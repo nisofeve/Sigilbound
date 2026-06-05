@@ -59,7 +59,7 @@ import {
 import { getAction as getActionDef, getTactic as getTacticDef, type TacticEffect } from './actionCards';
 import { scaleStatForLevel } from './cardLevels';
 import type { DamageType } from './damage';
-import { clearSleepOnHit, applyStatus, tickDamageOverTime, tickHealOverTime, decayStatuses } from './status';
+import { clearSleepOnHit, applyStatus, tickDamageOverTime, tickHealOverTime, decayStatuses, isSkippingTurn, isEntangled, outgoingDamageMult } from './status';
 import type { CardId, Perk } from './types';
 import { compileUpgradeBuffs, emptyUpgradeBuffs, type UpgradeBuffs } from './upgradeBuffs';
 
@@ -452,13 +452,14 @@ export class BattleRunner {
 
   // === Card flow helpers (Phase 6) ===
 
-  /** The effective hand cap: base HAND_HARD_CAP + any talent bonus. */
+  /** The effective hand cap: base HAND_HARD_CAP + any talent bonus, capped
+   *  at the design ceiling MAX_HAND_CAP (matches MAX_HAND_SIZE in player.ts). */
   handCap(): number {
     const bonus = this.state.talents.list.reduce((acc, t) => {
       if (t.modifier?.type === 'hand_cap_delta') return acc + (t.modifier.value as number);
       return acc;
     }, 0);
-    return HAND_HARD_CAP + bonus;
+    return Math.min(9, HAND_HARD_CAP + bonus);
   }
 
   /** Draw N cards from the deck into the hand. Reshuffles discard into deck
@@ -652,8 +653,49 @@ export class BattleRunner {
     this.state.staminaThisTurn -= effectiveCost;
     this.discardFromHand(handIndex);
 
-    this.applyTacticEffect(def.effect, targetEnemyId, this.tierMults[cardId] ?? 1);
+    const level = this.tierMults[cardId] ?? 1;
+    this.applyTacticEffect(def.effect, targetEnemyId, level);
+    // Level riders — small bonus buff/debuff that fires starting at level 2
+    // for select tactics. Doesn't replace the original effect; it's purely
+    // additive flavor that scales mildly with level.
+    this.applyTacticLevelRider(cardId, level);
     return 'played';
+  }
+
+  /**
+   * Apply a small per-card "rider" effect at level >= 2. The original
+   * effect is unchanged; this is a flavor bonus on top. Stacks scale
+   * linearly: 1 stack at L2, +1 per level → 9 stacks at L10. Empowered
+   * uses 1% per stack and weakened (-1% per stack) so the magnitudes feel
+   * like a small bonus, not a replacement effect.
+   */
+  private applyTacticLevelRider(cardId: string, level: number): void {
+    if (level < 2) return;
+    const lvBonus = Math.max(1, level - 1); // 1 at L2 .. 9 at L10
+    switch (cardId) {
+      case 'tac_006': // Adrenaline — pumped up, small damage buff this turn
+      case 'tac_014': // Mana Tap — mystical surge, small damage buff
+      case 'tac_017': // Time Warp — bent time, small damage buff
+      case 'tac_022': // Calculated Risk — calculated edge, small damage buff
+        this.state.player = applyPlayerStatus(this.state.player, 'empowered', lvBonus + 1, 1);
+        break;
+      case 'tac_021': // Quick Study — sharper focus, smaller damage buff
+        this.state.player = applyPlayerStatus(this.state.player, 'empowered', lvBonus, 1);
+        break;
+      case 'tac_009': { // Sigil Refresh — magical ward, small block self
+        const block = 5 * lvBonus;
+        this.state.player = addBlock(this.state.player, block);
+        this.fireReactionTrigger('onBlockApplied');
+        break;
+      }
+      case 'tac_016': // Soulburn — drained souls, small weaken on all enemies
+        this.state.enemies = this.state.enemies.map(e =>
+          isEnemyAlive(e)
+            ? { ...e, statuses: applyStatus(e.statuses, 'weakened', lvBonus, 2) }
+            : e,
+        );
+        break;
+    }
   }
 
   /** Resolve a tactic effect against the current state. Visible internally
@@ -681,32 +723,45 @@ export class BattleRunner {
         break;
       case 'draw_and_buff':
         this.drawCards(effect.cards);
-        this.state.player = applyPlayerStatus(this.state.player, 'empowered', Math.round(effect.buffPct / 0.10), effect.turns);
+        // Empowered now uses 1% per stack — convert pct (0..1) → stacks.
+        // Card-level scaling: +3% damage per level above 1 layered on top
+        // of the authored buffPct so leveling Inspire actually grows it.
+        {
+          const levelBonusPct = (level - 1) * 0.03;
+          const totalPct = effect.buffPct + levelBonusPct;
+          const stacks = Math.max(1, Math.round(totalPct * 100));
+          this.state.player = applyPlayerStatus(this.state.player, 'empowered', stacks, effect.turns);
+        }
         break;
       case 'gain_stamina':
         this.state.staminaThisTurn += effect.amount;
         break;
-      case 'damage_buff':
-        // Stored on the player as a transient status — we use the existing
-        // outgoing-damage pipeline by stacking a one-turn flag. Phase 6
-        // approximation: bump the player's atk for this turn; cleared at
-        // end-of-turn alongside block.
-        // (A real status would use the tickEndOfPlayerTurn decay, but the
-        // current outgoingDamageMult only honours weakened. Adding a
-        // dedicated 'damage_buff' status would require status-bag work; the
-        // simpler path here is to bank the bonus on the player.)
-        // For Phase 6, simply heal back equivalent stamina to indicate the
-        // buff and document the gap — a TODO marker for Phase 6+.
-        // TODO: wire damage_buff into outgoingDamageMult via a 'empowered'
-        // status. Until then, War Cry effectively no-ops.
-        void effect;
+      case 'gain_stamina_and_draw':
+        this.state.staminaThisTurn += effect.amount;
+        this.drawCards(effect.cards);
         break;
-      case 'enemy_damage_debuff':
-        // Apply Weakened to all living enemies — closest existing parallel.
-        // Phase 6 tactics sweep will refine this once enemy status apply
-        // hooks are wired.
-        // No-op for now; tracked.
+      case 'damage_buff': {
+        // Maps to 'empowered' player status. Uses 1% per stack now, plus
+        // +3% per card level above 1 (War Cry gets stronger as it levels).
+        const levelBonusPct = (level - 1) * 0.03;
+        const totalPct = effect.pct + levelBonusPct;
+        const stacks = Math.max(1, Math.round(totalPct * 100));
+        this.state.player = applyPlayerStatus(this.state.player, 'empowered', stacks, effect.turns);
         break;
+      }
+      case 'enemy_damage_debuff': {
+        // Apply Weakened to all living enemies. 1% per stack — convert pct.
+        // +3% per card level above 1 (Smoke Screen scales).
+        const levelBonusPct = (level - 1) * 0.03;
+        const totalPct = effect.pct + levelBonusPct;
+        const stacks = Math.max(1, Math.round(totalPct * 100));
+        this.state.enemies = this.state.enemies.map(e =>
+          isEnemyAlive(e)
+            ? { ...e, statuses: applyStatus(e.statuses, 'weakened', stacks, effect.turns) }
+            : e,
+        );
+        break;
+      }
       case 'apply_status_self':
         this.state.player = applyPlayerStatus(this.state.player, effect.id, effect.stacks, effect.turns);
         break;
@@ -781,10 +836,11 @@ export class BattleRunner {
     // Snapshot damage-taken so Swift Recovery can tell if this turn was clean.
     this.damageTakenAtTurnStart = this.state.player.damageTakenThisStage;
 
-    // 1. Charge phase: tick down each bound slot.
+    // 1. Charge phase: tick down each bound slot. Hasted gives +1 tick per stack.
+    const hastedStacks = this.state.player.statuses.hasted?.stacks ?? 0;
     for (const slot of this.state.slots) {
       if (slot.bound && slot.bound.charge > 0) {
-        slot.bound = { ...slot.bound, charge: slot.bound.charge - 1 };
+        slot.bound = { ...slot.bound, charge: Math.max(0, slot.bound.charge - 1 - hastedStacks) };
       }
     }
 
@@ -813,6 +869,7 @@ export class BattleRunner {
     // 3. Enemy turn: each living enemy executes its current intent.
     for (const enemy of this.state.enemies) {
       if (!isEnemyAlive(enemy)) continue;
+      if (isSkippingTurn(enemy.statuses)) continue;
       this.executeEnemyIntent(enemy);
       if (this.state.outcome !== 'in_progress') return this.state.outcome;
     }
@@ -919,6 +976,11 @@ export class BattleRunner {
     // the UI will prompt the player to discard before they can act next turn.
     this.drawCards(DRAW_PER_TURN);
     this.state.staminaThisTurn = this.state.player.stats.stamina;
+    // Curse: drain 1 stamina per stack at turn start.
+    const playerCurseStacks = this.state.player.statuses.curse?.stacks ?? 0;
+    if (playerCurseStacks > 0) {
+      this.state.staminaThisTurn = Math.max(0, this.state.staminaThisTurn - playerCurseStacks);
+    }
 
     this.state.turn += 1;
     return this.state.outcome;
@@ -1291,14 +1353,34 @@ export class BattleRunner {
     }
 
     switch (intent.kind) {
-      case 'attack':
-        this.applyEnemyAttack(enemy, intent);
+      case 'attack': {
+        if (enemy.statuses.charmed) {
+          // Charmed: attack redirected to self. Enemy takes its own attack damage.
+          const hits = intent.hits ?? 1;
+          const totalDmg = intent.damage * hits;
+          const blocked = Math.min(enemy.block, totalDmg);
+          const hpDelta = Math.max(0, totalDmg - blocked);
+          this.state.enemies = this.state.enemies.map(e =>
+            e.id === enemy.id ? applyEnemyDamage(e, hpDelta, blocked) : e,
+          );
+        } else {
+          // Curse: reduce enemy attack damage by 1 per curse stack.
+          const curseStacks = enemy.statuses.curse?.stacks ?? 0;
+          const effectiveIntent = curseStacks > 0
+            ? { ...intent, damage: Math.max(0, intent.damage - curseStacks) }
+            : intent;
+          this.applyEnemyAttack(enemy, effectiveIntent);
+        }
         break;
+      }
       case 'block':
-        this.state.enemies = this.state.enemies.map(e =>
-          e.id === enemy.id ? { ...e, block: e.block + intent.amount } : e,
-        );
-        this.resolveLog.push({ kind: 'enemy_block', enemyId: enemy.id, amount: intent.amount });
+        // Entangled enemies cannot gain block.
+        if (!isEntangled(enemy.statuses)) {
+          this.state.enemies = this.state.enemies.map(e =>
+            e.id === enemy.id ? { ...e, block: e.block + intent.amount } : e,
+          );
+          this.resolveLog.push({ kind: 'enemy_block', enemyId: enemy.id, amount: intent.amount });
+        }
         break;
       case 'debuff':
         this.state.player = applyPlayerStatus(this.state.player, intent.status, intent.stacks, intent.turns);
@@ -1323,7 +1405,7 @@ export class BattleRunner {
         source: 'enemy',
       });
 
-      let raw = intent.damage;
+      let raw = Math.round(intent.damage * outgoingDamageMult(enemy.statuses));
       if (incomingPatch.cancelIncomingDamage) raw = 0;
       if (incomingPatch.reduceIncomingDamageBy) raw = Math.max(0, raw - incomingPatch.reduceIncomingDamageBy);
       if (incomingPatch.reduceIncomingDamagePct) raw = Math.round(raw * (1 - incomingPatch.reduceIncomingDamagePct));

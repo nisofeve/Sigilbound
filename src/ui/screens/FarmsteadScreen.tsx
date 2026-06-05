@@ -3,10 +3,13 @@
 // tab shows a uniform vertical list of upgrade rows ordered by chain →
 // tier so prerequisites flow top-down.
 
-import { useMemo, useState } from 'react';
-import { allUpgrades, canBuy, type Upgrade, type UpgradeZone } from '@engine/index';
+import { useEffect, useMemo, useState } from 'react';
+import { allUpgrades, canBuy, levelForUpgrade, type Upgrade, type UpgradeZone } from '@engine/index';
+import { levelFromXp } from '@engine/index';
 import { buyUpgrade, type Profile } from '@storage/index';
 import { sfx } from '@game/sfx';
+
+const STRONGHOLD_SEEN_LEVEL_KEY = 'sb_stronghold_seen_level';
 
 interface Props {
   profile: Profile;
@@ -75,17 +78,20 @@ function chainOrderedUpgrades(upgrades: Upgrade[]): Upgrade[] {
 // ─── Zone list — uniform vertical list of upgrade rows ─────────────────────
 
 function ZoneList({
-  zone, upgrades, ownedSet, bankCoins, onBuy, onInfo,
+  zone, upgrades, ownedSet, bankCoins, playerLevel, onBuy, onInfo,
 }: {
   zone: UpgradeZone;
   upgrades: Upgrade[];
   ownedSet: Set<string>;
   bankCoins: number;
+  playerLevel: number;
   onBuy: (u: Upgrade) => void;
   onInfo: (u: Upgrade) => void;
 }) {
   const meta = zoneMeta[zone];
-  const sorted = useMemo(() => chainOrderedUpgrades(upgrades), [upgrades]);
+  const all = useMemo(() => chainOrderedUpgrades(upgrades), [upgrades]);
+  const visible = useMemo(() => all.filter(u => levelForUpgrade(u) <= playerLevel), [all, playerLevel]);
+  const hiddenCount = all.length - visible.length;
   return (
     <div
       style={{
@@ -93,7 +99,7 @@ function ZoneList({
         padding: '6px 0 4px',
       }}
     >
-      {sorted.map(upg => {
+      {visible.map(upg => {
         const owned = ownedSet.has(upg.id);
         const locked = !!(upg.prerequisite && !ownedSet.has(upg.prerequisite));
         const buyable = !owned && !locked && bankCoins >= upg.cost;
@@ -112,6 +118,19 @@ function ZoneList({
           />
         );
       })}
+      {hiddenCount > 0 && (
+        <div style={{
+          textAlign: 'center',
+          padding: '8px 0 4px',
+          fontSize: 10,
+          opacity: 0.45,
+          color: 'var(--sb-gold-light)',
+          letterSpacing: '0.12em',
+          fontFamily: 'var(--sb-font-mono)',
+        }}>
+          🔒 {hiddenCount} MORE UNLOCK AS YOU LEVEL UP
+        </div>
+      )}
     </div>
   );
 }
@@ -355,6 +374,12 @@ export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Pr
   const [activeZone, setActiveZone] = useState<UpgradeZone>('armory');
   const ownedSet = new Set(profile.upgradesOwned);
   const all = allUpgrades();
+  const playerLevel = levelFromXp(profile.playerXp);
+
+  // Mark stronghold as seen at current level — clears the home-screen badge.
+  useEffect(() => {
+    try { localStorage.setItem(STRONGHOLD_SEEN_LEVEL_KEY, String(playerLevel)); } catch { /* ignore */ }
+  }, [playerLevel]);
 
   // Group and build chains per zone
   const grouped: Record<string, Upgrade[]> = {};
@@ -518,6 +543,7 @@ export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Pr
           upgrades={grouped[activeZone]}
           ownedSet={ownedSet}
           bankCoins={profile.bankCoins}
+          playerLevel={playerLevel}
           onBuy={handleBuy}
           onInfo={setInfoUpg}
         />

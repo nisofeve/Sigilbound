@@ -11,6 +11,12 @@ export type ClaimableReward =
   | { type: 'card';   cardId: CardId; count: number }
   | { type: 'perk';   perkId: string; perkName: string; perkIcon: string };
 
+export interface UnlockedUpgrade {
+  name: string;
+  description: string;
+  zone: string;
+}
+
 interface Props {
   // Where the reward came from — drives the title and accent color so the
   // player has a sense of which system just paid out.
@@ -18,6 +24,8 @@ interface Props {
   // Optional flavor — e.g., "Level 17", "Tier 8 (Premium)", quest name.
   subtitle?: string;
   rewards: ClaimableReward[];
+  // Stronghold upgrades that just became visible at this level.
+  unlockedUpgrades?: UnlockedUpgrade[];
   onClose: () => void;
 }
 
@@ -27,7 +35,7 @@ const SOURCE_META: Record<Props['source'], { title: string; accent: string; emoj
   daily_quest:  { title: 'Daily Quest Reward!', accent: '#a5d6a7', emoji: '🎯' },
 };
 
-export default function RewardClaimModal({ source, subtitle, rewards, onClose }: Props) {
+export default function RewardClaimModal({ source, subtitle, rewards, unlockedUpgrades, onClose }: Props) {
   const meta = SOURCE_META[source];
   // Stagger the reward-chip pop-ins so the eye walks across them.
   const [revealed, setRevealed] = useState(0);
@@ -89,6 +97,41 @@ export default function RewardClaimModal({ source, subtitle, rewards, onClose }:
               ))}
             </div>
           </div>
+
+          {unlockedUpgrades && unlockedUpgrades.length > 0 && (
+            <div
+              className="rounded-xl p-3 mb-4"
+              style={{
+                background: 'rgba(251,191,36,0.12)',
+                border: '1.5px solid rgba(251,191,36,0.4)',
+              }}
+            >
+              <div
+                className="text-[10px] uppercase tracking-[0.3em] font-extrabold mb-2 text-center flex items-center justify-center gap-1.5"
+                style={{ color: '#92400e' }}
+              >
+                🏰 New Stronghold Upgrades Available
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {unlockedUpgrades.map((u, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg px-3 py-1.5 flex items-start gap-2"
+                    style={{
+                      background: 'rgba(255,255,255,0.45)',
+                      border: '1px solid rgba(120,80,30,0.3)',
+                    }}
+                  >
+                    <span style={{ fontSize: 14, lineHeight: 1.4 }}>✦</span>
+                    <div>
+                      <div className="font-extrabold text-[11px]" style={{ color: '#3e2723' }}>{u.name}</div>
+                      <div className="text-[10px] opacity-75" style={{ color: '#5d4037' }}>{u.description}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <button
             onClick={onClose}

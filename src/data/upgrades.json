@@ -4,12 +4,12 @@
     "zone": "armory",
     "tier": 1,
     "name": "Whetstone I",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 60,
     "prerequisite": null,
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -17,12 +17,12 @@
     "zone": "armory",
     "tier": 2,
     "name": "Whetstone II",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 100,
     "prerequisite": "upg.armory.atk_1",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -30,12 +30,12 @@
     "zone": "armory",
     "tier": 3,
     "name": "Whetstone III",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 150,
     "prerequisite": "upg.armory.atk_2",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -43,12 +43,12 @@
     "zone": "armory",
     "tier": 4,
     "name": "Whetstone IV",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 200,
     "prerequisite": "upg.armory.atk_3",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -56,12 +56,12 @@
     "zone": "armory",
     "tier": 5,
     "name": "Whetstone V",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 280,
     "prerequisite": "upg.armory.atk_4",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -69,12 +69,12 @@
     "zone": "armory",
     "tier": 6,
     "name": "Whetstone VI",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 380,
     "prerequisite": "upg.armory.atk_5",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -82,12 +82,12 @@
     "zone": "armory",
     "tier": 7,
     "name": "Whetstone VII",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 500,
     "prerequisite": "upg.armory.atk_6",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -95,12 +95,12 @@
     "zone": "armory",
     "tier": 8,
     "name": "Whetstone VIII",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 650,
     "prerequisite": "upg.armory.atk_7",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -108,12 +108,12 @@
     "zone": "armory",
     "tier": 9,
     "name": "Whetstone IX",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 850,
     "prerequisite": "upg.armory.atk_8",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -121,12 +121,12 @@
     "zone": "armory",
     "tier": 10,
     "name": "Whetstone X",
-    "description": "+1 Attack.",
+    "description": "+3 Attack.",
     "cost": 1100,
     "prerequisite": "upg.armory.atk_9",
     "effect": {
       "type": "atk_bonus",
-      "value": 1
+      "value": 3
     }
   },
   {
@@ -134,12 +134,12 @@
     "zone": "armory",
     "tier": 11,
     "name": "Whetstone XI",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 1400,
     "prerequisite": "upg.armory.atk_10",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -147,12 +147,12 @@
     "zone": "armory",
     "tier": 12,
     "name": "Whetstone XII",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 1800,
     "prerequisite": "upg.armory.atk_11",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -160,12 +160,12 @@
     "zone": "armory",
     "tier": 13,
     "name": "Whetstone XIII",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 2300,
     "prerequisite": "upg.armory.atk_12",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -173,12 +173,12 @@
     "zone": "armory",
     "tier": 14,
     "name": "Whetstone XIV",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 2900,
     "prerequisite": "upg.armory.atk_13",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -186,12 +186,12 @@
     "zone": "armory",
     "tier": 15,
     "name": "Whetstone XV",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 3700,
     "prerequisite": "upg.armory.atk_14",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -199,12 +199,12 @@
     "zone": "armory",
     "tier": 16,
     "name": "Whetstone XVI",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 4700,
     "prerequisite": "upg.armory.atk_15",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -212,12 +212,12 @@
     "zone": "armory",
     "tier": 17,
     "name": "Whetstone XVII",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 6000,
     "prerequisite": "upg.armory.atk_16",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -225,12 +225,12 @@
     "zone": "armory",
     "tier": 18,
     "name": "Whetstone XVIII",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 7500,
     "prerequisite": "upg.armory.atk_17",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -238,12 +238,12 @@
     "zone": "armory",
     "tier": 19,
     "name": "Whetstone XIX",
-    "description": "+2 Attack.",
+    "description": "+5 Attack.",
     "cost": 9500,
     "prerequisite": "upg.armory.atk_18",
     "effect": {
       "type": "atk_bonus",
-      "value": 2
+      "value": 5
     }
   },
   {
@@ -251,12 +251,12 @@
     "zone": "armory",
     "tier": 20,
     "name": "Mythic Blade",
-    "description": "+5 Attack.",
+    "description": "+15 Attack.",
     "cost": 16000,
     "prerequisite": "upg.armory.atk_19",
     "effect": {
       "type": "atk_bonus",
-      "value": 5
+      "value": 15
     }
   },
   {
@@ -2202,25 +2202,25 @@
     "id": "upg.library.hand_cap_3",
     "zone": "library",
     "tier": 10,
-    "name": "Spacious Mind III",
-    "description": "Hand cap +1.",
+    "name": "Battlefield Steel",
+    "description": "+15 max HP.",
     "cost": 1100,
     "prerequisite": "upg.library.hand_cap_2",
     "effect": {
-      "type": "hand_cap_delta",
-      "value": 1
+      "type": "max_hp_bonus",
+      "value": 15
     }
   },
   {
     "id": "upg.library.hand_cap_4",
     "zone": "library",
     "tier": 11,
-    "name": "Spacious Mind IV",
-    "description": "Hand cap +1.",
+    "name": "Tempered Plate",
+    "description": "+1 Defense.",
     "cost": 1400,
     "prerequisite": "upg.library.hand_cap_3",
     "effect": {
-      "type": "hand_cap_delta",
+      "type": "def_bonus",
       "value": 1
     }
   },
@@ -2228,13 +2228,13 @@
     "id": "upg.library.hand_cap_5",
     "zone": "library",
     "tier": 12,
-    "name": "Spacious Mind V",
-    "description": "Hand cap +1.",
+    "name": "Sharper Edge",
+    "description": "+2% crit chance.",
     "cost": 1800,
     "prerequisite": "upg.library.hand_cap_4",
     "effect": {
-      "type": "hand_cap_delta",
-      "value": 1
+      "type": "crit_chance_bonus",
+      "value": 0.02
     }
   },
   {
@@ -2254,52 +2254,52 @@
     "id": "upg.library.hand_cap_6",
     "zone": "library",
     "tier": 14,
-    "name": "Spacious Mind VI",
-    "description": "Hand cap +1.",
+    "name": "Treasure Eye I",
+    "description": "+5% gold drops.",
     "cost": 2900,
     "prerequisite": "upg.library.quick_draw_4",
     "effect": {
-      "type": "hand_cap_delta",
-      "value": 1
+      "type": "gold_drop_bonus",
+      "value": 0.05
     }
   },
   {
     "id": "upg.library.hand_cap_7",
     "zone": "library",
     "tier": 15,
-    "name": "Spacious Mind VII",
-    "description": "Hand cap +1.",
+    "name": "Iron Hide",
+    "description": "+25 max HP.",
     "cost": 3700,
     "prerequisite": "upg.library.hand_cap_6",
     "effect": {
-      "type": "hand_cap_delta",
-      "value": 1
+      "type": "max_hp_bonus",
+      "value": 25
     }
   },
   {
     "id": "upg.library.hand_cap_8",
     "zone": "library",
     "tier": 16,
-    "name": "Spacious Mind VIII",
-    "description": "Hand cap +1.",
+    "name": "Honed Reflex",
+    "description": "+3% crit chance.",
     "cost": 4700,
     "prerequisite": "upg.library.hand_cap_7",
     "effect": {
-      "type": "hand_cap_delta",
-      "value": 1
+      "type": "crit_chance_bonus",
+      "value": 0.03
     }
   },
   {
     "id": "upg.library.hand_cap_9",
     "zone": "library",
     "tier": 17,
-    "name": "Spacious Mind IX",
-    "description": "Hand cap +1.",
+    "name": "Treasure Eye II",
+    "description": "+8% gold drops.",
     "cost": 6000,
     "prerequisite": "upg.library.hand_cap_8",
     "effect": {
-      "type": "hand_cap_delta",
-      "value": 1
+      "type": "gold_drop_bonus",
+      "value": 0.08
     }
   },
   {
@@ -2319,26 +2319,26 @@
     "id": "upg.library.hand_cap_10",
     "zone": "library",
     "tier": 19,
-    "name": "Spacious Mind X",
-    "description": "Hand cap +1.",
+    "name": "Tempest Plate",
+    "description": "+2 Defense.",
     "cost": 9500,
     "prerequisite": "upg.library.quick_draw_5",
     "effect": {
-      "type": "hand_cap_delta",
-      "value": 1
+      "type": "def_bonus",
+      "value": 2
     }
   },
   {
     "id": "upg.library.hand_apex",
     "zone": "library",
     "tier": 20,
-    "name": "Infinite Hand",
-    "description": "+1 hand size (apex).",
+    "name": "Vital Reserve",
+    "description": "+250 max HP.",
     "cost": 18000,
     "prerequisite": "upg.library.hand_cap_10",
     "effect": {
-      "type": "hand_size_delta",
-      "value": 1
+      "type": "max_hp_bonus",
+      "value": 250
     }
   },
   {
@@ -2371,38 +2371,38 @@
     "id": "upg.library.stamina_3",
     "zone": "library",
     "tier": 3,
-    "name": "Focus Training III",
-    "description": "+1 Stamina per turn.",
+    "name": "Sharp Mind",
+    "description": "+1% crit chance.",
     "cost": 150,
     "prerequisite": "upg.library.stamina_2",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "crit_chance_bonus",
+      "value": 0.01
     }
   },
   {
     "id": "upg.library.stamina_4",
     "zone": "library",
     "tier": 4,
-    "name": "Focus Training IV",
-    "description": "+1 Stamina per turn.",
+    "name": "Heavy Coin Pouch",
+    "description": "+3% gold drops.",
     "cost": 200,
     "prerequisite": "upg.library.stamina_3",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "gold_drop_bonus",
+      "value": 0.03
     }
   },
   {
     "id": "upg.library.stamina_5",
     "zone": "library",
     "tier": 5,
-    "name": "Focus Training V",
-    "description": "+1 Stamina per turn.",
+    "name": "Battle Stance",
+    "description": "+1 Defense.",
     "cost": 280,
     "prerequisite": "upg.library.stamina_4",
     "effect": {
-      "type": "stamina_bonus",
+      "type": "def_bonus",
       "value": 1
     }
   },
@@ -2410,64 +2410,64 @@
     "id": "upg.library.stamina_6",
     "zone": "library",
     "tier": 6,
-    "name": "Focus Training VI",
-    "description": "+1 Stamina per turn.",
+    "name": "Hardy Frame",
+    "description": "+15 max HP.",
     "cost": 380,
     "prerequisite": "upg.library.stamina_5",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "max_hp_bonus",
+      "value": 15
     }
   },
   {
     "id": "upg.library.stamina_7",
     "zone": "library",
     "tier": 7,
-    "name": "Focus Training VII",
-    "description": "+1 Stamina per turn.",
+    "name": "Keen Eye",
+    "description": "+2% crit chance.",
     "cost": 500,
     "prerequisite": "upg.library.stamina_6",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "crit_chance_bonus",
+      "value": 0.02
     }
   },
   {
     "id": "upg.library.stamina_8",
     "zone": "library",
     "tier": 8,
-    "name": "Focus Training VIII",
-    "description": "+1 Stamina per turn.",
+    "name": "Stout Heart",
+    "description": "+25 max HP.",
     "cost": 650,
     "prerequisite": "upg.library.stamina_7",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "max_hp_bonus",
+      "value": 25
     }
   },
   {
     "id": "upg.library.stamina_9",
     "zone": "library",
     "tier": 9,
-    "name": "Focus Training IX",
-    "description": "+1 Stamina per turn.",
+    "name": "Merchant Charm I",
+    "description": "+5% gold drops.",
     "cost": 850,
     "prerequisite": "upg.library.stamina_8",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "gold_drop_bonus",
+      "value": 0.05
     }
   },
   {
     "id": "upg.library.stamina_10",
     "zone": "library",
     "tier": 10,
-    "name": "Focus Training X",
-    "description": "+1 Stamina per turn.",
+    "name": "Honed Steel",
+    "description": "+1 Defense.",
     "cost": 1100,
     "prerequisite": "upg.library.stamina_9",
     "effect": {
-      "type": "stamina_bonus",
+      "type": "def_bonus",
       "value": 1
     }
   },
@@ -2527,52 +2527,52 @@
     "id": "upg.library.stamina_11",
     "zone": "library",
     "tier": 15,
-    "name": "Focus Training XI",
-    "description": "+1 Stamina per turn.",
+    "name": "Crit Mastery",
+    "description": "+3% crit chance.",
     "cost": 3700,
     "prerequisite": "upg.library.tactic_disc_4",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "crit_chance_bonus",
+      "value": 0.03
     }
   },
   {
     "id": "upg.library.stamina_12",
     "zone": "library",
     "tier": 16,
-    "name": "Focus Training XII",
-    "description": "+1 Stamina per turn.",
+    "name": "Iron Wall",
+    "description": "+2 Defense.",
     "cost": 4700,
     "prerequisite": "upg.library.stamina_11",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "def_bonus",
+      "value": 2
     }
   },
   {
     "id": "upg.library.stamina_13",
     "zone": "library",
     "tier": 17,
-    "name": "Focus Training XIII",
-    "description": "+1 Stamina per turn.",
+    "name": "Merchant Charm II",
+    "description": "+8% gold drops.",
     "cost": 6000,
     "prerequisite": "upg.library.stamina_12",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "gold_drop_bonus",
+      "value": 0.08
     }
   },
   {
     "id": "upg.library.stamina_14",
     "zone": "library",
     "tier": 18,
-    "name": "Focus Training XIV",
-    "description": "+1 Stamina per turn.",
+    "name": "Vigorous Body",
+    "description": "+40 max HP.",
     "cost": 7500,
     "prerequisite": "upg.library.stamina_13",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "max_hp_bonus",
+      "value": 40
     }
   },
   {
@@ -2592,13 +2592,13 @@
     "id": "upg.library.stamina_apex",
     "zone": "library",
     "tier": 20,
-    "name": "Infinite Focus",
-    "description": "+1 Stamina per turn.",
+    "name": "Champion's Resolve",
+    "description": "+150 max HP.",
     "cost": 20000,
     "prerequisite": "upg.library.tactic_disc_5",
     "effect": {
-      "type": "stamina_bonus",
-      "value": 1
+      "type": "max_hp_bonus",
+      "value": 150
     }
   },
   {
@@ -2904,25 +2904,25 @@
     "id": "upg.library.perk_4",
     "zone": "library",
     "tier": 4,
-    "name": "Perk Slot V",
-    "description": "Unlocks 5nd perk slot.",
+    "name": "Tactician's Edge",
+    "description": "+1% crit chance.",
     "cost": 200,
     "prerequisite": "upg.library.perk_3",
     "effect": {
-      "type": "perk_slots_delta",
-      "value": 1
+      "type": "crit_chance_bonus",
+      "value": 0.01
     }
   },
   {
     "id": "upg.library.perk_5",
     "zone": "library",
     "tier": 5,
-    "name": "Perk Slot VI",
-    "description": "Unlocks 6nd perk slot.",
+    "name": "Steady Hand",
+    "description": "+1 Defense.",
     "cost": 280,
     "prerequisite": "upg.library.perk_4",
     "effect": {
-      "type": "perk_slots_delta",
+      "type": "def_bonus",
       "value": 1
     }
   },
@@ -2930,13 +2930,13 @@
     "id": "upg.library.perk_6",
     "zone": "library",
     "tier": 6,
-    "name": "Perk Slot VII",
-    "description": "Unlocks 7nd perk slot.",
+    "name": "Tough Hide",
+    "description": "+20 max HP.",
     "cost": 380,
     "prerequisite": "upg.library.perk_5",
     "effect": {
-      "type": "perk_slots_delta",
-      "value": 1
+      "type": "max_hp_bonus",
+      "value": 20
     }
   },
   {
@@ -3047,52 +3047,52 @@
     "id": "upg.library.perk_7",
     "zone": "library",
     "tier": 15,
-    "name": "Perk Slot VIII",
-    "description": "Unlocks 8th perk slot.",
+    "name": "Coin Hoarder",
+    "description": "+5% gold drops.",
     "cost": 3700,
     "prerequisite": "upg.library.echo_4",
     "effect": {
-      "type": "perk_slots_delta",
-      "value": 1
+      "type": "gold_drop_bonus",
+      "value": 0.05
     }
   },
   {
     "id": "upg.library.perk_8",
     "zone": "library",
     "tier": 16,
-    "name": "Perk Slot IX",
-    "description": "Unlocks 9th perk slot.",
+    "name": "Veteran Strike",
+    "description": "+2% crit chance.",
     "cost": 4700,
     "prerequisite": "upg.library.perk_7",
     "effect": {
-      "type": "perk_slots_delta",
-      "value": 1
+      "type": "crit_chance_bonus",
+      "value": 0.02
     }
   },
   {
     "id": "upg.library.perk_9",
     "zone": "library",
     "tier": 17,
-    "name": "Perk Slot X",
-    "description": "Unlocks 10th perk slot.",
+    "name": "Reinforced",
+    "description": "+2 Defense.",
     "cost": 6000,
     "prerequisite": "upg.library.perk_8",
     "effect": {
-      "type": "perk_slots_delta",
-      "value": 1
+      "type": "def_bonus",
+      "value": 2
     }
   },
   {
     "id": "upg.library.perk_10",
     "zone": "library",
     "tier": 18,
-    "name": "Perk Slot XI",
-    "description": "Unlocks 11th perk slot.",
+    "name": "Battle-Hardened",
+    "description": "+50 max HP.",
     "cost": 7500,
     "prerequisite": "upg.library.perk_9",
     "effect": {
-      "type": "perk_slots_delta",
-      "value": 1
+      "type": "max_hp_bonus",
+      "value": 50
     }
   },
   {
