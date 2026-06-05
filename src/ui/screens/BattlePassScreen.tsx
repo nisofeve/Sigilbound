@@ -3,7 +3,7 @@
 // free + VIP rows). Visual language: deep slate panels, cyan/violet highlights,
 // gold-on-gold for VIP, all matching the Sigilbound stronghold aesthetic.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   TOTAL_BP_TIERS,
   TOTAL_REWARD_TIERS,
@@ -33,6 +33,7 @@ import {
 } from '@storage/index';
 import RewardClaimModal, { type ClaimableReward } from '@ui/modals/RewardClaimModal';
 import CardPackOpenModal from '@ui/modals/CardPackOpenModal';
+import { sfx } from '@game/sfx';
 
 interface Props {
   profile: Profile;
@@ -49,6 +50,8 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [claimPopup, setClaimPopup] = useState<{ tier: number; track: 'free' | 'premium'; rewards: ClaimableReward[] } | null>(null);
   const [cardPackOpen, setCardPackOpen] = useState<string[] | null>(null);
+  const [xpGainAnim, setXpGainAnim] = useState<{ amount: number; id: number } | null>(null);
+  const [tierUpAnim, setTierUpAnim] = useState<{ newTier: number; id: number } | null>(null);
 
   const cloudReady = auth.kind === 'signed_in';
   const tiers = useMemo(() => allBpTiers(), []);
@@ -64,6 +67,34 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
     ? tiers.filter(t => t.premium && currentTier >= t.tier && !profile.bpClaimedPremium.includes(t.tier)).length
     : 0;
   const totalClaimable = claimableFree + claimablePremium;
+
+  const claimableChallenges = useMemo(() => {
+    const today = todayKey();
+    const week = weekKey();
+    const month = monthKey();
+    const dailyState = profile.todayQuestsISO === today ? profile.todayQuestsState : {};
+    const weeklyState = profile.weekQuestsISO === week ? profile.weekQuestsState : {};
+    const monthlyState = profile.monthQuestsISO === month ? profile.monthQuestsState : {};
+    const countC = (qs: Quest[], s: Record<string, { progress: number; claimed: boolean }>) =>
+      qs.filter(q => { const e = s[q.id]; return e && e.progress >= q.goal && !e.claimed; }).length;
+    return countC(selectPeriodicQuests('daily', today), dailyState)
+      + countC(selectPeriodicQuests('weekly', week), weeklyState)
+      + countC(selectPeriodicQuests('monthly', month), monthlyState);
+  }, [profile]);
+
+  // Auto-clear XP animation
+  useEffect(() => {
+    if (!xpGainAnim) return;
+    const t = setTimeout(() => setXpGainAnim(a => a?.id === xpGainAnim.id ? null : a), 1400);
+    return () => clearTimeout(t);
+  }, [xpGainAnim?.id]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-clear tier-up animation
+  useEffect(() => {
+    if (!tierUpAnim) return;
+    const t = setTimeout(() => setTierUpAnim(a => a?.id === tierUpAnim.id ? null : a), 2700);
+    return () => clearTimeout(t);
+  }, [tierUpAnim?.id]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   function showMsg(kind: 'ok' | 'err', text: string) {
     setMsg({ kind, text });
@@ -146,6 +177,7 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
   }
 
   function claimQuest(questId: string) {
+    const prevTier = bpTierFromXp(profile.bpXp);
     const res = claimQuestRewardLocal(profile, questId);
     if (!res) {
       showMsg('err', 'Quest not ready to claim.');
@@ -156,8 +188,19 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
     if (res.coins > 0)  rewards.push({ type: 'coins', value: res.coins });
     if (res.gems > 0)   rewards.push({ type: 'gems', value: res.gems });
     if (res.shards > 0) rewards.push({ type: 'shards', value: res.shards });
-    setClaimPopup({ tier: 0, track: 'free', rewards });
-    showMsg('ok', `+${res.bpXp} BP XP`);
+    if (rewards.length > 0) setClaimPopup({ tier: 0, track: 'free', rewards });
+
+    if (res.bpXp > 0) {
+      const animId = Date.now();
+      setXpGainAnim({ amount: res.bpXp, id: animId });
+      const newTier = bpTierFromXp(res.profile.bpXp);
+      if (newTier > prevTier) {
+        setTierUpAnim({ newTier, id: animId });
+        sfx.upgradeUnlock();
+      } else {
+        sfx.rewardChipRare();
+      }
+    }
   }
 
   return (
@@ -233,24 +276,47 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
           </div>
 
           {/* XP bar */}
-          <div className="mt-2.5">
+          <div className="mt-2.5 relative">
             <div
-              className="h-2.5 rounded-full overflow-hidden relative"
+              className="h-2.5 rounded-full overflow-hidden"
               style={{
                 background: 'rgba(0,0,0,0.5)',
                 boxShadow: 'inset 0 2px 3px rgba(0,0,0,0.6)',
               }}
             >
               <div
-                className="h-full relative"
+                className="h-full"
                 style={{
                   width: `${xpInTierPct}%`,
                   background: 'linear-gradient(90deg, #a78bfa 0%, #f472b6 50%, #fbbf24 100%)',
-                  transition: 'width 400ms ease',
+                  transition: 'width 600ms cubic-bezier(0.22,1,0.36,1)',
                   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 0 8px rgba(251,191,36,0.4)',
                 }}
               />
             </div>
+            {/* Floating XP gain text */}
+            {xpGainAnim && (
+              <div
+                key={xpGainAnim.id}
+                className="sb-floater"
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: 0,
+                  pointerEvents: 'none',
+                  zIndex: 50,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: '#fbbf24',
+                  textShadow: '0 0 12px rgba(251,191,36,0.9), 0 1px 2px rgba(0,0,0,0.8)',
+                  fontFamily: "'Cinzel', serif",
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                +{xpGainAnim.amount} BP XP
+              </div>
+            )}
             <div className="flex justify-between mt-1 text-[10px]" style={{ color: '#c4b5fd', opacity: 0.85 }}>
               <span className="sb-mono" style={{ letterSpacing: '0.05em' }}>{xpInTier} / {XP_PER_TIER} XP</span>
               <span className="sb-mono" style={{ letterSpacing: '0.05em' }}>{overallPct}% complete</span>
@@ -298,7 +364,7 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
 
         {/* Tabs */}
         <div className="flex gap-1.5 mt-2">
-          <TabButton active={tab === 'challenges'} onClick={() => setTab('challenges')} icon="⚡">
+          <TabButton active={tab === 'challenges'} onClick={() => setTab('challenges')} icon="⚡" badge={claimableChallenges}>
             CHALLENGES
           </TabButton>
           <TabButton active={tab === 'rewards'} onClick={() => setTab('rewards')} icon="🎁" badge={totalClaimable}>
@@ -353,6 +419,47 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
           cardIds={cardPackOpen}
           onClose={() => setCardPackOpen(null)}
         />
+      )}
+
+      {/* Tier-up celebration overlay */}
+      {tierUpAnim && (
+        <div
+          key={tierUpAnim.id}
+          style={{
+            position: 'fixed', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            pointerEvents: 'none', zIndex: 500,
+          }}
+        >
+          <div
+            className="sb-tier-up"
+            style={{
+              background: 'linear-gradient(135deg, rgba(251,191,36,0.97) 0%, rgba(120,53,15,0.97) 100%)',
+              border: '2.5px solid #fde68a',
+              borderRadius: 14,
+              padding: '18px 36px',
+              textAlign: 'center',
+              boxShadow: '0 0 60px rgba(251,191,36,0.7), 0 0 20px rgba(251,191,36,0.5), inset 0 1px 0 rgba(255,255,255,0.3)',
+            }}
+          >
+            <div style={{ fontSize: 30, lineHeight: 1, marginBottom: 6 }}>⚔️</div>
+            <div style={{
+              fontSize: 11, color: '#92400e', fontFamily: "'Cinzel', serif",
+              fontWeight: 700, letterSpacing: '0.3em', marginBottom: 2,
+            }}>TIER</div>
+            <div style={{
+              fontSize: 48, color: '#1a0f0a', fontFamily: "'Cinzel', serif",
+              fontWeight: 800, lineHeight: 1,
+              textShadow: '0 2px 0 rgba(255,255,255,0.4)',
+            }}>
+              {tierUpAnim.newTier}
+            </div>
+            <div style={{
+              fontSize: 10, color: '#78350f', fontFamily: "'Cinzel', serif",
+              fontWeight: 700, letterSpacing: '0.25em', marginTop: 4,
+            }}>UNLOCKED</div>
+          </div>
+        </div>
       )}
     </div>
   );

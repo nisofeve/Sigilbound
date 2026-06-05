@@ -55,27 +55,230 @@ const zoneMeta: Record<string, {
   },
 };
 
-// Build prerequisite-rooted display order: walk roots, then their children
-// in chain sequence. This preserves the "tier 1 of chain A, then tier 2 of
-// chain A, …, then chain B" reading order so a list view groups related
-// upgrades naturally.
-function chainOrderedUpgrades(upgrades: Upgrade[]): Upgrade[] {
+// Extract prerequisite chains: each array is one root-to-leaf sequence.
+function extractChains(upgrades: Upgrade[]): Upgrade[][] {
   const byId = new Map(upgrades.map(u => [u.id, u]));
   const roots = upgrades.filter(u => !u.prerequisite || !byId.has(u.prerequisite!));
-  const out: Upgrade[] = [];
+  const chains: Upgrade[][] = [];
   for (const root of roots) {
+    const chain: Upgrade[] = [];
     let cur: Upgrade | undefined = root;
     while (cur) {
-      out.push(cur);
+      chain.push(cur);
       cur = upgrades.find(u => u.prerequisite === cur!.id);
     }
+    chains.push(chain);
   }
-  // Append any orphans that weren't reached (shouldn't happen but defensive).
-  for (const u of upgrades) if (!out.includes(u)) out.push(u);
-  return out;
+  // Append orphans (defensive).
+  const seen = new Set(chains.flat().map(u => u.id));
+  for (const u of upgrades) if (!seen.has(u.id)) chains.push([u]);
+  return chains;
 }
 
-// ─── Zone list — uniform vertical list of upgrade rows ─────────────────────
+// Strip trailing roman numeral / number from upgrade name.
+function chainBaseName(name: string): string {
+  return name.replace(/\s+([IVXLCDM]+|\d+)$/, '').trim();
+}
+
+// Summarise the cumulative owned effect of a chain as a short label.
+function formatEffectTotal(chain: Upgrade[], ownedSet: Set<string>): string {
+  const owned = chain.filter(u => ownedSet.has(u.id));
+  if (owned.length === 0) return '';
+  const type = owned[0].effect.type;
+  // Only summarise when all owned entries share the same effect type.
+  if (!owned.every(u => u.effect.type === type)) return `×${owned.length}`;
+  const sum = (key: string) => owned.reduce((s, u) => s + ((u.effect as unknown as Record<string, number>)[key] ?? 0), 0);
+  switch (type) {
+    case 'atk_bonus':             return `+${sum('value')} ATK`;
+    case 'def_bonus':             return `+${sum('value')} DEF`;
+    case 'max_hp_bonus':          return `+${sum('value')} HP`;
+    case 'stamina_bonus':         return `+${sum('value')} STA`;
+    case 'speed_bonus':           return `+${sum('value')} SPD`;
+    case 'crit_chance_bonus':     return `+${Math.round(sum('value') * 100)}% CRIT`;
+    case 'crit_damage_bonus':     return `+${Math.round(sum('value') * 100)}% CRIT DMG`;
+    case 'starting_deck_extra':   return `+${sum('value')} DECK`;
+    case 'draft_count_delta':     return `+${sum('value')} DRAFT`;
+    case 'hand_size_delta':       return `+${sum('value')} HAND`;
+    case 'stage_start_heal':      return `+${sum('value')} HP/STAGE`;
+    case 'on_kill_heal':          return `+${sum('value')} HP/KILL`;
+    case 'regen_per_turn':        return `+${sum('value')} REGEN`;
+    case 'starting_block':        return `+${sum('value')} BLOCK`;
+    case 'combo_damage_bonus':    return `+${Math.round(sum('value') * 100)}% COMBO`;
+    case 'global_block_piercing': return `+${Math.round(sum('value') * 100)}% PIERCE`;
+    case 'card_replicate_chance': return `+${Math.round(sum('value') * 100)}% ECHO`;
+    case 'tactic_stamina_discount': return `-${sum('value')} STA COST`;
+    case 'free_reroll_per_run':   return `+${sum('value')} REROLL`;
+    case 'heal_effectiveness_mult': return `+${Math.round(sum('value') * 100)}% HEAL`;
+    case 'resistance_bonus': {
+      let compound = 1;
+      for (const u of owned) compound *= ((u.effect as unknown as Record<string, number>).value ?? 1);
+      const el = (owned[0].effect as unknown as Record<string, string>).element ?? '';
+      return `-${Math.round((1 - compound) * 100)}% ${el.slice(0, 3).toUpperCase()}`;
+    }
+    case 'all_resist_bonus':      return `+${Math.round(sum('value') * 100)}% ALL RES`;
+    default:                      return `×${owned.length}`;
+  }
+}
+
+// ─── ChainRow — one row per upgrade chain ──────────────────────────────────
+
+interface ChainRowProps {
+  chain: Upgrade[];
+  ownedSet: Set<string>;
+  bankCoins: number;
+  playerLevel: number;
+  accent: string;
+  accentDim: string;
+  tintStrong: string;
+  onBuy: (u: Upgrade) => void;
+  onInfo: (u: Upgrade) => void;
+}
+
+function ChainRow({
+  chain, ownedSet, bankCoins, playerLevel,
+  accent, accentDim, tintStrong, onBuy, onInfo,
+}: ChainRowProps) {
+  const ownedCount = chain.filter(u => ownedSet.has(u.id)).length;
+  const totalCount = chain.length;
+  const allOwned = ownedCount === totalCount;
+
+  // First unowned upgrade in the chain.
+  const next = chain.find(u => !ownedSet.has(u.id));
+
+  // Is next tier visible (level-gated)?
+  const nextVisible = next ? levelForUpgrade(next) <= playerLevel : true;
+  // Is the prerequisite unmet? (shouldn't happen in well-formed chains but defensive)
+  const nextLocked = !!(next?.prerequisite && !ownedSet.has(next.prerequisite));
+  const nextBuyable = !!(next && nextVisible && !nextLocked && bankCoins >= next.cost);
+
+  const totalLabel = formatEffectTotal(chain, ownedSet);
+  const displayName = allOwned ? chainBaseName(chain[totalCount - 1].name) : (next?.name ?? chainBaseName(chain[0].name));
+  const displayDesc = allOwned ? chain[totalCount - 1].description : (next?.description ?? '');
+
+  // Chain is visible only if its first upgrade is level-unlocked.
+  if (levelForUpgrade(chain[0]) > playerLevel) return null;
+
+  const bgColor = allOwned ? tintStrong : nextBuyable ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.42)';
+  const borderColor = allOwned ? accent : nextBuyable ? accent + 'aa' : 'rgba(120,100,80,0.35)';
+
+  return (
+    <div
+      onClick={() => next && onInfo(next)}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '36px 1fr auto',
+        alignItems: 'center',
+        gap: 10,
+        background: bgColor,
+        border: `1.5px solid ${borderColor}`,
+        borderRadius: 6,
+        padding: '8px 10px',
+        cursor: next ? 'pointer' : 'default',
+        boxShadow: allOwned
+          ? `0 0 8px ${accent}66, inset 0 1px 0 rgba(255,235,180,0.1)`
+          : nextBuyable
+            ? `0 0 6px ${accent}33, inset 0 1px 0 rgba(255,235,180,0.06)`
+            : 'inset 0 1px 0 rgba(255,235,180,0.04)',
+        transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
+      }}
+    >
+      {/* Progress pip: owned / total */}
+      <div style={{
+        width: 32, height: 32,
+        borderRadius: '50%',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column',
+        background: allOwned
+          ? `linear-gradient(180deg, ${accent} 0%, ${accentDim} 100%)`
+          : ownedCount > 0
+            ? `linear-gradient(180deg, ${accent}66 0%, ${accentDim} 100%)`
+            : 'linear-gradient(180deg, rgba(60,40,20,0.8) 0%, rgba(30,20,10,0.9) 100%)',
+        border: `1.5px solid ${ownedCount > 0 ? accent + '88' : accent + '33'}`,
+        color: ownedCount > 0 ? '#1a0f0a' : '#94896f',
+        fontFamily: 'var(--sb-font-mono)',
+        fontSize: 10, fontWeight: 700,
+        boxShadow: allOwned ? `0 0 10px ${accent}aa` : 'none',
+        gap: 0,
+      }}>
+        <span style={{ fontSize: 11, lineHeight: 1.1 }}>{ownedCount}</span>
+        <span style={{ fontSize: 7, opacity: 0.75, lineHeight: 1 }}>/{totalCount}</span>
+      </div>
+
+      {/* Center: name + cumulative label + description */}
+      <div style={{ minWidth: 0 }}>
+        <div className="sb-display" style={{
+          fontSize: 12, fontWeight: 700, letterSpacing: '0.04em',
+          color: allOwned ? accent : 'var(--sb-gold-light)',
+          lineHeight: 1.2, marginBottom: 2,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {allOwned && <span style={{ marginRight: 4, fontSize: 10 }}>✓</span>}
+          {displayName}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {totalLabel && (
+            <span className="sb-mono" style={{
+              fontSize: 9, fontWeight: 700,
+              color: accent, opacity: 0.9, flexShrink: 0,
+            }}>
+              {totalLabel}
+            </span>
+          )}
+          {!allOwned && (
+            <span style={{
+              fontSize: 10, color: 'var(--sb-parchment)', opacity: 0.72,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {displayDesc}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Right: buy / max state */}
+      <div style={{ flexShrink: 0 }}>
+        {allOwned ? (
+          <span className="sb-mono" style={{
+            padding: '4px 8px', borderRadius: 999, fontSize: 9,
+            background: 'rgba(34,197,94,0.18)',
+            border: '1px solid rgba(74,222,128,0.5)',
+            color: '#86efac', letterSpacing: '0.12em', fontWeight: 700,
+          }}>MAX</span>
+        ) : !nextVisible ? (
+          <span className="sb-mono" style={{
+            padding: '4px 7px', borderRadius: 999, fontSize: 8,
+            background: 'rgba(0,0,0,0.4)',
+            border: '1px solid rgba(120,100,80,0.3)',
+            color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em',
+          }}>🔒 LV UP</span>
+        ) : (
+          <button
+            onClick={e => { e.stopPropagation(); if (nextBuyable && next) onBuy(next); }}
+            disabled={!nextBuyable}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '6px 10px', fontSize: 11,
+              fontFamily: 'var(--sb-font-display)',
+              fontWeight: 700, letterSpacing: '0.05em',
+              borderRadius: 4, cursor: nextBuyable ? 'pointer' : 'not-allowed',
+              background: nextBuyable
+                ? `linear-gradient(180deg, ${accent} 0%, ${accentDim} 100%)`
+                : 'rgba(0,0,0,0.4)',
+              border: `1px solid ${nextBuyable ? accent : 'rgba(120,100,80,0.35)'}`,
+              color: nextBuyable ? '#1a0f0a' : 'rgba(255,255,255,0.3)',
+              boxShadow: nextBuyable ? 'inset 0 1px 0 rgba(255,255,255,0.3)' : 'none',
+              minWidth: 76, justifyContent: 'center',
+            }}
+          >
+            {nextLocked ? '🔒' : '💰'} {next?.cost.toLocaleString()}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Zone list — one ChainRow per upgrade chain ─────────────────────────────
 
 function ZoneList({
   zone, upgrades, ownedSet, bankCoins, playerLevel, onBuy, onInfo,
@@ -89,194 +292,34 @@ function ZoneList({
   onInfo: (u: Upgrade) => void;
 }) {
   const meta = zoneMeta[zone];
-  const all = useMemo(() => chainOrderedUpgrades(upgrades), [upgrades]);
-  const visible = useMemo(() => all.filter(u => levelForUpgrade(u) <= playerLevel), [all, playerLevel]);
-  const hiddenCount = all.length - visible.length;
+  const chains = useMemo(() => extractChains(upgrades), [upgrades]);
+  const hiddenChains = chains.filter(c => levelForUpgrade(c[0]) > playerLevel).length;
   return (
-    <div
-      style={{
-        display: 'flex', flexDirection: 'column', gap: 6,
-        padding: '6px 0 4px',
-      }}
-    >
-      {visible.map(upg => {
-        const owned = ownedSet.has(upg.id);
-        const locked = !!(upg.prerequisite && !ownedSet.has(upg.prerequisite));
-        const buyable = !owned && !locked && bankCoins >= upg.cost;
-        return (
-          <UpgradeRow
-            key={upg.id}
-            upg={upg}
-            owned={owned}
-            buyable={buyable}
-            locked={locked}
-            accent={meta.accent}
-            accentDim={meta.accentDim}
-            tintStrong={meta.tintStrong}
-            onBuy={() => onBuy(upg)}
-            onInfo={() => onInfo(upg)}
-          />
-        );
-      })}
-      {hiddenCount > 0 && (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '6px 0 4px' }}>
+      {chains.map(chain => (
+        <ChainRow
+          key={chain[0].id}
+          chain={chain}
+          ownedSet={ownedSet}
+          bankCoins={bankCoins}
+          playerLevel={playerLevel}
+          accent={meta.accent}
+          accentDim={meta.accentDim}
+          tintStrong={meta.tintStrong}
+          onBuy={onBuy}
+          onInfo={onInfo}
+        />
+      ))}
+      {hiddenChains > 0 && (
         <div style={{
-          textAlign: 'center',
-          padding: '8px 0 4px',
-          fontSize: 10,
-          opacity: 0.45,
+          textAlign: 'center', padding: '8px 0 4px',
+          fontSize: 10, opacity: 0.45,
           color: 'var(--sb-gold-light)',
-          letterSpacing: '0.12em',
-          fontFamily: 'var(--sb-font-mono)',
+          letterSpacing: '0.12em', fontFamily: 'var(--sb-font-mono)',
         }}>
-          🔒 {hiddenCount} MORE UNLOCK AS YOU LEVEL UP
+          🔒 {hiddenChains} MORE UNLOCK AS YOU LEVEL UP
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── UpgradeRow — one uniform list entry ───────────────────────────────────
-
-interface RowProps {
-  upg: Upgrade;
-  owned: boolean;
-  buyable: boolean;
-  locked: boolean;
-  accent: string;
-  accentDim: string;
-  tintStrong: string;
-  onBuy: () => void;
-  onInfo: () => void;
-}
-
-function UpgradeRow({ upg, owned, buyable, locked, accent, accentDim, tintStrong, onBuy, onInfo }: RowProps) {
-  const isNoOp = upg.effect.type === 'noop';
-  const borderColor = owned ? accent : buyable ? accent + 'aa' : locked ? accentDim : 'rgba(120,100,80,0.35)';
-  const bgColor = owned
-    ? tintStrong
-    : buyable
-      ? 'rgba(0,0,0,0.55)'
-      : 'rgba(0,0,0,0.42)';
-  const opacity = locked && !owned ? 0.5 : 1;
-  return (
-    <div
-      onClick={onInfo}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '36px 1fr auto',
-        alignItems: 'center',
-        gap: 10,
-        background: bgColor,
-        border: `1.5px solid ${borderColor}`,
-        borderRadius: 6,
-        padding: '8px 10px',
-        opacity,
-        cursor: 'pointer',
-        boxShadow: owned
-          ? `0 0 8px ${accent}66, inset 0 1px 0 rgba(255,235,180,0.1)`
-          : buyable
-            ? `0 0 6px ${accent}33, inset 0 1px 0 rgba(255,235,180,0.06)`
-            : 'inset 0 1px 0 rgba(255,235,180,0.04)',
-        transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
-      }}
-    >
-      {/* Tier pip */}
-      <div
-        style={{
-          width: 32, height: 32,
-          borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: owned
-            ? `linear-gradient(180deg, ${accent} 0%, ${accentDim} 100%)`
-            : buyable
-              ? `linear-gradient(180deg, ${accent}aa 0%, ${accentDim} 100%)`
-              : 'linear-gradient(180deg, rgba(60,40,20,0.8) 0%, rgba(30,20,10,0.9) 100%)',
-          border: `1.5px solid ${owned ? '#fff7' : accent + '55'}`,
-          color: owned || buyable ? '#1a0f0a' : '#94896f',
-          fontFamily: 'var(--sb-font-display)',
-          fontSize: 12, fontWeight: 700,
-          boxShadow: owned ? `0 0 10px ${accent}aa` : 'none',
-        }}
-      >
-        {upg.tier}
-      </div>
-
-      {/* Center: name + description */}
-      <div style={{ minWidth: 0 }}>
-        <div
-          className="sb-display"
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-            color: owned ? accent : 'var(--sb-gold-light)',
-            lineHeight: 1.2,
-            marginBottom: 2,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}
-        >
-          {owned && <span style={{ marginRight: 4, fontSize: 10 }}>✓</span>}
-          {upg.name}
-          {isNoOp && !owned && (
-            <span className="sb-mono" style={{ fontSize: 8, opacity: 0.5, marginLeft: 6, letterSpacing: '0.1em' }}>SOON</span>
-          )}
-        </div>
-        <div
-          style={{
-            fontSize: 10,
-            color: 'var(--sb-parchment)',
-            opacity: 0.78,
-            lineHeight: 1.3,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}
-        >
-          {upg.description}
-        </div>
-      </div>
-
-      {/* Right: buy / owned state */}
-      <div style={{ flexShrink: 0 }}>
-        {owned ? (
-          <span
-            className="sb-mono"
-            style={{
-              padding: '4px 8px', borderRadius: 999,
-              fontSize: 9,
-              background: 'rgba(34,197,94,0.18)',
-              border: '1px solid rgba(74,222,128,0.5)',
-              color: '#86efac',
-              letterSpacing: '0.12em', fontWeight: 700,
-            }}
-          >
-            FORGED
-          </span>
-        ) : (
-          <button
-            onClick={e => { e.stopPropagation(); if (buyable) onBuy(); }}
-            disabled={!buyable}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '6px 10px',
-              fontSize: 11,
-              fontFamily: 'var(--sb-font-display)',
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-              borderRadius: 4,
-              cursor: buyable ? 'pointer' : 'not-allowed',
-              background: buyable
-                ? `linear-gradient(180deg, ${accent} 0%, ${accentDim} 100%)`
-                : 'rgba(0,0,0,0.4)',
-              border: `1px solid ${buyable ? accent : 'rgba(120,100,80,0.35)'}`,
-              color: buyable ? '#1a0f0a' : 'rgba(255,255,255,0.3)',
-              boxShadow: buyable ? `inset 0 1px 0 rgba(255,255,255,0.3)` : 'none',
-              minWidth: 76,
-              justifyContent: 'center',
-            }}
-          >
-            {locked ? '🔒' : '💰'} {upg.cost.toLocaleString()}
-          </button>
-        )}
-      </div>
     </div>
   );
 }

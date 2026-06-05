@@ -424,7 +424,7 @@ export class BattleRunner {
     // the stage. Both stack additively.
     const totalStageStartHeal = compiledTalents.stageStartHeal + upgradeBuffs.stageStartHeal;
     if (totalStageStartHeal > 0) {
-      this.state.player = healPlayer(this.state.player, totalStageStartHeal);
+      this.healWithBuffs(totalStageStartHeal);
     }
 
     // Stronghold "Shield Training": grant block at battle start.
@@ -637,6 +637,28 @@ export class BattleRunner {
     return true;
   }
 
+  /** Swap two same-turn-bound slot cards in place. Both must be returnable. */
+  swapSlots(slotA: number, slotB: number): boolean {
+    if (!this.canReturnSlotToHand(slotA) || !this.canReturnSlotToHand(slotB)) return false;
+    const sa = this.state.slots[slotA]!;
+    const sb = this.state.slots[slotB]!;
+    const tmp = sa.bound;
+    sa.bound = sb.bound;
+    sb.bound = tmp;
+    return true;
+  }
+
+  /** Move a same-turn-bound card from one slot to an empty slot. */
+  moveSlotCard(srcIdx: number, dstIdx: number): boolean {
+    if (!this.canReturnSlotToHand(srcIdx)) return false;
+    const src = this.state.slots[srcIdx]!;
+    const dst = this.state.slots[dstIdx];
+    if (!dst || dst.bound) return false;
+    dst.bound = src.bound;
+    src.bound = null;
+    return true;
+  }
+
   /** Play a Tactic card from hand. Resolves immediately, discards the card,
    * pays stamina cost. Returns the result outcome ('played' | 'cant_afford'
    * | 'invalid'). */
@@ -714,7 +736,7 @@ export class BattleRunner {
         break;
       case 'heal': {
         const healed = scale(effect.amount);
-        this.state.player = healPlayer(this.state.player, healed);
+        this.healWithBuffs(healed);
         this.fireReactionTrigger('onHeal', { damage: healed });
         break;
       }
@@ -932,7 +954,7 @@ export class BattleRunner {
 
     // Stronghold Meditation: passive HP regen each turn.
     if (this.state.upgradeBuffs.regenPerTurn > 0) {
-      this.state.player = healPlayer(this.state.player, this.state.upgradeBuffs.regenPerTurn);
+      this.healWithBuffs(this.state.upgradeBuffs.regenPerTurn);
     }
 
     // Talent: Swift Recovery — heal at end of clean turn (no HP lost).
@@ -941,7 +963,7 @@ export class BattleRunner {
     // didn't change since this turn started we're "clean".
     const cleanTurnHeal = this.state.talents.cleanTurnHeal;
     if (cleanTurnHeal > 0 && this.damageTakenAtTurnStart === this.state.player.damageTakenThisStage) {
-      this.state.player = healPlayer(this.state.player, cleanTurnHeal);
+      this.healWithBuffs(cleanTurnHeal);
     }
 
     // Block: default = reset; talents OR Stronghold Resilience carry up to N.
@@ -994,7 +1016,7 @@ export class BattleRunner {
     this.state.equipment.triggers.forEach((t, idx) => {
       if (t.kind !== 'on_stage_start') return;
       if (t.addBlock) this.state.player = addBlock(this.state.player, t.addBlock);
-      if (t.healHp) this.state.player = healPlayer(this.state.player, t.healHp);
+      if (t.healHp) this.healWithBuffs(t.healHp);
       fired.push(idx);
     });
     if (fired.length > 0) {
@@ -1030,11 +1052,18 @@ export class BattleRunner {
     return pct;
   }
 
+  /** Heal the player, scaling by heal effectiveness upgrade buffs. */
+  private healWithBuffs(amount: number): void {
+    if (amount <= 0) return;
+    const mult = 1 + this.state.upgradeBuffs.healEffectivenessMult;
+    this.state.player = healPlayer(this.state.player, Math.round(amount * mult));
+  }
+
   /** Apply on_kill heal/gold triggers. */
   private applyEquipmentOnKill(): void {
     for (const t of this.state.equipment.triggers) {
       if (t.kind !== 'on_kill') continue;
-      if (t.healHp) this.state.player = healPlayer(this.state.player, t.healHp);
+      if (t.healHp) this.healWithBuffs(t.healHp);
       // Gold drops are settled at end of stage by the surrounding game flow,
       // not the runner. We only track the trigger fired.
     }
@@ -1044,7 +1073,7 @@ export class BattleRunner {
   private applyEquipmentOnCombo(combo: ComboKind): void {
     for (const t of this.state.equipment.triggers) {
       if (t.kind !== 'on_combo' || t.combo !== combo) continue;
-      if (t.healHp) this.state.player = healPlayer(this.state.player, t.healHp);
+      if (t.healHp) this.healWithBuffs(t.healHp);
     }
   }
 
@@ -1255,7 +1284,7 @@ export class BattleRunner {
         if (result.wasCrit) {
           this.fireReactionTrigger('onCrit', { damage: result.hpDelta, damageType: action.damageType });
           if (this.state.talents.critHeal > 0) {
-            this.state.player = healPlayer(this.state.player, this.state.talents.critHeal);
+            this.healWithBuffs(this.state.talents.critHeal);
           }
         }
         const afterState = this.state.enemies.find(e => e.id === target.id);
@@ -1267,11 +1296,11 @@ export class BattleRunner {
           // Self-heal on kill.
           if (cardDef?.selfHealOnKill && cardDef.selfHealOnKill > 0) {
             const cardLevel = this.tierMults[action.cardId] ?? 1;
-            this.state.player = healPlayer(this.state.player, scaleStatForLevel(cardDef.selfHealOnKill, cardLevel));
+            this.healWithBuffs(scaleStatForLevel(cardDef.selfHealOnKill, cardLevel));
           }
           // Stronghold "Life Drain" — passive heal per kill.
           if (this.state.upgradeBuffs.onKillHeal > 0) {
-            this.state.player = healPlayer(this.state.player, this.state.upgradeBuffs.onKillHeal);
+            this.healWithBuffs(this.state.upgradeBuffs.onKillHeal);
           }
         }
 
@@ -1303,7 +1332,7 @@ export class BattleRunner {
         this.state.player = addBlock(this.state.player, scaleStatForLevel(cardDef.selfBlock, cardLevel));
       }
       if (cardDef?.selfHeal && cardDef.selfHeal > 0) {
-        this.state.player = healPlayer(this.state.player, scaleStatForLevel(cardDef.selfHeal, cardLevel));
+        this.healWithBuffs(scaleStatForLevel(cardDef.selfHeal, cardLevel));
       }
       if (cardDef?.selfDrawCard && cardDef.selfDrawCard > 0) {
         this.drawCards(cardDef.selfDrawCard);
@@ -1518,7 +1547,7 @@ export class BattleRunner {
     this.state.reactions = r.state;
     // Apply common patch fields immediately. Damage cancellation/reduction
     // is consumed by the caller (applyEnemyAttack handles its own).
-    if (r.patch.healPlayer) this.state.player = healPlayer(this.state.player, r.patch.healPlayer);
+    if (r.patch.healPlayer) this.healWithBuffs(r.patch.healPlayer);
     if (r.patch.giveBlock) this.state.player = addBlock(this.state.player, r.patch.giveBlock);
     if (r.patch.applyToPlayer) {
       this.state.player = applyPlayerStatus(

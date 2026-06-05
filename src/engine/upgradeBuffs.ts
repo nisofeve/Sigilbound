@@ -45,6 +45,10 @@ export interface UpgradeBuffs {
 
   // Per-damage-type outgoing bonuses (additive across all sources)
   damageTypeBonus: Partial<Record<DamageType, number>>;
+
+  // Heal multiplier: additive bonus fraction (0.20 = +20%). Applied to all
+  // in-combat heals (regen, on-kill, tactic heals, stage-start heal).
+  healEffectivenessMult: number;
 }
 
 export function emptyUpgradeBuffs(): UpgradeBuffs {
@@ -67,6 +71,7 @@ export function emptyUpgradeBuffs(): UpgradeBuffs {
     comboStaminaRefund: 0,
     tacticStaminaDiscount: 0,
     damageTypeBonus: {},
+    healEffectivenessMult: 0,
   };
 }
 
@@ -126,6 +131,8 @@ function applyEffectToBuffs(eff: UpgradeEffect, b: UpgradeBuffs): void {
       break;
     }
 
+    case 'heal_effectiveness_mult': b.healEffectivenessMult += eff.value; break;
+
     // Effects converted to StatModifiers (handled by upgradeStatModifiers below).
     case 'max_hp_bonus':
     case 'atk_bonus':
@@ -151,7 +158,6 @@ function applyEffectToBuffs(eff: UpgradeEffect, b: UpgradeBuffs): void {
     case 'gold_drop_bonus':
     case 'craft_discount':
     case 'unlock_upgrade_tier':
-    case 'unlock_talent_tier':
     case 'reaction_slots_delta':
     case 'free_reroll_per_run':
     case 'noop':

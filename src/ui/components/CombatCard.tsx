@@ -1,8 +1,8 @@
 // CombatCard — universal player-card wrapper around GameCard.
 //
 // Three concrete shapes share the same visual frame:
-//   • ActionCard  — Strike cards bound into Sigil slots (damage, charge, cost)
-//   • TacticCard  — Instant-effect cards played from the hand (cost only)
+//   • ActionCard  — Strike cards bound into Sigil slots (damage, charge)
+//   • TacticCard  — Instant-effect cards played from the hand (stamina cost)
 //   • ReactionCard — Auto-trigger cards (no cost, just the trigger label)
 //
 // The `<CombatCard>` smart wrapper picks the right variant based on the
@@ -73,7 +73,6 @@ export function ActionCard({
   const stats: GameCardStat[] = [
     { glyph: '⚔', value: card.hits && card.hits > 1 ? `${card.damage}×${card.hits}` : card.damage, color: '#fbbf24', title: 'DMG' },
     { glyph: '⏳', value: card.charge, color: '#94a3b8', title: 'CHARGE' },
-    { glyph: '◆', value: card.cost, color: '#86efac', title: 'COST' },
   ];
 
   return (

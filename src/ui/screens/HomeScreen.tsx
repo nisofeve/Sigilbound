@@ -1,9 +1,38 @@
 import { useState } from 'react';
 import type { Profile } from '@storage/index';
 import type { AuthStatus } from '@firebase-app/auth';
-import { allQuests, levelProgress, levelFromXp, upgradesUnlockedAtLevel, todayKey, type Quest } from '@engine/index';
+import {
+  allBpTiers, allQuests, bpTierFromXp,
+  levelProgress, levelFromXp, monthKey,
+  selectPeriodicQuests, todayKey, upgradesUnlockedAtLevel,
+  weekKey, type Quest,
+} from '@engine/index';
 
 const STRONGHOLD_SEEN_LEVEL_KEY = 'sb_stronghold_seen_level';
+
+function countBpClaimable(profile: Profile): number {
+  const tiers = allBpTiers();
+  const currentTier = bpTierFromXp(profile.bpXp);
+  const freeClaim = tiers.filter(t => t.free && currentTier >= t.tier && !profile.bpClaimedFree.includes(t.tier)).length;
+  const premClaim = profile.bpPremium
+    ? tiers.filter(t => t.premium && currentTier >= t.tier && !profile.bpClaimedPremium.includes(t.tier)).length
+    : 0;
+
+  const today = todayKey();
+  const week = weekKey();
+  const month = monthKey();
+  const dailyState = profile.todayQuestsISO === today ? profile.todayQuestsState : {};
+  const weeklyState = profile.weekQuestsISO === week ? profile.weekQuestsState : {};
+  const monthlyState = profile.monthQuestsISO === month ? profile.monthQuestsState : {};
+
+  const countC = (qs: Quest[], s: Record<string, { progress: number; claimed: boolean }>) =>
+    qs.filter(q => { const e = s[q.id]; return e && e.progress >= q.goal && !e.claimed; }).length;
+
+  return freeClaim + premClaim
+    + countC(selectPeriodicQuests('daily', today), dailyState)
+    + countC(selectPeriodicQuests('weekly', week), weeklyState)
+    + countC(selectPeriodicQuests('monthly', month), monthlyState);
+}
 
 function hasNewStrongholdUpgrades(profile: Profile): boolean {
   const playerLevel = levelFromXp(profile.playerXp);
@@ -82,6 +111,7 @@ export default function HomeScreen({ profile, auth, onStart, onStartStage, onSta
   const stage = profile.currentStage;
   const stageStars = profile.stageStars[stage] ?? 0;
   const strongholdHasNew = hasNewStrongholdUpgrades(profile);
+  const bpClaimable = countBpClaimable(profile);
 
   return (
     <div className="h-full w-full relative overflow-hidden text-white safe-top safe-bottom flex flex-col">
@@ -206,7 +236,8 @@ export default function HomeScreen({ profile, auth, onStart, onStartStage, onSta
         <DockButton onClick={onShop} icon="🛒" label="Shop" highlight
           disabled={auth.kind === 'cloud_disabled'} />
         <DockButton onClick={onBattlePass} icon="🎫" label="Pass"
-          badge={profile.bpPremium ? '👑' : undefined}
+          badge={bpClaimable > 0 ? bpClaimable : profile.bpPremium ? '👑' : undefined}
+          badgePulse={bpClaimable > 0}
           disabled={auth.kind === 'cloud_disabled'} />
         <DockButton onClick={onSocial} icon="👥" label="Social"
           badge={profile.friends.length > 0 ? profile.friends.length : undefined}
@@ -442,13 +473,13 @@ interface DockBtnProps {
   onClick: () => void;
   icon: string;
   label: string;
-  // Small badge in the corner of the icon — number, '👑', etc.
   badge?: number | string;
-  highlight?: boolean;  // gold-tinted to stand out (e.g. shop)
+  badgePulse?: boolean;
+  highlight?: boolean;
   disabled?: boolean;
 }
 
-function DockButton({ onClick, icon, label, badge, highlight, disabled }: DockBtnProps) {
+function DockButton({ onClick, icon, label, badge, badgePulse, highlight, disabled }: DockBtnProps) {
   return (
     <button
       onClick={onClick}
@@ -477,7 +508,8 @@ function DockButton({ onClick, icon, label, badge, highlight, disabled }: DockBt
             border: '1.5px solid rgba(255,255,255,0.85)',
             minWidth: 16,
             height: 14,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.35)',
+            boxShadow: badgePulse ? '0 0 6px rgba(233,30,99,0.8)' : '0 1px 2px rgba(0,0,0,0.35)',
+            animation: badgePulse ? 'sb-pulse 1.4s ease-in-out infinite' : 'none',
           }}
         >
           {typeof badge === 'number' ? formatCount(badge) : badge}

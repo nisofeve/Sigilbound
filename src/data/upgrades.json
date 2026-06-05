@@ -2641,78 +2641,13 @@
     }
   },
   {
-    "id": "upg.library.deck_4",
-    "zone": "library",
-    "tier": 4,
-    "name": "Expanded Codex IV",
-    "description": "+1 card in starting deck.",
-    "cost": 200,
-    "prerequisite": "upg.library.deck_3",
-    "effect": {
-      "type": "starting_deck_extra",
-      "value": 1
-    }
-  },
-  {
-    "id": "upg.library.deck_5",
-    "zone": "library",
-    "tier": 5,
-    "name": "Expanded Codex V",
-    "description": "+1 card in starting deck.",
-    "cost": 280,
-    "prerequisite": "upg.library.deck_4",
-    "effect": {
-      "type": "starting_deck_extra",
-      "value": 1
-    }
-  },
-  {
-    "id": "upg.library.deck_6",
-    "zone": "library",
-    "tier": 6,
-    "name": "Expanded Codex VI",
-    "description": "+1 card in starting deck.",
-    "cost": 380,
-    "prerequisite": "upg.library.deck_5",
-    "effect": {
-      "type": "starting_deck_extra",
-      "value": 1
-    }
-  },
-  {
-    "id": "upg.library.deck_7",
-    "zone": "library",
-    "tier": 7,
-    "name": "Expanded Codex VII",
-    "description": "+1 card in starting deck.",
-    "cost": 500,
-    "prerequisite": "upg.library.deck_6",
-    "effect": {
-      "type": "starting_deck_extra",
-      "value": 1
-    }
-  },
-  {
-    "id": "upg.library.deck_8",
-    "zone": "library",
-    "tier": 8,
-    "name": "Expanded Codex VIII",
-    "description": "+1 card in starting deck.",
-    "cost": 650,
-    "prerequisite": "upg.library.deck_7",
-    "effect": {
-      "type": "starting_deck_extra",
-      "value": 1
-    }
-  },
-  {
     "id": "upg.library.draft_1",
     "zone": "library",
     "tier": 9,
     "name": "Draft +1",
     "description": "Draft offers +1 card.",
     "cost": 850,
-    "prerequisite": "upg.library.deck_8",
+    "prerequisite": "upg.library.deck_3",
     "effect": {
       "type": "draft_count_delta",
       "value": 1
@@ -2758,65 +2693,13 @@
     }
   },
   {
-    "id": "upg.library.deck_9",
-    "zone": "library",
-    "tier": 13,
-    "name": "Expanded Codex IX",
-    "description": "+1 card in starting deck.",
-    "cost": 2300,
-    "prerequisite": "upg.library.draft_4",
-    "effect": {
-      "type": "starting_deck_extra",
-      "value": 1
-    }
-  },
-  {
-    "id": "upg.library.deck_10",
-    "zone": "library",
-    "tier": 14,
-    "name": "Expanded Codex X",
-    "description": "+1 card in starting deck.",
-    "cost": 2900,
-    "prerequisite": "upg.library.deck_9",
-    "effect": {
-      "type": "starting_deck_extra",
-      "value": 1
-    }
-  },
-  {
-    "id": "upg.library.deck_11",
-    "zone": "library",
-    "tier": 15,
-    "name": "Expanded Codex XI",
-    "description": "+1 card in starting deck.",
-    "cost": 3700,
-    "prerequisite": "upg.library.deck_10",
-    "effect": {
-      "type": "starting_deck_extra",
-      "value": 1
-    }
-  },
-  {
-    "id": "upg.library.deck_12",
-    "zone": "library",
-    "tier": 16,
-    "name": "Expanded Codex XII",
-    "description": "+1 card in starting deck.",
-    "cost": 4700,
-    "prerequisite": "upg.library.deck_11",
-    "effect": {
-      "type": "starting_deck_extra",
-      "value": 1
-    }
-  },
-  {
     "id": "upg.library.draft_5",
     "zone": "library",
     "tier": 17,
     "name": "Draft +5",
     "description": "Draft offers +1 card.",
     "cost": 6000,
-    "prerequisite": "upg.library.deck_12",
+    "prerequisite": "upg.library.draft_4",
     "effect": {
       "type": "draft_count_delta",
       "value": 1
@@ -4211,91 +4094,13 @@
     }
   },
   {
-    "id": "upg.shrine.talent_1",
-    "zone": "shrine",
-    "tier": 1,
-    "name": "Talent Scroll I",
-    "description": "Unlock talent trees.",
-    "cost": 60,
-    "prerequisite": null,
-    "effect": {
-      "type": "unlock_talent_tier",
-      "value": 1
-    }
-  },
-  {
-    "id": "upg.shrine.talent_2",
-    "zone": "shrine",
-    "tier": 2,
-    "name": "Talent Scroll II",
-    "description": "Unlock tier 2 talent trees.",
-    "cost": 100,
-    "prerequisite": "upg.shrine.talent_1",
-    "effect": {
-      "type": "unlock_talent_tier",
-      "value": 2
-    }
-  },
-  {
-    "id": "upg.shrine.talent_3",
-    "zone": "shrine",
-    "tier": 3,
-    "name": "Talent Scroll III",
-    "description": "Unlock tier 3 talent trees.",
-    "cost": 150,
-    "prerequisite": "upg.shrine.talent_2",
-    "effect": {
-      "type": "unlock_talent_tier",
-      "value": 2
-    }
-  },
-  {
-    "id": "upg.shrine.talent_4",
-    "zone": "shrine",
-    "tier": 4,
-    "name": "Talent Scroll IV",
-    "description": "Unlock tier 4 talent trees.",
-    "cost": 200,
-    "prerequisite": "upg.shrine.talent_3",
-    "effect": {
-      "type": "unlock_talent_tier",
-      "value": 3
-    }
-  },
-  {
-    "id": "upg.shrine.talent_5",
-    "zone": "shrine",
-    "tier": 5,
-    "name": "Talent Scroll V",
-    "description": "Unlock tier 5 talent trees.",
-    "cost": 280,
-    "prerequisite": "upg.shrine.talent_4",
-    "effect": {
-      "type": "unlock_talent_tier",
-      "value": 4
-    }
-  },
-  {
-    "id": "upg.shrine.talent_6",
-    "zone": "shrine",
-    "tier": 6,
-    "name": "Talent Scroll VI",
-    "description": "Unlock legendary talent tier.",
-    "cost": 380,
-    "prerequisite": "upg.shrine.talent_5",
-    "effect": {
-      "type": "unlock_talent_tier",
-      "value": 5
-    }
-  },
-  {
     "id": "upg.shrine.crit_ora_1",
     "zone": "shrine",
-    "tier": 7,
+    "tier": 1,
     "name": "Oracle's Eye I",
     "description": "+0.5% Crit Chance.",
     "cost": 500,
-    "prerequisite": "upg.shrine.talent_6",
+    "prerequisite": null,
     "effect": {
       "type": "crit_chance_bonus",
       "value": 0.005
@@ -5248,6 +5053,87 @@
     "effect": {
       "type": "card_replicate_chance",
       "value": 0.02
+    }
+  },
+  {
+    "id": "upg.sanctum.nature_ward_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Nature Ward I",
+    "description": "-15% nature damage taken.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "nature",
+      "value": 0.85
+    }
+  },
+  {
+    "id": "upg.sanctum.nature_ward_2",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Nature Ward II",
+    "description": "-15% nature damage taken.",
+    "cost": 140,
+    "prerequisite": "upg.sanctum.nature_ward_1",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "nature",
+      "value": 0.85
+    }
+  },
+  {
+    "id": "upg.sanctum.nature_ward_3",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Nature Ward III",
+    "description": "-20% nature damage taken.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.nature_ward_2",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "nature",
+      "value": 0.80
+    }
+  },
+  {
+    "id": "upg.sanctum.vital_essence_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Vital Essence I",
+    "description": "+20% healing effectiveness.",
+    "cost": 100,
+    "prerequisite": null,
+    "effect": {
+      "type": "heal_effectiveness_mult",
+      "value": 0.20
+    }
+  },
+  {
+    "id": "upg.sanctum.vital_essence_2",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Vital Essence II",
+    "description": "+20% healing effectiveness.",
+    "cost": 180,
+    "prerequisite": "upg.sanctum.vital_essence_1",
+    "effect": {
+      "type": "heal_effectiveness_mult",
+      "value": 0.20
+    }
+  },
+  {
+    "id": "upg.sanctum.vital_essence_3",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Vital Essence III",
+    "description": "+25% healing effectiveness.",
+    "cost": 350,
+    "prerequisite": "upg.sanctum.vital_essence_2",
+    "effect": {
+      "type": "heal_effectiveness_mult",
+      "value": 0.25
     }
   }
 ]

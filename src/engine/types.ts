@@ -173,12 +173,12 @@ export type UpgradeEffect =
   | { type: 'gold_drop_bonus'; value: number }
   | { type: 'craft_discount'; value: number }
   | { type: 'unlock_upgrade_tier'; value: number }
-  | { type: 'unlock_talent_tier'; value: number }
   | { type: 'reaction_slots_delta'; value: number }
   | { type: 'free_reroll_per_run'; value: number }
   | { type: 'resistance_bonus'; element: string; value: number }
   | { type: 'all_resist_bonus'; value: number }
   | { type: 'damage_type_bonus'; element: string; value: number }
+  | { type: 'heal_effectiveness_mult'; value: number }
   | { type: 'noop' };
 
 export interface Upgrade {

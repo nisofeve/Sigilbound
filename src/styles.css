@@ -916,6 +916,17 @@ html, body, #root {
   animation: sb-floater-rise 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@keyframes sb-tier-up {
+  0%   { opacity: 0; transform: scale(0.5); }
+  12%  { opacity: 1; transform: scale(1.1); }
+  22%  { transform: scale(0.97); }
+  32%  { transform: scale(1.04); }
+  40%  { transform: scale(1); }
+  72%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.88) translateY(-30px); }
+}
+.sb-tier-up { animation: sb-tier-up 2.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
 /* ── Combat sigil border — shimmer animation for the golden line ───────────── */
 @keyframes sb-sigil-shimmer {
   0%   { background-position: 0% 50%; }

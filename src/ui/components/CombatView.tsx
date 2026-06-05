@@ -192,7 +192,12 @@ export default function CombatView({
   };
 
   const [draggingHandIdx, setDraggingHandIdx] = useState<number | null>(null);
+  const [draggingSlotIdx, setDraggingSlotIdx] = useState<number | null>(null);
   const [hoverSlotIdx, setHoverSlotIdx] = useState<number | null>(null);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [dragCardDef, setDragCardDef] = useState<ReturnType<typeof getAction> | null>(null);
+  const [dragCardSize, setDragCardSize] = useState<{ w: number; h: number } | null>(null);
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectedHandIdx, setSelectedHandIdx] = useState<number | null>(null);
   const [hoveredHandIdx, setHoveredHandIdx] = useState<number | null>(null);
   // Popup shown when a hand card is selected — card detail overlay.
@@ -237,6 +242,8 @@ export default function CombatView({
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const slotRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const touchDragState = useRef<{ cardIdx: number; startX: number; startY: number; dragging: boolean } | null>(null);
+  const slotTouchDragState = useRef<{ slotIdx: number; startX: number; startY: number; dragging: boolean } | null>(null);
+  const handAreaRef = useRef<HTMLDivElement | null>(null);
   const enemyRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const playerHpRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -1570,6 +1577,29 @@ export default function CombatView({
     });
   }
 
+  function clearDragState() {
+    setDraggingHandIdx(null);
+    setDraggingSlotIdx(null);
+    setHoverSlotIdx(null);
+    setDragPos(null);
+    setDragCardDef(null);
+    setDragCardSize(null);
+    touchDragState.current = null;
+    slotTouchDragState.current = null;
+  }
+
+  function handleSlotToSlot(srcSlot: number, dstSlot: number): void {
+    if (srcSlot === dstSlot) return;
+    const dst = runner.state.slots[dstSlot];
+    if (!dst) return;
+    if (!dst.bound) {
+      runner.moveSlotCard(srcSlot, dstSlot);
+    } else if (runner.canReturnSlotToHand(dstSlot)) {
+      runner.swapSlots(srcSlot, dstSlot);
+    }
+    repaint();
+  }
+
   function handleSlotClick(slotIndex: number): void {
     if (isDealing || animating) return;
     // Priority 1: a card is selected → bind it to this slot.
@@ -2618,10 +2648,12 @@ export default function CombatView({
     const ghostResolved = !slot.bound && resolvedGhostSlots.has(slotIdx);
 
     const ready = slot.bound && slot.bound.charge === 0;
-    const hovered = hoverSlotIdx === slotIdx && draggingHandIdx !== null;
+    const anyDragging = draggingHandIdx !== null || draggingSlotIdx !== null;
+    const hovered = hoverSlotIdx === slotIdx && anyDragging;
+    const isBeingDragged = draggingSlotIdx === slotIdx;
     const returnable = !!slot.bound && runner.canReturnSlotToHand(slotIdx);
     const locked = !!slot.bound && !returnable;
-    const armed = draggingHandIdx !== null || selectedHandIdx !== null;
+    const armed = anyDragging || selectedHandIdx !== null;
     const tappable = armed || returnable;
     const comboColor = !!slot.bound ? comboColorFor(slotIdx) : null;
     const windingUp = windingUpSlots.has(slotIdx);
@@ -2657,18 +2689,127 @@ export default function CombatView({
           if (el) slotRefs.current.set(slotIdx, el);
           else slotRefs.current.delete(slotIdx);
         }}
-        onClick={() => handleSlotClick(slotIdx)}
+        draggable={returnable && !isDealing && !animating}
+        onClick={() => {
+          if (slotTouchDragState.current?.dragging) return;
+          handleSlotClick(slotIdx);
+        }}
+        onDragStart={returnable && !isDealing && !animating ? (ev) => {
+          const img = new Image();
+          ev.dataTransfer.setDragImage(img, 0, 0);
+          ev.dataTransfer.setData('application/x-slot-drag', String(slotIdx));
+          ev.dataTransfer.effectAllowed = 'move';
+          const rect = ev.currentTarget.getBoundingClientRect();
+          dragOffsetRef.current = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+          setDraggingSlotIdx(slotIdx);
+          setDraggingHandIdx(null);
+          setSelectedHandIdx(null);
+          if (def) {
+            setDragCardDef(def);
+            setDragCardSize({ w: rect.width, h: rect.height });
+            setDragPos({ x: ev.clientX, y: ev.clientY });
+          }
+        } : undefined}
+        onDrag={returnable ? (ev) => {
+          if (ev.clientX !== 0 || ev.clientY !== 0) setDragPos({ x: ev.clientX, y: ev.clientY });
+        } : undefined}
+        onDragEnd={returnable ? () => clearDragState() : undefined}
         onDragOver={(ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; setHoverSlotIdx(slotIdx); }}
         onDragEnter={(ev) => { ev.preventDefault(); setHoverSlotIdx(slotIdx); }}
         onDragLeave={() => setHoverSlotIdx(prev => (prev === slotIdx ? null : prev))}
         onDrop={(ev) => {
           ev.preventDefault();
+          const slotSrc = ev.dataTransfer.getData('application/x-slot-drag');
           const handIdxStr = ev.dataTransfer.getData('text/plain');
-          const handIdx = parseInt(handIdxStr, 10);
-          setHoverSlotIdx(null);
-          setDraggingHandIdx(null);
-          if (Number.isFinite(handIdx)) handleBindToSlot(handIdx, slotIdx);
+          clearDragState();
+          if (slotSrc !== '') {
+            const srcSlot = parseInt(slotSrc, 10);
+            if (Number.isFinite(srcSlot)) handleSlotToSlot(srcSlot, slotIdx);
+          } else {
+            const handIdx = parseInt(handIdxStr, 10);
+            if (Number.isFinite(handIdx)) handleBindToSlot(handIdx, slotIdx);
+          }
         }}
+        onTouchStart={returnable && !isDealing && !animating ? (ev) => {
+          const touch = ev.touches[0];
+          slotTouchDragState.current = { slotIdx, startX: touch.clientX, startY: touch.clientY, dragging: false };
+        } : undefined}
+        onTouchMove={returnable && !isDealing && !animating ? (ev) => {
+          const state = slotTouchDragState.current;
+          if (!state || state.slotIdx !== slotIdx) return;
+          const touch = ev.touches[0];
+          if (!touch) return;
+          if (!state.dragging) {
+            const dist = Math.hypot(touch.clientX - state.startX, touch.clientY - state.startY);
+            if (dist < 10) return;
+            state.dragging = true;
+            const rect = ev.currentTarget.getBoundingClientRect();
+            dragOffsetRef.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+            setDraggingSlotIdx(slotIdx);
+            setDraggingHandIdx(null);
+            setSelectedHandIdx(null);
+            if (def) {
+              setDragCardDef(def);
+              setDragCardSize({ w: rect.width, h: rect.height });
+            }
+          }
+          ev.preventDefault();
+          setDragPos({ x: touch.clientX, y: touch.clientY });
+          let found: number | null = null;
+          slotRefs.current.forEach((el, idx) => {
+            if (idx === slotIdx) return;
+            const rect = el.getBoundingClientRect();
+            if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+              found = idx;
+            }
+          });
+          // check hand area
+          const handEl = handAreaRef.current;
+          if (handEl) {
+            const rect = handEl.getBoundingClientRect();
+            if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+              found = -1; // special: hand area
+            }
+          }
+          setHoverSlotIdx(found !== null && found >= 0 ? found : null);
+        } : undefined}
+        onTouchEnd={returnable && !isDealing && !animating ? (ev) => {
+          const state = slotTouchDragState.current;
+          slotTouchDragState.current = null;
+          if (state?.dragging) {
+            const touch = ev.changedTouches[0];
+            clearDragState();
+            if (touch) {
+              let foundSlot: number | null = null;
+              let overHand = false;
+              slotRefs.current.forEach((el, idx) => {
+                if (idx === slotIdx) return;
+                const rect = el.getBoundingClientRect();
+                if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                    touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                  foundSlot = idx;
+                }
+              });
+              const handEl = handAreaRef.current;
+              if (handEl) {
+                const rect = handEl.getBoundingClientRect();
+                if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                    touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                  overHand = true;
+                }
+              }
+              if (overHand) {
+                runner.returnSlotToHand(slotIdx);
+                repaint();
+              } else if (foundSlot !== null) {
+                handleSlotToSlot(slotIdx, foundSlot);
+              }
+            }
+          }
+        } : undefined}
+        onTouchCancel={returnable ? () => { slotTouchDragState.current = null; clearDragState(); } : undefined}
         title={title}
         className={animClass}
         style={{
@@ -2684,10 +2825,11 @@ export default function CombatView({
                 ? `linear-gradient(180deg, color-mix(in srgb, ${comboColor} 18%, #1a0f0a) 0%, #1a0f0a 100%)`
                 : `linear-gradient(180deg, color-mix(in srgb, ${typeColor} 10%, #2a1810) 0%, #1a0f0a 100%)`,
           border: `2px solid ${borderColor}`,
-          cursor: tappable ? 'pointer' : locked ? 'not-allowed' : 'default',
+          cursor: returnable && !animating ? 'grab' : tappable ? 'pointer' : locked ? 'not-allowed' : 'default',
           transform: hovered ? 'scale(1.06) translateY(-3px)' : 'scale(1)',
-          transition: 'transform 120ms ease, border-color 200ms ease',
+          transition: 'transform 120ms ease, border-color 200ms ease, opacity 80ms ease',
           filter: locked ? 'saturate(0.45)' : 'none',
+          opacity: isBeingDragged ? 0.3 : 1,
           flexShrink: 0,
           display: 'flex',
           flexDirection: 'column',
@@ -2988,13 +3130,27 @@ export default function CombatView({
         onMouseLeave={() => setHoveredHandIdx(prev => (prev === realIndex ? null : prev))}
         onDragStart={!isTactic ? (ev) => {
           cancelLongPress();
+          const img = new Image();
+          ev.dataTransfer.setDragImage(img, 0, 0);
           ev.dataTransfer.setData('text/plain', String(realIndex));
           ev.dataTransfer.effectAllowed = 'move';
+          const rect = ev.currentTarget.getBoundingClientRect();
+          dragOffsetRef.current = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
           setDraggingHandIdx(realIndex);
+          setDraggingSlotIdx(null);
           setSelectedHandIdx(null);
           setHandCardPopup(null);
+          const cardDef = getAction(runner.state.hand[realIndex] ?? '');
+          if (cardDef) {
+            setDragCardDef(cardDef);
+            setDragCardSize({ w: rect.width, h: rect.height });
+            setDragPos({ x: ev.clientX, y: ev.clientY });
+          }
         } : undefined}
-        onDragEnd={!isTactic ? () => { setDraggingHandIdx(null); setHoverSlotIdx(null); } : undefined}
+        onDrag={!isTactic ? (ev) => {
+          if (ev.clientX !== 0 || ev.clientY !== 0) setDragPos({ x: ev.clientX, y: ev.clientY });
+        } : undefined}
+        onDragEnd={!isTactic ? () => clearDragState() : undefined}
         onTouchStart={!isTactic && !isDiscardPicking ? (ev) => {
           cancelLongPress();
           const touch = ev.touches[0];
@@ -3009,11 +3165,20 @@ export default function CombatView({
             const dist = Math.hypot(touch.clientX - state.startX, touch.clientY - state.startY);
             if (dist < 10) return;
             state.dragging = true;
+            const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+            dragOffsetRef.current = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
             setDraggingHandIdx(realIndex);
+            setDraggingSlotIdx(null);
             setSelectedHandIdx(null);
             setHandCardPopup(null);
+            const cardDef = getAction(runner.state.hand[realIndex] ?? '');
+            if (cardDef) {
+              setDragCardDef(cardDef);
+              setDragCardSize({ w: rect.width, h: rect.height });
+            }
           }
           ev.preventDefault();
+          setDragPos({ x: touch.clientX, y: touch.clientY });
           let found: number | null = null;
           slotRefs.current.forEach((el, idx) => {
             const rect = el.getBoundingClientRect();
@@ -3040,14 +3205,11 @@ export default function CombatView({
               });
               if (found !== null) handleBindToSlot(realIndex, found);
             }
-            setDraggingHandIdx(null);
-            setHoverSlotIdx(null);
+            clearDragState();
           }
         } : undefined}
         onTouchCancel={!isTactic && !isDiscardPicking ? () => {
-          touchDragState.current = null;
-          setDraggingHandIdx(null);
-          setHoverSlotIdx(null);
+          clearDragState();
         } : undefined}
         title={isTactic
           ? `${entry.def.name} — click to play`
@@ -3146,6 +3308,30 @@ export default function CombatView({
       </div>
     );
   })();
+
+  // Floating card ghost that follows the cursor/touch during drag.
+  const DragGhost = dragPos && dragCardDef && dragCardSize && (() => (
+    <div
+      aria-hidden
+      style={{
+        position: 'fixed',
+        left: dragPos.x - dragOffsetRef.current.x,
+        top: dragPos.y - dragOffsetRef.current.y,
+        width: dragCardSize.w,
+        height: dragCardSize.h,
+        pointerEvents: 'none',
+        userSelect: 'none',
+        zIndex: 600,
+        transform: 'rotate(5deg) scale(1.06)',
+        transformOrigin: 'top left',
+        filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.75)) drop-shadow(0 0 14px rgba(251,191,36,0.45))',
+        willChange: 'transform',
+        transition: 'none',
+      }}
+    >
+      <ActionCardDisplay card={dragCardDef} customWidth={dragCardSize.w} selected />
+    </div>
+  ))();
 
   // Card-back placeholder used during the deal animation flip.
   const CardBack = ({ width, height }: { width: number; height: number }) => (
@@ -5328,28 +5514,6 @@ export default function CombatView({
               aria-label="Toggle card info popup"
             >📖</button>
           </div>
-          {/* Row 2: resource chips — stamina / hand / deck / discard */}
-          <div className="flex items-center justify-end gap-1.5">
-            <span className="sb-chip sb-chip-gold" style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0 }}>
-              ⚡ {runner.state.staminaThisTurn}
-            </span>
-            <span
-              className="sb-chip"
-              style={{
-                fontSize: 10, padding: '3px 8px', flexShrink: 0,
-                color: runner.state.hand.length >= runner.state.player.stats.handSize ? '#fde68a' : undefined,
-              }}
-              title="Cards in hand / max hand size"
-            >
-              ✋ {runner.state.hand.length}/{runner.state.player.stats.handSize}
-            </span>
-            <span className="sb-chip" style={{ fontSize: 10, padding: '3px 8px', flexShrink: 0 }}>
-              🃏 {runner.state.deck.length}
-            </span>
-            <span className="sb-chip" style={{ fontSize: 10, padding: '3px 8px', opacity: 0.75, flexShrink: 0 }}>
-              🗑 {runner.state.discard.length}
-            </span>
-          </div>
         </div>
 
         {/* ── ENEMY ROW — clipped to row, adaptive card sizing ── */}
@@ -5386,12 +5550,26 @@ export default function CombatView({
         {/* ── HAND FAN ── */}
         {/* overflow-x hidden prevents fan edges escaping viewport;
             overflow-y visible lets selected/lifted cards pop up above the row. */}
-        <div className="relative flex-shrink-0 flex justify-center items-end" style={{
-          height: handAreaHeight,
-          pointerEvents: 'none',
-          overflowX: 'hidden',
-          overflowY: 'visible',
-        }}>
+        <div
+          ref={handAreaRef}
+          className="relative flex-shrink-0 flex justify-center items-end"
+          style={{
+            height: handAreaHeight,
+            pointerEvents: draggingSlotIdx !== null ? 'auto' : 'none',
+            overflowX: 'hidden',
+            overflowY: 'visible',
+          }}
+          onDragOver={(ev) => { if (draggingSlotIdx !== null) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; } }}
+          onDrop={(ev) => {
+            ev.preventDefault();
+            const srcSlot = draggingSlotIdx;
+            clearDragState();
+            if (srcSlot !== null && runner.canReturnSlotToHand(srcSlot)) {
+              runner.returnSlotToHand(srcSlot);
+              repaint();
+            }
+          }}
+        >
           <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'none' }}>
             {allCardsInHand.map((entry, i) =>
               HandCard({
@@ -5403,6 +5581,29 @@ export default function CombatView({
                 stableKey: handStableKeys[entry.realIndex] ?? `${entry.def.id}_${i}`,
               }))}
           </div>
+        </div>
+
+        {/* ── RESOURCE CHIPS: stamina / hand / deck / discard ── */}
+        <div className="flex-shrink-0 flex items-center justify-center gap-1.5 px-2 py-1">
+          <span className="sb-chip sb-chip-gold" style={{ fontSize: 10, padding: '3px 8px' }}>
+            ⚡ {runner.state.staminaThisTurn}
+          </span>
+          <span
+            className="sb-chip"
+            style={{
+              fontSize: 10, padding: '3px 8px',
+              color: runner.state.hand.length >= runner.state.player.stats.handSize ? '#fde68a' : undefined,
+            }}
+            title="Cards in hand / max hand size"
+          >
+            ✋ {runner.state.hand.length}/{runner.state.player.stats.handSize}
+          </span>
+          <span className="sb-chip" style={{ fontSize: 10, padding: '3px 8px' }}>
+            🃏 {runner.state.deck.length}
+          </span>
+          <span className="sb-chip" style={{ fontSize: 10, padding: '3px 8px', opacity: 0.75 }}>
+            🗑 {runner.state.discard.length}
+          </span>
         </div>
 
         {/* ── BOTTOM ACTION BAR: END TURN + AUTO + player bar ── */}
@@ -5511,6 +5712,7 @@ export default function CombatView({
         {ChargeAuraLayer}
         {ComboFlashLayer}
         {FlyingCardOverlay}
+        {DragGhost}
         {DealCardOverlay}
         {TacticPlayOverlay}
         {ProjectileLayer}
@@ -5609,18 +5811,6 @@ export default function CombatView({
         >📖</button>
       </div>
 
-      <div className="absolute top-4 right-2 z-20 flex flex-col items-end gap-1.5 pointer-events-none">
-        <span className="sb-chip sb-chip-gold" style={{ fontSize: '12px' }}>⚡ {runner.state.staminaThisTurn} STAMINA</span>
-        <span
-          className="sb-chip"
-          style={{ color: runner.state.hand.length >= runner.state.player.stats.handSize ? '#fde68a' : undefined }}
-          title="Cards in hand / max hand size"
-        >
-          ✋ {runner.state.hand.length}/{runner.state.player.stats.handSize} HAND
-        </span>
-        <span className="sb-chip">🃏 {runner.state.deck.length} DECK</span>
-        <span className="sb-chip" style={{ opacity: 0.75 }}>🗑 {runner.state.discard.length} DISCARD</span>
-      </div>
 
       {/* Enemy row — boss appears larger and centered, flanked by minions. */}
       <div className="absolute z-10 left-0 right-0 flex justify-center items-end gap-3 px-4" style={{ top: 56 }}>
@@ -5669,6 +5859,21 @@ export default function CombatView({
               stableKey: handStableKeys[entry.realIndex] ?? `${entry.def.id}_${i}`,
             }))}
         </div>
+      </div>
+
+      {/* Resource chips — stamina / hand / deck / discard */}
+      <div className="absolute z-20 flex items-center justify-center gap-2 pointer-events-none" style={{
+        left: '50%', bottom: 170,
+        transform: 'translateX(-50%)',
+      }}>
+        <span className="sb-chip sb-chip-gold" style={{ fontSize: 11, padding: '4px 10px' }}>⚡ {runner.state.staminaThisTurn}</span>
+        <span
+          className="sb-chip"
+          style={{ fontSize: 11, padding: '4px 10px', color: runner.state.hand.length >= runner.state.player.stats.handSize ? '#fde68a' : undefined }}
+          title="Cards in hand / max hand size"
+        >✋ {runner.state.hand.length}/{runner.state.player.stats.handSize}</span>
+        <span className="sb-chip" style={{ fontSize: 11, padding: '4px 10px' }}>🃏 {runner.state.deck.length}</span>
+        <span className="sb-chip" style={{ fontSize: 11, padding: '4px 10px', opacity: 0.75 }}>🗑 {runner.state.discard.length}</span>
       </div>
 
       {/* END TURN + AUTO BATTLE button row */}
@@ -5770,6 +5975,7 @@ export default function CombatView({
       {ChargeAuraLayer}
       {ComboFlashLayer}
       {FlyingCardOverlay}
+      {DragGhost}
       {DealCardOverlay}
       {TacticPlayOverlay}
       {ProjectileLayer}
