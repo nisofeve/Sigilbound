@@ -12,7 +12,6 @@ import ProfileScreen from '@ui/screens/ProfileScreen';
 import OrderPickScreen from '@ui/screens/OrderPickScreen';
 import StageInfoModal from '@ui/modals/StageInfoModal';
 import StageSelectScreen from '@ui/screens/StageSelectScreen';
-import WelcomeModal from '@ui/modals/WelcomeModal';
 // Sigilbound combat flow (Phase 5).
 import CombatHomeScreen from '@ui/screens/CombatHomeScreen';
 import StageIntroScreen from '@ui/screens/StageIntroScreen';
@@ -46,12 +45,24 @@ import { pullOrSeedProfile, pushProfile } from '@firebase-app/profileSync';
 import { cloudStartRun, cloudSubmitRun } from '@firebase-app/cloudRun';
 import type { CloudRunHandle, Screen } from './types';
 
+const TUTORIAL_DECK = ['tac_001', 'act_001', 'act_001', 'act_032', 'tac_002'];
+
 export default function App() {
   const [profile, setProfileState] = useState<Profile>(() => loadProfile());
   // Sigilbound default — the heraldic combat hub. The legacy Plotbound
   // farm home is still reachable as `{ kind: 'home' }` if a screen routes
   // there explicitly, but no normal flow does anymore.
-  const [screen, setScreen] = useState<Screen>({ kind: 'sigilbound_hub' });
+  const [screen, setScreen] = useState<Screen>(() => {
+    const p = loadProfile();
+    if (!p.tutorialCompleted && !p.tutorialSeen) {
+      return {
+        kind: 'combat', stageNumber: 1,
+        talents: [], equipment: emptyEquippedSet(), hardcore: false,
+        customDeck: TUTORIAL_DECK, isTutorial: true,
+      };
+    }
+    return { kind: 'sigilbound_hub' };
+  });
   const prevScreenRef = useRef<Screen | null>(null);
   function navigateTo(next: Screen) {
     prevScreenRef.current = screen;
@@ -209,12 +220,6 @@ export default function App() {
 
   return (
     <div className="sb-app-frame h-full w-full overflow-hidden">
-      {!profile.tutorialSeen && (
-        <WelcomeModal
-          onDismiss={() => persistProfile({ ...profile, tutorialSeen: true })}
-        />
-      )}
-
       {/* Sigilbound primary entry. Routes to combat home, stronghold,
           profile, settings, deck, shop. */}
       {screen.kind === 'sigilbound_hub' && (
@@ -348,6 +353,12 @@ export default function App() {
           profile={profile}
           onProfileChange={persistProfile}
           onBack={() => setScreen({ kind: 'sigilbound_hub' })}
+          onReplayTutorial={() => setScreen({
+            kind: 'combat', stageNumber: 1,
+            talents: [], equipment: emptyEquippedSet(), hardcore: false,
+            customDeck: TUTORIAL_DECK,
+            isTutorial: true,
+          })}
         />
       )}
       {screen.kind === 'achievements' && (
@@ -514,6 +525,10 @@ export default function App() {
               ownedUpgradeIds: screen.ownedUpgradeIds,
               clearOutcome,
             });
+          }}
+          isTutorial={screen.isTutorial}
+          onTutorialComplete={() => {
+            persistProfile({ ...profile, tutorialCompleted: true, tutorialSeen: true });
           }}
           onExit={() => setScreen({ kind: 'sigilbound_hub' })}
         />

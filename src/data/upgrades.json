@@ -5060,41 +5060,41 @@
     "zone": "sanctum",
     "tier": 1,
     "name": "Nature Ward I",
-    "description": "-15% nature damage taken.",
+    "description": "-3% nature damage taken.",
     "cost": 80,
     "prerequisite": null,
     "effect": {
       "type": "resistance_bonus",
       "element": "nature",
-      "value": 0.85
+      "value": 0.97
     }
   },
   {
     "id": "upg.sanctum.nature_ward_2",
     "zone": "sanctum",
-    "tier": 1,
+    "tier": 2,
     "name": "Nature Ward II",
-    "description": "-15% nature damage taken.",
+    "description": "-3% nature damage taken.",
     "cost": 140,
     "prerequisite": "upg.sanctum.nature_ward_1",
     "effect": {
       "type": "resistance_bonus",
       "element": "nature",
-      "value": 0.85
+      "value": 0.97
     }
   },
   {
     "id": "upg.sanctum.nature_ward_3",
     "zone": "sanctum",
-    "tier": 2,
+    "tier": 3,
     "name": "Nature Ward III",
-    "description": "-20% nature damage taken.",
+    "description": "-3% nature damage taken.",
     "cost": 280,
     "prerequisite": "upg.sanctum.nature_ward_2",
     "effect": {
       "type": "resistance_bonus",
       "element": "nature",
-      "value": 0.80
+      "value": 0.97
     }
   },
   {
@@ -5107,7 +5107,7 @@
     "prerequisite": null,
     "effect": {
       "type": "heal_effectiveness_mult",
-      "value": 0.20
+      "value": 0.2
     }
   },
   {
@@ -5120,7 +5120,7 @@
     "prerequisite": "upg.sanctum.vital_essence_1",
     "effect": {
       "type": "heal_effectiveness_mult",
-      "value": 0.20
+      "value": 0.2
     }
   },
   {
@@ -5134,6 +5134,468 @@
     "effect": {
       "type": "heal_effectiveness_mult",
       "value": 0.25
+    }
+  },
+  {
+    "id": "upg.sanctum.fire_ward_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Fire Ward I",
+    "description": "-3% fire damage taken.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.fire_ward_2",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Fire Ward II",
+    "description": "-3% fire damage taken.",
+    "cost": 140,
+    "prerequisite": "upg.sanctum.fire_ward_1",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.fire_ward_3",
+    "zone": "sanctum",
+    "tier": 3,
+    "name": "Fire Ward III",
+    "description": "-3% fire damage taken.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.fire_ward_2",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "fire",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.dark_ward_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Shadow Ward I",
+    "description": "-3% dark damage taken.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.dark_ward_2",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Shadow Ward II",
+    "description": "-3% dark damage taken.",
+    "cost": 140,
+    "prerequisite": "upg.sanctum.dark_ward_1",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.dark_ward_3",
+    "zone": "sanctum",
+    "tier": 3,
+    "name": "Shadow Ward III",
+    "description": "-3% dark damage taken.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.dark_ward_2",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "dark",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.thunder_ward_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Thunder Ward I",
+    "description": "-3% thunder damage taken.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "thunder",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.thunder_ward_2",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Thunder Ward II",
+    "description": "-3% thunder damage taken.",
+    "cost": 140,
+    "prerequisite": "upg.sanctum.thunder_ward_1",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "thunder",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.thunder_ward_3",
+    "zone": "sanctum",
+    "tier": 3,
+    "name": "Thunder Ward III",
+    "description": "-3% thunder damage taken.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.thunder_ward_2",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "thunder",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.ice_ward_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Ice Ward I",
+    "description": "-3% ice damage taken.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.ice_ward_2",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Ice Ward II",
+    "description": "-3% ice damage taken.",
+    "cost": 140,
+    "prerequisite": "upg.sanctum.ice_ward_1",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.ice_ward_3",
+    "zone": "sanctum",
+    "tier": 3,
+    "name": "Ice Ward III",
+    "description": "-3% ice damage taken.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.ice_ward_2",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "ice",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.arcane_ward_1",
+    "zone": "sanctum",
+    "tier": 1,
+    "name": "Arcane Ward I",
+    "description": "-3% arcane damage taken.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "arcane",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.arcane_ward_2",
+    "zone": "sanctum",
+    "tier": 2,
+    "name": "Arcane Ward II",
+    "description": "-3% arcane damage taken.",
+    "cost": 140,
+    "prerequisite": "upg.sanctum.arcane_ward_1",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "arcane",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.sanctum.arcane_ward_3",
+    "zone": "sanctum",
+    "tier": 3,
+    "name": "Arcane Ward III",
+    "description": "-3% arcane damage taken.",
+    "cost": 280,
+    "prerequisite": "upg.sanctum.arcane_ward_2",
+    "effect": {
+      "type": "resistance_bonus",
+      "element": "arcane",
+      "value": 0.97
+    }
+  },
+  {
+    "id": "upg.shrine.fire_affinity_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Fire Affinity I",
+    "description": "+5% fire damage dealt.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "fire",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.fire_affinity_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Fire Affinity II",
+    "description": "+5% fire damage dealt.",
+    "cost": 140,
+    "prerequisite": "upg.shrine.fire_affinity_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "fire",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.fire_affinity_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Fire Affinity III",
+    "description": "+5% fire damage dealt.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.fire_affinity_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "fire",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.dark_affinity_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Shadow Affinity I",
+    "description": "+5% dark damage dealt.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "dark",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.dark_affinity_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Shadow Affinity II",
+    "description": "+5% dark damage dealt.",
+    "cost": 140,
+    "prerequisite": "upg.shrine.dark_affinity_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "dark",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.dark_affinity_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Shadow Affinity III",
+    "description": "+5% dark damage dealt.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.dark_affinity_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "dark",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.thunder_affinity_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Thunder Affinity I",
+    "description": "+5% thunder damage dealt.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "thunder",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.thunder_affinity_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Thunder Affinity II",
+    "description": "+5% thunder damage dealt.",
+    "cost": 140,
+    "prerequisite": "upg.shrine.thunder_affinity_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "thunder",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.thunder_affinity_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Thunder Affinity III",
+    "description": "+5% thunder damage dealt.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.thunder_affinity_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "thunder",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.ice_affinity_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Ice Affinity I",
+    "description": "+5% ice damage dealt.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "ice",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.ice_affinity_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Ice Affinity II",
+    "description": "+5% ice damage dealt.",
+    "cost": 140,
+    "prerequisite": "upg.shrine.ice_affinity_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "ice",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.ice_affinity_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Ice Affinity III",
+    "description": "+5% ice damage dealt.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.ice_affinity_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "ice",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.arcane_affinity_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Arcane Affinity I",
+    "description": "+5% arcane damage dealt.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "arcane",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.arcane_affinity_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Arcane Affinity II",
+    "description": "+5% arcane damage dealt.",
+    "cost": 140,
+    "prerequisite": "upg.shrine.arcane_affinity_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "arcane",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.arcane_affinity_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Arcane Affinity III",
+    "description": "+5% arcane damage dealt.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.arcane_affinity_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "arcane",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.nature_affinity_1",
+    "zone": "shrine",
+    "tier": 1,
+    "name": "Nature Affinity I",
+    "description": "+5% nature damage dealt.",
+    "cost": 80,
+    "prerequisite": null,
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "nature",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.nature_affinity_2",
+    "zone": "shrine",
+    "tier": 2,
+    "name": "Nature Affinity II",
+    "description": "+5% nature damage dealt.",
+    "cost": 140,
+    "prerequisite": "upg.shrine.nature_affinity_1",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "nature",
+      "value": 0.05
+    }
+  },
+  {
+    "id": "upg.shrine.nature_affinity_3",
+    "zone": "shrine",
+    "tier": 3,
+    "name": "Nature Affinity III",
+    "description": "+5% nature damage dealt.",
+    "cost": 280,
+    "prerequisite": "upg.shrine.nature_affinity_2",
+    "effect": {
+      "type": "damage_type_bonus",
+      "element": "nature",
+      "value": 0.05
     }
   }
 ]

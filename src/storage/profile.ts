@@ -105,6 +105,7 @@ const empty: Profile = {
   achievementsUnlocked: [],
   achievementsClaimed: [],
   tutorialSeen: false,
+  tutorialCompleted: false,
   cardInventory: {},
   deckPresets: [],
   activeDeckPreset: 0,
@@ -255,6 +256,17 @@ function withDefaults(partial: Partial<Profile>): Profile {
   while (p.combatDeckSets.length < MAX_COMBAT_DECK_SETS) {
     p.combatDeckSets.push({ name: `Deck ${p.combatDeckSets.length + 1}`, cards: [] });
   }
+  // Sanitize: enforce max-2 copies of any card per deck set (handles old saves).
+  p.combatDeckSets = p.combatDeckSets.map(s => {
+    const seen = new Map<string, number>();
+    const cards = s.cards.filter(id => {
+      const n = seen.get(id) ?? 0;
+      if (n >= 2) return false;
+      seen.set(id, n + 1);
+      return true;
+    });
+    return { ...s, cards };
+  });
   // Keep combatDeck in sync with the active set.
   p.combatDeck = p.combatDeckSets[p.activeCombatDeckSet]?.cards ?? [];
   // Ensure starter perks always present for new accounts.

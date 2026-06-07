@@ -7,6 +7,7 @@ interface Props {
   profile: Profile;
   onProfileChange: (p: Profile) => void;
   onBack: () => void;
+  onReplayTutorial?: () => void;
 }
 
 interface CodeResult {
@@ -65,7 +66,7 @@ function saveSfxMuted(muted: boolean) {
   localStorage.setItem(SFX_KEY, muted ? '1' : '0');
 }
 
-export default function SettingsScreen({ profile, onProfileChange, onBack }: Props) {
+export default function SettingsScreen({ profile, onProfileChange, onBack, onReplayTutorial }: Props) {
   const [sfxMuted, setSfxMuted] = useState<boolean>(() => {
     const m = loadSfxMuted();
     sfx.setMuted(m);
@@ -179,6 +180,25 @@ export default function SettingsScreen({ profile, onProfileChange, onBack }: Pro
             }}
           >
             🔑 ENTER CODE
+          </button>
+        </Section>
+
+        <Section title="Tutorial">
+          <div className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--sb-parchment)', opacity: 0.85 }}>
+            Replay the interactive tutorial to learn (or revisit) the basics of combat.
+          </div>
+          <button
+            onClick={() => { sfx.nav(); onReplayTutorial?.(); }}
+            className="sb-btn"
+            style={{
+              fontSize: '12px',
+              padding: '10px 20px',
+              background: 'linear-gradient(180deg, #b45309 0%, #451a03 100%)',
+              border: '1.5px solid #fbbf24',
+              letterSpacing: '0.15em',
+            }}
+          >
+            ⚔ REPLAY TUTORIAL
           </button>
         </Section>
 

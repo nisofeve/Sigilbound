@@ -17,8 +17,7 @@ import type { ReactionTrigger } from './reactions';
 //
 // `damage` is the raw payload. `charge` is the number of turns it sits in
 // the slot before resolving (0 = resolves the same turn it's bound; mirrors
-// the GDD's "⏱ N turns" badge). `cost` is stamina to play (Phase 5 wires the
-// stamina pipeline).
+// the GDD's "⏱ N turns" badge). Action cards do not consume stamina.
 
 export interface ActionCardDef {
   id: string;
@@ -28,7 +27,6 @@ export interface ActionCardDef {
   damageType: DamageType;
   damage: number;
   charge: number;
-  cost: number;                 // stamina cost
   hits?: number;                // multi-strike
   effect?: string;              // human-readable description for UI
   emoji: string;

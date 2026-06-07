@@ -41,6 +41,8 @@ import { BattleCardDetail } from './CardDetailBody';
 import { RARITY_COLOR } from './GameCard';
 import { IMAGE_MANIFEST } from './imageManifest';
 
+import TutorialOverlay, { type TutorialCounters } from './TutorialOverlay';
+
 interface Props {
   stageNumber: number;
   playerLevel: number;
@@ -64,6 +66,8 @@ interface Props {
   playerAvatar?: string;
   onOutcome: (outcome: 'cleared' | 'defeated', stage: CombatStageDef, runner: BattleRunner) => void;
   onExit: () => void;
+  isTutorial?: boolean;
+  onTutorialComplete?: () => void;
 }
 
 function cardImageUrl(cardId: string, cardName: string): string | null {
@@ -148,7 +152,7 @@ export default function CombatView({
   stageNumber, playerLevel, equipment, talents, reactions, customDeck, initialHp, hardcore, hardmode, enemyPrestigeLevel,
   ownedUpgradeIds, cardTierMultipliers,
   playerName = 'Sigilist', playerAvatar = '🛡️',
-  onOutcome, onExit,
+  onOutcome, onExit, isTutorial, onTutorialComplete,
 }: Props) {
   const isMobile = useIsMobile();
 
@@ -196,7 +200,9 @@ export default function CombatView({
   const [hoverSlotIdx, setHoverSlotIdx] = useState<number | null>(null);
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const [dragCardDef, setDragCardDef] = useState<ReturnType<typeof getAction> | null>(null);
+  const [dragTacticDef, setDragTacticDef] = useState<ReturnType<typeof getTactic> | null>(null);
   const [dragCardSize, setDragCardSize] = useState<{ w: number; h: number } | null>(null);
+  const [tutorialCounters, setTutorialCounters] = useState<TutorialCounters>({ cardBound: 0, tacticPlayed: 0, endTurn: 0 });
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selectedHandIdx, setSelectedHandIdx] = useState<number | null>(null);
   const [hoveredHandIdx, setHoveredHandIdx] = useState<number | null>(null);
@@ -260,6 +266,12 @@ export default function CombatView({
   // pre-resolve block at start, drain it as enemy attacks consume it, revert
   // to live engine state after the log finishes. `null` = use engine state.
   const [displayedPlayerBlock, setDisplayedPlayerBlock] = useState<number | null>(null);
+  // Hand/deck/discard count overrides — frozen at pre-endTurn values and held
+  // through the full animation so the counters don't jump mid-sequence.
+  // `null` = use live engine state (default outside animation).
+  const [displayedHandCount, setDisplayedHandCount] = useState<number | null>(null);
+  const [displayedDeckCount, setDisplayedDeckCount] = useState<number | null>(null);
+  const [displayedDiscardCount, setDisplayedDiscardCount] = useState<number | null>(null);
   // Triggered for ~450ms when an enemy attack consumes block — drives a
   // shake + flash animation on the block badge so the player sees the soak.
   const [blockHitFlash, setBlockHitFlash] = useState(false);
@@ -428,6 +440,7 @@ export default function CombatView({
     const cardId = runner.state.hand[realHandIndex];
     const def = getTactic(cardId ?? '');
     if (!def) return;
+    if (isTutorial) setTutorialCounters(p => ({ ...p, tacticPlayed: p.tacticPlayed + 1 }));
 
     // Check affordability before committing to animation.
     const effectiveCost = Math.max(0, def.cost - runner.state.upgradeBuffs.tacticStaminaDiscount);
@@ -822,6 +835,9 @@ export default function CombatView({
     setDisplayedEnemyHp({});
     setDisplayedPlayerHp(null);
     setDisplayedPlayerBlock(null);
+    setDisplayedHandCount(null);
+    setDisplayedDeckCount(null);
+    setDisplayedDiscardCount(null);
     setWindingUpSlots(new Set());
   }
 
@@ -1389,6 +1405,9 @@ export default function CombatView({
   function handleEndTurn(force = false): void {
     if (animating || isDealing) return;
     if (runner.state.pendingDiscardCount > 0) return;
+    setSelectedHandIdx(null);
+    setHandCardPopup(null);
+    if (isTutorial) setTutorialCounters(p => ({ ...p, endTurn: p.endTurn + 1 }));
     // If no cards are bound to any slot, confirm before ending the turn.
     if (!force) {
       const hasAnyBound = runner.state.slots.some(s => s.bound);
@@ -1423,6 +1442,11 @@ export default function CombatView({
 
     // Snapshot the hand BEFORE endTurn so we can diff it after.
     const handBefore = [...runner.state.hand];
+    // Freeze counter display values — held until animation finishes so the
+    // hand/deck/discard numbers don't jump mid-sequence.
+    const snapHand    = runner.state.hand.length;
+    const snapDeck    = runner.state.deck.length;
+    const snapDiscard = runner.state.discard.length;
 
     const outcome = runner.endTurn();
     const log = runner.getLastResolveLog();
@@ -1442,6 +1466,9 @@ export default function CombatView({
       setIsDealing(true);
     }
 
+    setDisplayedHandCount(snapHand);
+    setDisplayedDeckCount(snapDeck);
+    setDisplayedDiscardCount(snapDiscard);
     repaint();
     void playResolveLog(log, comboSlotMap).then(async () => {
       // Sequence done — release the ghosts so the slot row reverts to live
@@ -1472,6 +1499,7 @@ export default function CombatView({
       if (selectedEnemyId) runner.retarget(slotIndex, selectedEnemyId);
       setSelectedHandIdx(null);
       setHandCardPopup(null);
+      if (isTutorial) setTutorialCounters(p => ({ ...p, cardBound: p.cardBound + 1 }));
       repaint();
     }
   }
@@ -1583,6 +1611,7 @@ export default function CombatView({
     setHoverSlotIdx(null);
     setDragPos(null);
     setDragCardDef(null);
+    setDragTacticDef(null);
     setDragCardSize(null);
     touchDragState.current = null;
     slotTouchDragState.current = null;
@@ -1676,108 +1705,161 @@ export default function CombatView({
   async function handleAutoBattle(): Promise<void> {
     if (animating || isDealing) return;
 
-    const state = runner.state;
-    const emptySlotIdxs = state.slots
-      .map((s, i) => ({ s, i }))
-      .filter(({ s }) => !s.bound)
-      .map(({ i }) => i);
+    const rAF = () => new Promise<void>(r => requestAnimationFrame(() => r()));
+    // Human-like variable pause: base + random jitter so actions don't feel robotic.
+    const think = (base: number, jitter = 50) =>
+      new Promise<void>(r => setTimeout(r, base + Math.floor(Math.random() * jitter)));
 
-    // Action cards only — tactics aren't placed in slots.
-    const actionHandIdxs: number[] = [];
-    for (let i = 0; i < state.hand.length; i++) {
-      if (getAction(state.hand[i] ?? '')) actionHandIdxs.push(i);
+    type AutoTacticDef = NonNullable<ReturnType<typeof getTactic>>;
+    const effectiveCost = (def: AutoTacticDef) =>
+      Math.max(0, def.cost - runner.state.upgradeBuffs.tacticStaminaDiscount);
+    const canAfford = (def: AutoTacticDef) =>
+      runner.state.staminaThisTurn >= effectiveCost(def);
+
+    // Scan hand for playable tactics matching a predicate (always reads fresh state).
+    function findTactic(filter: (def: AutoTacticDef) => boolean): number | undefined {
+      const hand = runner.state.hand;
+      for (let i = 0; i < hand.length; i++) {
+        const def = getTactic(hand[i] ?? '');
+        if (def && canAfford(def) && filter(def)) return i;
+      }
+      return undefined;
     }
 
-    const slotsToFill = Math.min(emptySlotIdxs.length, actionHandIdxs.length);
-    if (slotsToFill === 0) {
-      handleEndTurn(true);
-      return;
+    // If a draw pushed hand over cap, auto-discard the weakest action cards.
+    async function handleOverflow(): Promise<void> {
+      const needed = runner.state.pendingDiscardCount;
+      if (!needed) return;
+      const scored = runner.state.hand.map((id, i) => {
+        const act = getAction(id ?? '');
+        return { i, score: act ? act.damage * (act.hits ?? 1) : 999 };
+      });
+      scored.sort((a, b) => a.score - b.score);
+      const toDiscard = scored.slice(0, needed).map(x => x.i);
+      if (runner.resolveDiscard(toDiscard)) {
+        repaint();
+        await rAF();
+        await think(80, 30);
+      }
     }
 
-    // Score a candidate assignment using the same combo formulas as the preview.
-    function scoreAssignment(pairs: Array<{ handIdx: number; slotIdx: number }>): number {
-      const typeCounts = new Map<string, number>();
-      for (const slot of state.slots) {
-        if (slot.bound && slot.bound.charge <= 1) {
-          typeCounts.set(slot.bound.damageType, (typeCounts.get(slot.bound.damageType) ?? 0) + 1);
+    // Animate a tactic play with natural pacing.
+    async function autoTactic(handIdx: number): Promise<void> {
+      await rAF();
+      await handlePlayTactic(handIdx);
+      await think(160, 70);
+      await handleOverflow();
+    }
+
+    // ── Phase 1: Draw / resource tactics ─────────────────────────────────────
+    // Play card-draw tactics first so the slot-fill scoring sees the full hand.
+    const DRAW_KINDS = new Set(['draw', 'draw_and_buff', 'gain_stamina_and_draw']);
+    for (let i = 0; i < 4; i++) {
+      const idx = findTactic(d => DRAW_KINDS.has(d.effect.kind));
+      if (idx === undefined) break;
+      await autoTactic(idx);
+    }
+
+    // ── Phase 2: Fill sigil slots with combo-priority permutation search ─────
+    {
+      const st = runner.state; // fresh snapshot after draw tactics
+      const emptySlotIdxs = st.slots
+        .map((s, i) => ({ s, i }))
+        .filter(({ s }) => !s.bound)
+        .map(({ i }) => i);
+
+      const actionHandIdxs: number[] = [];
+      for (let i = 0; i < st.hand.length; i++) {
+        if (getAction(st.hand[i] ?? '')) actionHandIdxs.push(i);
+      }
+
+      const slotsToFill = Math.min(emptySlotIdxs.length, actionHandIdxs.length);
+
+      if (slotsToFill > 0) {
+        // Score a candidate slot assignment by combo chain bonus + raw damage.
+        function scoreAssignment(pairs: Array<{ handIdx: number; slotIdx: number }>): number {
+          const maxSlot = Math.max(...pairs.map(p => p.slotIdx), st.slots.length - 1);
+          const slotTypeArr: Array<DamageType | null> = Array(maxSlot + 1).fill(null);
+          for (let si = 0; si < st.slots.length; si++) {
+            const sb = st.slots[si]?.bound;
+            if (sb && sb.charge <= 1) slotTypeArr[si] = sb.damageType as DamageType;
+          }
+          for (const { handIdx, slotIdx } of pairs) {
+            const d = getAction(st.hand[handIdx] ?? '');
+            if (d && d.charge <= 0) slotTypeArr[slotIdx] = d.damageType as DamageType;
+          }
+          const chains = computeElementChains(slotTypeArr);
+          const chainMultMap = new Map<number, number>();
+          for (const ch of chains) {
+            const m = elementChainMultiplier(ch.indices.length);
+            for (const idx of ch.indices) chainMultMap.set(idx, m);
+          }
+          let total = 0;
+          for (const { handIdx, slotIdx } of pairs) {
+            const d = getAction(st.hand[handIdx] ?? '');
+            if (!d) continue;
+            if (d.charge > 0) { total += d.damage * 0.15; continue; }
+            const chainMult = chainMultMap.get(slotIdx) ?? 1;
+            total += Math.round(d.damage * (d.hits ?? 1) * chainMult);
+          }
+          return total;
+        }
+
+        let bestScore = -1;
+        let bestPairs: Array<{ handIdx: number; slotIdx: number }> = [];
+        function permute(chosen: number[], remaining: number[]): void {
+          if (chosen.length === slotsToFill) {
+            const pairs = chosen.map((handIdx, pi) => ({ handIdx, slotIdx: emptySlotIdxs[pi]! }));
+            const score = scoreAssignment(pairs);
+            if (score > bestScore) { bestScore = score; bestPairs = pairs; }
+            return;
+          }
+          for (let i = 0; i < remaining.length; i++) {
+            permute([...chosen, remaining[i]!], remaining.filter((_, j) => j !== i));
+          }
+        }
+        permute([], actionHandIdxs);
+
+        // Animate placements sequentially — sort by original hand index so the
+        // offset tracking stays correct as each bind removes a card from the hand.
+        const sortedPairs = [...bestPairs].sort((a, b) => a.handIdx - b.handIdx);
+        let offset = 0;
+        for (const { handIdx, slotIdx } of sortedPairs) {
+          await rAF();
+          await handleBindToSlot(handIdx - offset, slotIdx);
+          offset++;
+          await think(100, 60);
         }
       }
-      const candidateDefs: Array<{ damage: number; damageType: string; charge: number; hits: number }> = [];
-      for (const { handIdx } of pairs) {
-        const cardId = state.hand[handIdx] ?? '';
-        const def = getAction(cardId);
-        if (!def) continue;
-        candidateDefs.push({ damage: def.damage, damageType: def.damageType, charge: def.charge, hits: def.hits ?? 1 });
-        if (def.charge <= 0) {
-          typeCounts.set(def.damageType, (typeCounts.get(def.damageType) ?? 0) + 1);
-        }
-      }
-      // Score using element chain multipliers for this slot arrangement.
-      // pairs is ordered by slot index; build a slot-type map for chain calc.
-      const maxSlot = Math.max(...pairs.map(p => p.slotIdx), state.slots.length - 1);
-      const slotTypeArr: Array<DamageType | null> = Array(maxSlot + 1).fill(null);
-      // Include already-bound slots that will resolve this turn.
-      for (let si = 0; si < state.slots.length; si++) {
-        const sb = state.slots[si]?.bound;
-        if (sb && sb.charge <= 1) slotTypeArr[si] = sb.damageType as DamageType;
-      }
-      for (const { handIdx, slotIdx } of pairs) {
-        const cardId = state.hand[handIdx] ?? '';
-        const d = getAction(cardId);
-        if (d && d.charge <= 0) slotTypeArr[slotIdx] = d.damageType as DamageType;
-      }
-      const chains = computeElementChains(slotTypeArr);
-      const chainMultMap = new Map<number, number>();
-      for (const ch of chains) {
-        const m = elementChainMultiplier(ch.indices.length);
-        for (const idx of ch.indices) chainMultMap.set(idx, m);
-      }
-      let total = 0;
-      for (const { handIdx, slotIdx } of pairs) {
-        const cardId = state.hand[handIdx] ?? '';
-        const d = getAction(cardId);
-        if (!d) continue;
-        if (d.charge > 0) { total += d.damage * 0.15; continue; }
-        const chainMult = chainMultMap.get(slotIdx) ?? 1;
-        total += Math.round(d.damage * (d.hits ?? 1) * chainMult);
-      }
-      return total;
     }
 
-    // Find the best assignment via permutation search.
-    let bestScore = -1;
-    let bestPairs: Array<{ handIdx: number; slotIdx: number }> = [];
-    function permute(chosen: number[], remaining: number[]): void {
-      if (chosen.length === slotsToFill) {
-        const pairs = chosen.map((handIdx, pi) => ({ handIdx, slotIdx: emptySlotIdxs[pi]! }));
-        const score = scoreAssignment(pairs);
-        if (score > bestScore) { bestScore = score; bestPairs = pairs; }
-        return;
-      }
-      for (let i = 0; i < remaining.length; i++) {
-        permute([...chosen, remaining[i]!], remaining.filter((_, j) => j !== i));
-      }
-    }
-    permute([], actionHandIdxs);
+    // ── Phase 3: Enhancement tactics (buff / heal / defense) ─────────────────
+    // Played after slots are locked in so damage buffs apply to this turn's attacks.
+    const POST_ALWAYS = new Set([
+      'damage_buff', 'apply_status_self', 'apply_status_all_enemies',
+      'enemy_damage_debuff', 'extra_turn', 'reflect_next_attack',
+      'extra_sigil_temp', 'duplicate_top_discard_action', 'all_cards_buffed_zero_cost',
+    ]);
 
-    // Play each placement as a real animated card flight, one at a time.
-    // Because each flight removes a card from the hand, hand indices shift
-    // downward for every card placed — we sort by original handIdx ascending
-    // and track the running offset.
-    const sortedPairs = [...bestPairs].sort((a, b) => a.handIdx - b.handIdx);
-    let offset = 0;
-    for (const { handIdx, slotIdx } of sortedPairs) {
-      // Wait one frame so React has committed the updated hand/slot DOM from
-      // the previous bind before we read the next card's getBoundingClientRect.
-      await new Promise<void>(r => requestAnimationFrame(() => r()));
-      await handleBindToSlot(handIdx - offset, slotIdx);
-      offset++;
-      // Brief pause between placements — feels like a human thinking.
-      await new Promise<void>(r => setTimeout(r, 120));
+    for (let i = 0; i < 8; i++) {
+      const hasCharging = runner.state.slots.some(s => s.bound && s.bound.charge > 0);
+      const hpPct = runner.state.player.currentHp / Math.max(1, runner.state.player.stats.maxHp);
+
+      const idx = findTactic(def => {
+        const k = def.effect.kind;
+        if (POST_ALWAYS.has(k)) return true;
+        if (k === 'sigil_advance' || k === 'instant_resolve_one_sigil') return hasCharging;
+        if (k === 'block') return hpPct < 0.85;
+        if (k === 'heal') return hpPct < 0.75;
+        if (k === 'gain_stamina') return runner.state.staminaThisTurn < 2;
+        return false;
+      });
+      if (idx === undefined) break;
+      await autoTactic(idx);
     }
 
-    // Short pause after last card lands before END TURN fires.
-    await new Promise<void>(r => setTimeout(r, 220));
+    // ── End turn ──────────────────────────────────────────────────────────────
+    await think(260, 80);
     handleEndTurn(true);
   }
 
@@ -3096,7 +3178,7 @@ export default function CombatView({
           if (el) cardRefs.current.set(realIndex, el);
           else cardRefs.current.delete(realIndex);
         }}
-        draggable={!isTactic && !isDiscardPicking}
+        draggable={!isDiscardPicking}
         onClick={(ev) => {
           if (isDiscardPicking) {
             setDiscardPickSelected(prev => {
@@ -3128,7 +3210,7 @@ export default function CombatView({
         onPointerCancel={cancelLongPress}
         onMouseEnter={() => setHoveredHandIdx(realIndex)}
         onMouseLeave={() => setHoveredHandIdx(prev => (prev === realIndex ? null : prev))}
-        onDragStart={!isTactic ? (ev) => {
+        onDragStart={!isDiscardPicking ? (ev) => {
           cancelLongPress();
           const img = new Image();
           ev.dataTransfer.setDragImage(img, 0, 0);
@@ -3140,23 +3222,42 @@ export default function CombatView({
           setDraggingSlotIdx(null);
           setSelectedHandIdx(null);
           setHandCardPopup(null);
-          const cardDef = getAction(runner.state.hand[realIndex] ?? '');
-          if (cardDef) {
-            setDragCardDef(cardDef);
-            setDragCardSize({ w: rect.width, h: rect.height });
-            setDragPos({ x: ev.clientX, y: ev.clientY });
+          if (isTactic) {
+            const tacticDef = getTactic(runner.state.hand[realIndex] ?? '');
+            if (tacticDef) {
+              setDragTacticDef(tacticDef);
+              setDragCardSize({ w: rect.width, h: rect.height });
+              setDragPos({ x: ev.clientX, y: ev.clientY });
+            }
+          } else {
+            const cardDef = getAction(runner.state.hand[realIndex] ?? '');
+            if (cardDef) {
+              setDragCardDef(cardDef);
+              setDragCardSize({ w: rect.width, h: rect.height });
+              setDragPos({ x: ev.clientX, y: ev.clientY });
+            }
           }
         } : undefined}
-        onDrag={!isTactic ? (ev) => {
+        onDrag={!isDiscardPicking ? (ev) => {
           if (ev.clientX !== 0 || ev.clientY !== 0) setDragPos({ x: ev.clientX, y: ev.clientY });
         } : undefined}
-        onDragEnd={!isTactic ? () => clearDragState() : undefined}
-        onTouchStart={!isTactic && !isDiscardPicking ? (ev) => {
+        onDragEnd={!isDiscardPicking ? (ev) => {
+          if (isTactic) {
+            const handTop = handAreaRef.current?.getBoundingClientRect().top ?? Infinity;
+            if (ev.clientY < handTop && !animating && !isDealing) {
+              clearDragState();
+              handlePlayTactic(realIndex);
+              return;
+            }
+          }
+          clearDragState();
+        } : undefined}
+        onTouchStart={!isDiscardPicking ? (ev) => {
           cancelLongPress();
           const touch = ev.touches[0];
           touchDragState.current = { cardIdx: realIndex, startX: touch.clientX, startY: touch.clientY, dragging: false };
         } : undefined}
-        onTouchMove={!isTactic && !isDiscardPicking ? (ev) => {
+        onTouchMove={!isDiscardPicking ? (ev) => {
           const state = touchDragState.current;
           if (!state || state.cardIdx !== realIndex) return;
           const touch = ev.touches[0];
@@ -3171,44 +3272,63 @@ export default function CombatView({
             setDraggingSlotIdx(null);
             setSelectedHandIdx(null);
             setHandCardPopup(null);
-            const cardDef = getAction(runner.state.hand[realIndex] ?? '');
-            if (cardDef) {
-              setDragCardDef(cardDef);
-              setDragCardSize({ w: rect.width, h: rect.height });
+            if (isTactic) {
+              const tacticDef = getTactic(runner.state.hand[realIndex] ?? '');
+              if (tacticDef) {
+                setDragTacticDef(tacticDef);
+                setDragCardSize({ w: rect.width, h: rect.height });
+              }
+            } else {
+              const cardDef = getAction(runner.state.hand[realIndex] ?? '');
+              if (cardDef) {
+                setDragCardDef(cardDef);
+                setDragCardSize({ w: rect.width, h: rect.height });
+              }
             }
           }
           ev.preventDefault();
           setDragPos({ x: touch.clientX, y: touch.clientY });
-          let found: number | null = null;
-          slotRefs.current.forEach((el, idx) => {
-            const rect = el.getBoundingClientRect();
-            if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
-                touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-              found = idx;
-            }
-          });
-          setHoverSlotIdx(found);
+          if (!isTactic) {
+            let found: number | null = null;
+            slotRefs.current.forEach((el, idx) => {
+              const rect = el.getBoundingClientRect();
+              if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                  touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                found = idx;
+              }
+            });
+            setHoverSlotIdx(found);
+          }
         } : undefined}
-        onTouchEnd={!isTactic && !isDiscardPicking ? (ev) => {
+        onTouchEnd={!isDiscardPicking ? (ev) => {
           const state = touchDragState.current;
           touchDragState.current = null;
           if (state?.dragging) {
             const touch = ev.changedTouches[0];
             if (touch) {
-              let found: number | null = null;
-              slotRefs.current.forEach((el, idx) => {
-                const rect = el.getBoundingClientRect();
-                if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
-                    touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-                  found = idx;
+              if (isTactic) {
+                const handTop = handAreaRef.current?.getBoundingClientRect().top ?? Infinity;
+                if (touch.clientY < handTop && !animating && !isDealing) {
+                  clearDragState();
+                  handlePlayTactic(realIndex);
+                  return;
                 }
-              });
-              if (found !== null) handleBindToSlot(realIndex, found);
+              } else {
+                let found: number | null = null;
+                slotRefs.current.forEach((el, idx) => {
+                  const rect = el.getBoundingClientRect();
+                  if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                      touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                    found = idx;
+                  }
+                });
+                if (found !== null) handleBindToSlot(realIndex, found);
+              }
             }
             clearDragState();
           }
         } : undefined}
-        onTouchCancel={!isTactic && !isDiscardPicking ? () => {
+        onTouchCancel={!isDiscardPicking ? () => {
           clearDragState();
         } : undefined}
         title={isTactic
@@ -3236,7 +3356,7 @@ export default function CombatView({
             : `transform 480ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 90ms ease-out`,
           willChange: 'transform',
           userSelect: 'none',
-          touchAction: !isTactic && !isDiscardPicking ? 'none' : 'auto',
+          touchAction: isDiscardPicking ? 'auto' : 'none',
           pointerEvents: 'auto',
           zIndex: selectedForDiscard ? 200 : (selected ? 200 : (hovered ? 150 : 10 + i)),
           outline: selectedForDiscard ? '2px solid #ef4444' : undefined,
@@ -3330,6 +3450,30 @@ export default function CombatView({
       }}
     >
       <ActionCardDisplay card={dragCardDef} customWidth={dragCardSize.w} selected />
+    </div>
+  ))();
+
+  // Floating tactic card ghost — follows cursor/touch when dragging a tactic card.
+  const TacticDragGhost = dragPos && dragTacticDef && dragCardSize && (() => (
+    <div
+      aria-hidden
+      style={{
+        position: 'fixed',
+        left: dragPos.x - dragOffsetRef.current.x,
+        top: dragPos.y - dragOffsetRef.current.y,
+        width: dragCardSize.w,
+        height: dragCardSize.h,
+        pointerEvents: 'none',
+        userSelect: 'none',
+        zIndex: 600,
+        transform: 'rotate(5deg) scale(1.06)',
+        transformOrigin: 'top left',
+        filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.75)) drop-shadow(0 0 14px rgba(120,230,120,0.5))',
+        willChange: 'transform',
+        transition: 'none',
+      }}
+    >
+      <TacticCardDisplay card={dragTacticDef} customWidth={dragCardSize.w} />
     </div>
   ))();
 
@@ -4808,9 +4952,9 @@ export default function CombatView({
             ['🛡  DEF',     String(stats.def),                  '#60a5fa'],
             ['🔰  BLOCK',   String(p.block),                    '#93c5fd'],
             ['✦  CRIT',    `${Math.round(stats.critChance * 100)}%`, '#c084fc'],
-            ['✋  HAND',    `${runner.state.hand.length} / ${stats.handSize}`, '#fde68a'],
-            ['🃏  DECK',    String(runner.state.deck.length),   '#94a3b8'],
-            ['♻  DISCARD', String(runner.state.discard.length), '#64748b'],
+            ['✋  HAND',    `${displayedHandCount    ?? runner.state.hand.length} / ${stats.handSize}`, '#fde68a'],
+            ['🃏  DECK',    String(displayedDeckCount    ?? runner.state.deck.length),    '#94a3b8'],
+            ['♻  DISCARD', String(displayedDiscardCount ?? runner.state.discard.length), '#64748b'],
           ];
           return (
             <div>
@@ -5592,17 +5736,17 @@ export default function CombatView({
             className="sb-chip"
             style={{
               fontSize: 10, padding: '3px 8px',
-              color: runner.state.hand.length >= runner.state.player.stats.handSize ? '#fde68a' : undefined,
+              color: (displayedHandCount ?? runner.state.hand.length) >= runner.state.player.stats.handSize ? '#fde68a' : undefined,
             }}
             title="Cards in hand / max hand size"
           >
-            ✋ {runner.state.hand.length}/{runner.state.player.stats.handSize}
+            ✋ {displayedHandCount ?? runner.state.hand.length}/{runner.state.player.stats.handSize}
           </span>
           <span className="sb-chip" style={{ fontSize: 10, padding: '3px 8px' }}>
-            🃏 {runner.state.deck.length}
+            🃏 {displayedDeckCount ?? runner.state.deck.length}
           </span>
           <span className="sb-chip" style={{ fontSize: 10, padding: '3px 8px', opacity: 0.75 }}>
-            🗑 {runner.state.discard.length}
+            🗑 {displayedDiscardCount ?? runner.state.discard.length}
           </span>
         </div>
 
@@ -5713,6 +5857,14 @@ export default function CombatView({
         {ComboFlashLayer}
         {FlyingCardOverlay}
         {DragGhost}
+        {TacticDragGhost}
+        {isTutorial && (
+          <TutorialOverlay
+            counters={tutorialCounters}
+            onComplete={() => onTutorialComplete?.()}
+            onSkip={() => onTutorialComplete?.()}
+          />
+        )}
         {DealCardOverlay}
         {TacticPlayOverlay}
         {ProjectileLayer}
@@ -5869,11 +6021,11 @@ export default function CombatView({
         <span className="sb-chip sb-chip-gold" style={{ fontSize: 11, padding: '4px 10px' }}>⚡ {runner.state.staminaThisTurn}</span>
         <span
           className="sb-chip"
-          style={{ fontSize: 11, padding: '4px 10px', color: runner.state.hand.length >= runner.state.player.stats.handSize ? '#fde68a' : undefined }}
+          style={{ fontSize: 11, padding: '4px 10px', color: (displayedHandCount ?? runner.state.hand.length) >= runner.state.player.stats.handSize ? '#fde68a' : undefined }}
           title="Cards in hand / max hand size"
-        >✋ {runner.state.hand.length}/{runner.state.player.stats.handSize}</span>
-        <span className="sb-chip" style={{ fontSize: 11, padding: '4px 10px' }}>🃏 {runner.state.deck.length}</span>
-        <span className="sb-chip" style={{ fontSize: 11, padding: '4px 10px', opacity: 0.75 }}>🗑 {runner.state.discard.length}</span>
+        >✋ {displayedHandCount ?? runner.state.hand.length}/{runner.state.player.stats.handSize}</span>
+        <span className="sb-chip" style={{ fontSize: 11, padding: '4px 10px' }}>🃏 {displayedDeckCount ?? runner.state.deck.length}</span>
+        <span className="sb-chip" style={{ fontSize: 11, padding: '4px 10px', opacity: 0.75 }}>🗑 {displayedDiscardCount ?? runner.state.discard.length}</span>
       </div>
 
       {/* END TURN + AUTO BATTLE button row */}
@@ -5976,6 +6128,14 @@ export default function CombatView({
       {ComboFlashLayer}
       {FlyingCardOverlay}
       {DragGhost}
+      {TacticDragGhost}
+      {isTutorial && (
+        <TutorialOverlay
+          counters={tutorialCounters}
+          onComplete={() => onTutorialComplete?.()}
+          onSkip={() => onTutorialComplete?.()}
+        />
+      )}
       {DealCardOverlay}
       {TacticPlayOverlay}
       {ProjectileLayer}

@@ -4,6 +4,7 @@
 // crimson highlights. Matches the Combat Hub / Shop / Stronghold aesthetic.
 
 import { useState } from 'react';
+import { sfx } from '@game/sfx';
 import {
   MAX_LEVEL,
   allAchievements,
@@ -97,6 +98,7 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
       description: u.description,
       zone: u.zone,
     }));
+    sfx.modalOpen();
     setClaimPopup({ level, rewards, unlockedUpgrades });
   }
 
@@ -108,7 +110,7 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
         <div className="max-w-3xl mx-auto px-3 sm:px-5 pt-4 sb-fade-up">
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={onBack}
+              onClick={() => { sfx.nav(); onBack(); }}
               className="sb-chip"
               style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '11px' }}
             >
@@ -155,7 +157,7 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
                 {AVATAR_OPTIONS.map(e => (
                   <button
                     key={e}
-                    onClick={() => changeAvatar(e)}
+                    onClick={() => { sfx.tap(); changeAvatar(e); }}
                     className="text-2xl transition active:scale-95"
                     style={{
                       background: profile.avatarEmoji === e
@@ -217,7 +219,7 @@ export default function ProfileScreen({ profile, auth, onProfileChange, onBack }
           subtitle={`Level ${claimPopup.level}`}
           rewards={claimPopup.rewards}
           unlockedUpgrades={claimPopup.unlockedUpgrades}
-          onClose={() => setClaimPopup(null)}
+          onClose={() => { sfx.modalClose(); setClaimPopup(null); }}
         />
       )}
     </div>
@@ -294,8 +296,8 @@ function HeroBlock(props: {
                   color: 'var(--sb-gold-light)',
                 }}
               />
-              <button onClick={onCommitName} className="sb-btn sb-btn-gold" style={{ fontSize: '11px', padding: '6px 12px' }}>✓</button>
-              <button onClick={onCancelName} className="sb-btn sb-btn-steel" style={{ fontSize: '11px', padding: '6px 12px' }}>✕</button>
+              <button onClick={() => { sfx.confirm(); onCommitName(); }} className="sb-btn sb-btn-gold" style={{ fontSize: '11px', padding: '6px 12px' }}>✓</button>
+              <button onClick={() => { sfx.cancel(); onCancelName(); }} className="sb-btn sb-btn-steel" style={{ fontSize: '11px', padding: '6px 12px' }}>✕</button>
             </div>
           ) : (
             <button
@@ -580,7 +582,7 @@ function LevelRow(props: {
           ✓
         </span>
       ) : claimable ? (
-        <button onClick={onClaim} className="sb-btn sb-btn-gold flex-shrink-0" style={{ fontSize: '11px', padding: '7px 12px' }}>
+        <button onClick={() => { sfx.rewardClaim(); onClaim(); }} className="sb-btn sb-btn-gold flex-shrink-0" style={{ fontSize: '11px', padding: '7px 12px' }}>
           CLAIM
         </button>
       ) : (
@@ -803,7 +805,7 @@ function AccountTab({ profile, auth, onProfileChange }: {
               </div>
             )}
             <button
-              onClick={async () => { await signOut(); setSignedOut(true); }}
+              onClick={async () => { sfx.tap(); await signOut(); setSignedOut(true); }}
               className="sb-btn sb-btn-steel mt-3"
               style={{ fontSize: '11px', padding: '7px 14px' }}
             >
@@ -858,7 +860,7 @@ function AccountTab({ profile, auth, onProfileChange }: {
         <SectionHeader icon="⚠" label="DANGER ZONE" />
         {!confirmReset ? (
           <button
-            onClick={() => setConfirmReset(true)}
+            onClick={() => { sfx.tap(); setConfirmReset(true); }}
             className="sb-btn mt-2"
             style={{
               fontSize: '12px',
@@ -892,7 +894,7 @@ function AccountTab({ profile, auth, onProfileChange }: {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={doReset}
+                onClick={() => { sfx.confirm(); doReset(); }}
                 className="sb-btn"
                 style={{
                   fontSize: '11px',
@@ -903,7 +905,7 @@ function AccountTab({ profile, auth, onProfileChange }: {
                 YES, RESET
               </button>
               <button
-                onClick={() => setConfirmReset(false)}
+                onClick={() => { sfx.cancel(); setConfirmReset(false); }}
                 className="sb-btn sb-btn-steel"
                 style={{ fontSize: '11px', padding: '8px 14px' }}
               >
@@ -949,7 +951,7 @@ function TabButton({ active, onClick, children }: {
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => { sfx.tabSwitch(); onClick(); }}
       className={`sb-btn flex-1 ${active ? 'sb-btn-gold' : 'sb-btn-steel'}`}
       style={{ fontSize: '11px', padding: '8px 10px', letterSpacing: '0.1em' }}
     >

@@ -136,7 +136,6 @@ export function BattleCardDetail({ card }: { card: ActionCardDef | TacticCardDef
           <>
             <StatRow label="⚔  Damage" value={act.damage} color="#fbbf24" />
             <StatRow label="⏳  Charge turns" value={act.charge} color="#94a3b8" />
-            <StatRow label="◆  Stamina cost" value={act.cost} color="#86efac" />
             {act.hits !== undefined && act.hits > 1 && (
               <StatRow label="×  Hits" value={act.hits} color="#fbbf24" />
             )}

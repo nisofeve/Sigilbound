@@ -392,6 +392,55 @@ export const sfx = {
     noise({ duration: 0.14, startFreq: 600, endFreq: 200, q: 2, gain: 0.10, delay: 0.04, filter: 'lowpass' });
   },
 
+  // ── UI navigation & interaction ──────────────────────────────────────────
+
+  // Subtle tap — generic button press. Very short, soft.
+  tap() {
+    tone({ freq: 1100, duration: 0.04, type: 'triangle', gain: 0.07 });
+  },
+
+  // Screen-transition nav — slightly richer than tap.
+  nav() {
+    tone({ freq: 660, endFreq: 880, duration: 0.08, type: 'triangle', gain: 0.09 });
+    tone({ freq: 880, duration: 0.06, type: 'sine',     gain: 0.06, delay: 0.04 });
+  },
+
+  // Quick tab switch ping.
+  tabSwitch() {
+    tone({ freq: 880, endFreq: 1100, duration: 0.07, type: 'triangle', gain: 0.08 });
+  },
+
+  // Modal / popup appears — light upward whoosh + chime.
+  modalOpen() {
+    tone({ freq: 500, endFreq: 820, duration: 0.13, type: 'triangle', gain: 0.09 });
+    noise({ duration: 0.08, startFreq: 2200, endFreq: 900, q: 4, gain: 0.04, delay: 0.04, filter: 'highpass' });
+  },
+
+  // Modal / popup dismissed — short downward fade.
+  modalClose() {
+    tone({ freq: 620, endFreq: 300, duration: 0.10, type: 'triangle', gain: 0.07 });
+  },
+
+  // Collect / claim a reward — celebratory ascending 3-note arpeggio.
+  rewardClaim() {
+    tone({ freq: 659,  duration: 0.10, type: 'triangle', gain: 0.13 });
+    tone({ freq: 784,  duration: 0.11, type: 'triangle', gain: 0.12, delay: 0.07 });
+    tone({ freq: 1047, duration: 0.18, type: 'triangle', gain: 0.12, delay: 0.14 });
+    noise({ duration: 0.12, startFreq: 4000, endFreq: 2000, q: 5, gain: 0.04, delay: 0.14, filter: 'highpass' });
+  },
+
+  // Purchase / confirm action — satisfying click + ching.
+  confirm() {
+    tone({ freq: 440, endFreq: 660, duration: 0.10, type: 'triangle', gain: 0.11 });
+    tone({ freq: 660, duration: 0.08, type: 'sine',     gain: 0.08, delay: 0.06 });
+  },
+
+  // Bright short bell ping — one per stat row during card upgrade animation.
+  statTing() {
+    tone({ freq: 1760, endFreq: 2640, duration: 0.08, type: 'triangle', gain: 0.13 });
+    tone({ freq: 2637, endFreq: 3136, duration: 0.06, type: 'sine',     gain: 0.07, delay: 0.03 });
+  },
+
   // Triumphant fanfare for first-clear chest. Heroic ascending major chord.
   fanfare() {
     tone({ freq: 392, duration: 0.18, type: 'square',   gain: 0.14 });

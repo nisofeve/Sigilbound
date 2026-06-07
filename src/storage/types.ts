@@ -63,6 +63,7 @@ export interface Profile {
 
   // Phase 7: tutorial / onboarding.
   tutorialSeen: boolean;                  // Welcome modal dismissed at least once.
+  tutorialCompleted: boolean;             // Interactive step-by-step tutorial finished or skipped.
 
   // Phase 9: player profile + level system.
   playerXp: number;                       // Total XP toward player level.

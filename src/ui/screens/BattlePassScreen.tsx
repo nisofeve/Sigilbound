@@ -120,6 +120,7 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
           const { rolledCardIds } = rollCardPackForDisplay(bpReward.value as number);
           if (rolledCardIds.length > 0) setCardPackOpen(rolledCardIds);
         } else if (bpReward) {
+          sfx.rewardClaim();
           setClaimPopup({ tier, track, rewards: [bpRewardToClaimable(bpReward)] });
         }
         return;
@@ -143,6 +144,7 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
     if (local.reward.type === 'combat_card_copies' && local.rolledCardIds && local.rolledCardIds.length > 0) {
       setCardPackOpen(local.rolledCardIds);
     } else {
+      sfx.rewardClaim();
       setClaimPopup({ tier, track, rewards: [bpRewardToClaimable(local.reward)] });
     }
   }
@@ -188,7 +190,7 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
     if (res.coins > 0)  rewards.push({ type: 'coins', value: res.coins });
     if (res.gems > 0)   rewards.push({ type: 'gems', value: res.gems });
     if (res.shards > 0) rewards.push({ type: 'shards', value: res.shards });
-    if (rewards.length > 0) setClaimPopup({ tier: 0, track: 'free', rewards });
+    if (rewards.length > 0) { sfx.rewardClaim(); setClaimPopup({ tier: 0, track: 'free', rewards }); }
 
     if (res.bpXp > 0) {
       const animId = Date.now();
@@ -213,7 +215,7 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
         }}
       >
         <div className="flex items-center justify-between mb-2">
-          <button onClick={onBack} className="sb-chip" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '11px' }}>
+          <button onClick={() => { sfx.nav(); onBack(); }} className="sb-chip" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '11px' }}>
             ← HOME
           </button>
           <div
@@ -326,7 +328,7 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
           {/* VIP CTA */}
           {!profile.bpPremium ? (
             <button
-              onClick={buyVip}
+              onClick={() => { sfx.confirm(); buyVip(); }}
               disabled={busy === 'premium' || profile.gems < VIP_PASS_GEM_COST}
               className="w-full mt-2.5 py-2 rounded-md flex flex-col items-center"
               style={{
@@ -411,7 +413,7 @@ export default function BattlePassScreen({ profile, auth, onProfileChange, onBac
             ? `Tier ${claimPopup.tier} · ${claimPopup.track === 'premium' ? '👑 VIP' : 'Free'}`
             : 'Challenge complete'}
           rewards={claimPopup.rewards}
-          onClose={() => setClaimPopup(null)}
+          onClose={() => { sfx.modalClose(); setClaimPopup(null); }}
         />
       )}
       {cardPackOpen && (
@@ -476,7 +478,7 @@ function TabButton({ active, onClick, icon, children, badge }: {
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => { sfx.tabSwitch(); onClick(); }}
       className="flex-1 py-2 rounded-md relative"
       style={{
         background: active

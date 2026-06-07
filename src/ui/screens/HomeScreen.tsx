@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { sfx } from '@game/sfx';
 import type { Profile } from '@storage/index';
 import type { AuthStatus } from '@firebase-app/auth';
 import {
@@ -112,6 +113,14 @@ export default function HomeScreen({ profile, auth, onStart, onStartStage, onSta
   const stageStars = profile.stageStars[stage] ?? 0;
   const strongholdHasNew = hasNewStrongholdUpgrades(profile);
   const bpClaimable = countBpClaimable(profile);
+  // Level reward milestones not yet collected.
+  const profileClaimable = (() => {
+    const earned = lp.level;
+    const claimed = new Set(profile.claimedLevels);
+    let n = 0;
+    for (let i = 1; i <= earned; i++) if (!claimed.has(i)) n++;
+    return n;
+  })();
 
   return (
     <div className="h-full w-full relative overflow-hidden text-white safe-top safe-bottom flex flex-col">
@@ -122,12 +131,12 @@ export default function HomeScreen({ profile, auth, onStart, onStartStage, onSta
           all the way to the right. Single horizontal row that anchors at
           the very top of the viewport (inside safe-area). */}
       <div className="relative z-20 flex items-center justify-between gap-2 px-2 py-2 pt-3 pointer-events-none">
-        <ProfileChip profile={profile} badge={badge} level={lp.level} onClick={onProfile} />
+        <ProfileChip profile={profile} badge={badge} level={lp.level} claimable={profileClaimable} onClick={onProfile} />
         <div className="flex items-center gap-1.5 pointer-events-auto">
           <CurrencyChip icon="🏦" value={profile.bankCoins} color="#ffd54f" />
           <CurrencyChip icon="💎" value={profile.gems}      color="#80deea" />
           <button
-            onClick={onSettings}
+            onClick={() => { sfx.tap(); onSettings(); }}
             className="ml-0.5 w-9 h-9 rounded-full flex items-center justify-center text-base font-extrabold flex-shrink-0"
             style={{
               background: 'linear-gradient(180deg, #fff5d8 0%, #d8c79a 100%)',
@@ -176,7 +185,7 @@ export default function HomeScreen({ profile, auth, onStart, onStartStage, onSta
             seasons without going through the stage curve. */}
         <div className="w-full max-w-sm flex flex-col gap-1.5 pointer-events-auto mt-2">
           <button
-            onClick={onStartStage}
+            onClick={() => { sfx.nav(); onStartStage(); }}
             className="pb-btn pb-btn-gold pb-btn-lg pb-pulse w-full"
           >
             <span className="flex flex-col items-center leading-tight">
@@ -254,20 +263,22 @@ export default function HomeScreen({ profile, auth, onStart, onStartStage, onSta
 // Top bar: profile chip (avatar + name + level + sync state)
 // ===================================================
 
-function ProfileChip({ profile, badge, level, onClick }: {
+function ProfileChip({ profile, badge, level, claimable, onClick }: {
   profile: Profile;
   badge: { text: string; color: string };
   level: number;
+  claimable: number;
   onClick: () => void;
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => { sfx.tap(); onClick(); }}
       className="pointer-events-auto flex items-center gap-2 px-2 py-1.5 rounded-full active:scale-95 transition flex-shrink min-w-0"
       style={{
         background: 'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.4) 100%)',
-        border: '2px solid rgba(255,255,255,0.18)',
-        boxShadow: '0 3px 0 rgba(0,0,0,0.25)',
+        border: `2px solid ${claimable > 0 ? 'rgba(233,30,99,0.7)' : 'rgba(255,255,255,0.18)'}`,
+        boxShadow: claimable > 0 ? '0 3px 0 rgba(0,0,0,0.25), 0 0 8px rgba(233,30,99,0.4)' : '0 3px 0 rgba(0,0,0,0.25)',
+        animation: claimable > 0 ? 'sb-pulse 1.4s ease-in-out infinite' : 'none',
       }}
       aria-label="Open player profile"
     >
@@ -299,6 +310,27 @@ function ProfileChip({ profile, badge, level, onClick }: {
         >
           {level}
         </span>
+        {/* Notification dot for uncollected level rewards */}
+        {claimable > 0 && (
+          <span
+            className="absolute -top-1 -right-1 flex items-center justify-center"
+            style={{
+              minWidth: 16, height: 16,
+              borderRadius: 999,
+              background: '#e91e63',
+              border: '1.5px solid #fff',
+              color: '#fff',
+              fontSize: 9,
+              fontWeight: 800,
+              fontFamily: 'var(--sb-font-mono)',
+              lineHeight: 1,
+              padding: '0 3px',
+              animation: 'sb-pulse 1.4s ease-in-out infinite',
+            }}
+          >
+            {claimable}
+          </span>
+        )}
       </span>
       <span className="flex flex-col items-start min-w-0">
         <span className="text-[11px] font-extrabold leading-none truncate max-w-[100px]">
@@ -434,7 +466,7 @@ function DailyQuestsScroll({
                   thanks to a generous padded hit area. */}
               <button
                 type="button"
-                onClick={() => setDetailQuest(q)}
+                onClick={() => { sfx.modalOpen(); setDetailQuest(q); }}
                 className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center font-extrabold leading-none active:scale-90 transition"
                 style={{
                   background: 'linear-gradient(180deg, #ffffff 0%, #f5e8c8 100%)',
@@ -480,9 +512,10 @@ interface DockBtnProps {
 }
 
 function DockButton({ onClick, icon, label, badge, badgePulse, highlight, disabled }: DockBtnProps) {
+  const handleClick = () => { sfx.nav(); onClick(); };
   return (
     <button
-      onClick={onClick}
+      onClick={disabled ? undefined : handleClick}
       disabled={disabled}
       className={`flex-1 flex flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 px-1 active:scale-95 transition relative ${
         disabled ? 'cursor-not-allowed opacity-50' : ''

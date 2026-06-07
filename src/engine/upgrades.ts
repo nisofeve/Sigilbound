@@ -53,11 +53,26 @@ export function maxPerkSlots(ownedIds: string[]): number {
 // across the tier's level range so something new appears every few levels.
 
 const TIER_LEVEL_RANGES: Record<number, [number, number]> = {
-  1: [1,  4],
-  2: [5,  14],
-  3: [15, 26],
-  4: [27, 38],
-  5: [39, 50],
+  1:  [1,  2],
+  2:  [3,  5],
+  3:  [6,  7],
+  4:  [8,  10],
+  5:  [11, 12],
+  6:  [13, 15],
+  7:  [16, 17],
+  8:  [18, 20],
+  9:  [21, 22],
+  10: [23, 25],
+  11: [26, 27],
+  12: [28, 30],
+  13: [31, 32],
+  14: [33, 35],
+  15: [36, 37],
+  16: [38, 40],
+  17: [41, 42],
+  18: [43, 45],
+  19: [46, 47],
+  20: [48, 50],
 };
 
 // Returns the player level required to see a given upgrade in the Stronghold.

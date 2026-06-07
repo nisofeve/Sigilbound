@@ -3,6 +3,7 @@
 // Rarity borders, long-press/hover preview popover, double-tap to unequip.
 
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { sfx } from '@game/sfx';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import {
   allActions,
@@ -10,6 +11,7 @@ import {
   allEquipment,
   allTalents,
   MAX_CARD_LEVEL,
+  scaleStatForLevel,
   type ActionCardDef,
   type TacticCardDef,
   type EquipmentDef,
@@ -191,7 +193,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack, fro
 
           {/* Top bar */}
           <div className="flex items-center justify-between mb-4">
-            <button onClick={onBack} className="pb-btn pb-btn-cream pb-btn-sm">{from ? '← Back' : '← Home'}</button>
+            <button onClick={() => { sfx.nav(); onBack(); }} className="pb-btn pb-btn-cream pb-btn-sm">{from ? '← Back' : '← Home'}</button>
             <div
               className="px-3 py-1.5 rounded-xl text-sm font-extrabold text-yellow-200"
               style={{ background: 'rgba(0,0,0,0.35)', border: '1.5px solid rgba(196,146,42,0.4)' }}
@@ -214,25 +216,25 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack, fro
           {/* Tab toggle */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
             <button
-              onClick={() => setTab('edit')}
+              onClick={() => { sfx.tabSwitch(); setTab('edit'); }}
               className={`pb-btn pb-btn-${tab === 'edit' ? 'blue' : 'cream'} pb-btn-sm`}
             >
               ✏️ Edit Deck
             </button>
             <button
-              onClick={() => setTab('battle')}
+              onClick={() => { sfx.tabSwitch(); setTab('battle'); }}
               className={`pb-btn pb-btn-${tab === 'battle' ? 'gold' : 'cream'} pb-btn-sm`}
             >
               ⬆ Upgrade Cards
             </button>
             <button
-              onClick={() => setTab('equipment')}
+              onClick={() => { sfx.tabSwitch(); setTab('equipment'); }}
               className={`pb-btn pb-btn-${tab === 'equipment' ? 'gold' : 'cream'} pb-btn-sm`}
             >
               🛡 Equipment
             </button>
             <button
-              onClick={() => setTab('talent')}
+              onClick={() => { sfx.tabSwitch(); setTab('talent'); }}
               className={`pb-btn pb-btn-${tab === 'talent' ? 'gold' : 'cream'} pb-btn-sm`}
             >
               💎 Talents
@@ -269,7 +271,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack, fro
                     return (
                       <div key={i} className="relative flex flex-col items-center">
                         <button
-                          onClick={() => active ? setSetMenuOpen(setMenuOpen === i ? null : i) : switchSet(i)}
+                          onClick={() => { sfx.tap(); if (active) setSetMenuOpen(setMenuOpen === i ? null : i); else switchSet(i); }}
                           className="relative flex flex-col items-center rounded-xl transition-all"
                           style={{
                             padding: '6px 10px',
@@ -302,14 +304,14 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack, fro
                             onClick={e => e.stopPropagation()}
                           >
                             <button
-                              onClick={() => startRename(i)}
+                              onClick={() => { sfx.tap(); startRename(i); }}
                               className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-white/10 transition-colors"
                               style={{ color: '#e2d5b0' }}
                             >
                               ✏️ Rename
                             </button>
                             <button
-                              onClick={() => clearSet(i)}
+                              onClick={() => { sfx.confirm(); clearSet(i); }}
                               className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-white/10 transition-colors"
                               style={{ color: '#f87171' }}
                             >
@@ -318,7 +320,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack, fro
                             {Array.from({ length: MAX_COMBAT_DECK_SETS }, (_, j) => j !== i && (
                               <button
                                 key={j}
-                                onClick={() => copySet(i, j)}
+                                onClick={() => { sfx.confirm(); copySet(i, j); }}
                                 className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-white/10 transition-colors"
                                 style={{ color: '#86efac' }}
                               >
@@ -326,7 +328,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack, fro
                               </button>
                             ))}
                             <button
-                              onClick={() => setSetMenuOpen(null)}
+                              onClick={() => { sfx.tap(); setSetMenuOpen(null); }}
                               className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-white/10 transition-colors border-t"
                               style={{ color: '#94a3b8', borderColor: 'rgba(255,255,255,0.08)' }}
                             >
@@ -358,8 +360,8 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack, fro
                     onChange={e => setRenameValue(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingSet(null); }}
                   />
-                  <button className="pb-btn pb-btn-gold pb-btn-sm" onClick={commitRename}>Save</button>
-                  <button className="pb-btn pb-btn-cream pb-btn-sm" onClick={() => setRenamingSet(null)}>Cancel</button>
+                  <button className="pb-btn pb-btn-gold pb-btn-sm" onClick={() => { sfx.confirm(); commitRename(); }}>Save</button>
+                  <button className="pb-btn pb-btn-cream pb-btn-sm" onClick={() => { sfx.cancel(); setRenamingSet(null); }}>Cancel</button>
                 </div>
               )}
 
@@ -517,7 +519,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack, fro
                         <button
                           className="mt-2 sb-btn sb-btn-gold text-[10px] w-full"
                           style={{ padding: '4px 0' }}
-                          onClick={() => setUpgradeTarget(card.id)}
+                          onClick={() => { sfx.modalOpen(); setUpgradeTarget(card.id); }}
                         >
                           {lv >= MAX_CARD_LEVEL ? 'MAX' : 'UPGRADE'}
                         </button>
@@ -565,7 +567,7 @@ export default function CombatDeckScreen({ profile, onProfileChange, onBack, fro
                         <button
                           className="mt-2 sb-btn sb-btn-gold text-[10px]"
                           style={{ padding: '4px 10px' }}
-                          onClick={() => setUpgradeTarget(eq.id)}
+                          onClick={() => { sfx.modalOpen(); setUpgradeTarget(eq.id); }}
                         >
                           {lv >= MAX_CARD_LEVEL ? 'MAX' : 'UPGRADE'}
                         </button>
@@ -902,7 +904,7 @@ function InventoryCard({ card, available, inDeck, deckFull, upgradeable, onEquip
 function FilterChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => { sfx.tabSwitch(); onClick(); }}
       className="text-[10px] font-extrabold px-2 py-1 rounded-full transition-all"
       style={{
         background: active ? '#2e7d32' : 'rgba(0,0,0,0.15)',
@@ -1001,6 +1003,117 @@ function CardPreviewPopover({ card, anchorRect, onDismiss }: {
 // Upgrade Modal
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Animated stat row shown in the post-upgrade result view ─────────────────
+
+function AnimatedStatRow({
+  label, before, after, color, delay,
+}: {
+  label: string; before: number; after: number; color: string; delay: number;
+}) {
+  const [displayed, setDisplayed] = useState(before);
+  const delta = after - before;
+
+  useEffect(() => {
+    if (delta === 0) return;
+    const start = performance.now();
+    const duration = 600;
+    let raf: number;
+    function tick(now: number) {
+      const t = Math.min(1, (now - start) / duration);
+      // Ease-out cubic
+      const ease = 1 - Math.pow(1 - t, 3);
+      setDisplayed(Math.round(before + delta * ease));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    }
+    const timer = setTimeout(() => { sfx.statTing(); raf = requestAnimationFrame(tick); }, delay);
+    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div
+      className="sb-stat-pop"
+      style={{
+        animationDelay: `${delay}ms`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 10px', borderRadius: 6,
+        background: 'rgba(0,0,0,0.35)',
+        border: `1px solid ${color}44`,
+      }}
+    >
+      <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'var(--sb-font-mono)', letterSpacing: '0.06em' }}>
+        {label}
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span
+          className="sb-strike-out"
+          style={{
+            animationDelay: `${delay}ms`,
+            fontSize: 12, color: '#64748b',
+            fontFamily: 'var(--sb-font-mono)', fontWeight: 700,
+            textDecoration: 'line-through',
+          }}
+        >
+          {before}
+        </span>
+        <span style={{ color: '#475569', fontSize: 10 }}>→</span>
+        <span style={{ fontSize: 14, color, fontFamily: 'var(--sb-font-mono)', fontWeight: 800 }}>
+          {displayed}
+        </span>
+        {delta > 0 && (
+          <span
+            className="sb-stat-pop"
+            style={{
+              animationDelay: `${delay + 300}ms`,
+              fontSize: 10, color: '#4ade80', fontWeight: 800,
+              fontFamily: 'var(--sb-font-mono)',
+              background: 'rgba(34,197,94,0.15)',
+              border: '1px solid rgba(74,222,128,0.4)',
+              borderRadius: 999, padding: '1px 5px',
+            }}
+          >
+            +{delta}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function buildActionStatDiff(
+  def: ActionCardDef,
+  oldLv: number,
+  newLv: number,
+): Array<{ label: string; before: number; after: number; color: string }> {
+  const rows: Array<{ label: string; before: number; after: number; color: string }> = [];
+  rows.push({ label: '⚔  DAMAGE', before: scaleStatForLevel(def.damage, oldLv), after: scaleStatForLevel(def.damage, newLv), color: '#fbbf24' });
+  if (def.selfBlock)       rows.push({ label: '🛡  BLOCK',   before: scaleStatForLevel(def.selfBlock, oldLv), after: scaleStatForLevel(def.selfBlock, newLv), color: '#93c5fd' });
+  if (def.selfHeal)        rows.push({ label: '💚  HEAL',    before: scaleStatForLevel(def.selfHeal, oldLv), after: scaleStatForLevel(def.selfHeal, newLv), color: '#86efac' });
+  if (def.selfHealOnKill)  rows.push({ label: '☠  KILL HEAL', before: scaleStatForLevel(def.selfHealOnKill, oldLv), after: scaleStatForLevel(def.selfHealOnKill, newLv), color: '#86efac' });
+  return rows;
+}
+
+function buildEquipStatDiff(
+  def: EquipmentDef,
+  oldLv: number,
+  newLv: number,
+): Array<{ label: string; before: number; after: number; color: string }> {
+  const STAT_META: Record<string, { label: string; color: string }> = {
+    atk: { label: '⚔  ATK', color: '#fbbf24' }, def: { label: '🛡  DEF', color: '#93c5fd' },
+    maxHp: { label: '❤  MAX HP', color: '#f87171' }, stamina: { label: '⚡  STA', color: '#86efac' },
+    critChance: { label: '✦  CRIT', color: '#c084fc' }, speed: { label: '💨  SPD', color: '#a3e635' },
+    sigilSlots: { label: '◈  SIGIL', color: '#fde68a' }, handSize: { label: '✋  HAND', color: '#fde68a' },
+  };
+  const rows: Array<{ label: string; before: number; after: number; color: string }> = [];
+  for (const [key, meta] of Object.entries(STAT_META)) {
+    const raw = (def.stats as Record<string, number>)[key];
+    if (!raw) continue;
+    rows.push({ label: meta.label, before: scaleStatForLevel(raw, oldLv), after: scaleStatForLevel(raw, newLv), color: meta.color });
+  }
+  return rows;
+}
+
+// ── UpgradeModal ─────────────────────────────────────────────────────────────
+
 function UpgradeModal({
   cardId,
   profile,
@@ -1014,9 +1127,10 @@ function UpgradeModal({
   onUpgrade: (next: Profile) => void;
   onMsg: (msg: string, kind: 'err' | 'ok') => void;
 }) {
-  // Resolve the card across all upgradable surfaces (action / tactic / equipment).
-  const action = allActions().find(c => c.id === cardId);
-  const tactic = allTactics().find(c => c.id === cardId);
+  const [upgraded, setUpgraded] = useState<{ oldLevel: number; newLevel: number } | null>(null);
+
+  const action    = allActions().find(c => c.id === cardId);
+  const tactic    = allTactics().find(c => c.id === cardId);
   const equipment = allEquipment().find(e => e.id === cardId);
   const displayCard: ActionCardDef | TacticCardDef | EquipmentDef | undefined = action ?? tactic ?? equipment;
   if (!displayCard) return null;
@@ -1026,28 +1140,40 @@ function UpgradeModal({
 
   const { level, ownedCopies, copies, gold, isMax, nextLevel } = preview;
   const canAffordCopies = ownedCopies >= copies;
-  const canAffordGold = profile.bankCoins >= gold;
-  const canUpgrade = !isMax && canAffordCopies && canAffordGold;
+  const canAffordGold   = profile.bankCoins >= gold;
+  const canUpgrade      = !isMax && canAffordCopies && canAffordGold;
 
   function handleUpgrade() {
     if (!canUpgrade) return;
+    const oldLv = level;
     const res = upgradeCombatCard(profile, cardId);
     if (res.ok) {
+      sfx.upgradeUnlock();
       onUpgrade(res.profile);
+      setUpgraded({ oldLevel: oldLv, newLevel: oldLv + 1 });
     } else {
       onMsg(res.reason, 'err');
     }
   }
 
+  // Build stat diff rows for the result view.
+  const statDiff = upgraded
+    ? action
+      ? buildActionStatDiff(action, upgraded.oldLevel, upgraded.newLevel)
+      : equipment
+        ? buildEquipStatDiff(equipment, upgraded.oldLevel, upgraded.newLevel)
+        : []
+    : [];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl relative" style={{ background: '#111827', border: '2px solid var(--sb-gold)' }}>
+      <div className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl relative" style={{ background: '#111827', border: `2px solid ${upgraded ? '#fbbf24' : 'var(--sb-gold)'}`, transition: 'border-color 0.3s' }}>
 
         <div className="px-4 py-3 border-b flex justify-between items-center" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)' }}>
-          <div className="sb-display text-lg" style={{ color: 'var(--sb-gold-light)' }}>
-            Upgrade {equipment ? 'Equipment' : 'Card'}
+          <div className="sb-display text-lg" style={{ color: upgraded ? '#fbbf24' : 'var(--sb-gold-light)', transition: 'color 0.3s' }}>
+            {upgraded ? `⬆ UPGRADED TO LV. ${upgraded.newLevel}` : `Upgrade ${equipment ? 'Equipment' : 'Card'}`}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white pb-1 font-bold text-xl">×</button>
+          <button onClick={() => { sfx.modalClose(); onClose(); }} className="text-gray-400 hover:text-white pb-1 font-bold text-xl">×</button>
         </div>
 
         <div className="p-5 flex flex-col items-center gap-4">
@@ -1060,45 +1186,88 @@ function UpgradeModal({
             <div className="flex flex-col gap-1">
               <div className="font-extrabold text-white text-lg">{displayCard.name}</div>
               <div className="sb-display" style={{ color: 'var(--sb-parchment)' }}>
-                Lv. {level} / {MAX_CARD_LEVEL}{isMax ? ' (MAX)' : ` → ${nextLevel}`}
+                Lv. {upgraded ? upgraded.newLevel : level} / {MAX_CARD_LEVEL}
+                {!upgraded && !isMax && ` → ${nextLevel}`}
               </div>
-              {!isMax && (
-                <div className="text-xs opacity-80" style={{ color: '#94a3b8' }}>
-                  Each level boosts the base stats of every copy of this {equipment ? 'item' : 'card'}.
-                </div>
-              )}
             </div>
           </div>
 
-          {!isMax ? (
-            <div className="w-full rounded-lg p-3 flex flex-col gap-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: 'var(--sb-parchment)' }}>Required Copies</span>
-                <span className={`text-sm font-bold ${canAffordCopies ? 'text-green-400' : 'text-red-400'}`}>
-                  {ownedCopies} / {copies}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: 'var(--sb-parchment)' }}>Upgrade Cost</span>
-                <span className={`text-sm font-bold flex items-center gap-1 ${canAffordGold ? 'text-yellow-400' : 'text-red-400'}`}>
-                  <span>🪙</span> {gold.toLocaleString()} (You have {profile.bankCoins.toLocaleString()})
-                </span>
-              </div>
+          {/* ── RESULT: animated stat comparison ── */}
+          {upgraded ? (
+            <div className="w-full flex flex-col gap-2 sb-fade-up">
+              {statDiff.length > 0 ? (
+                statDiff.map((row, i) => (
+                  <AnimatedStatRow
+                    key={row.label}
+                    label={row.label}
+                    before={row.before}
+                    after={row.after}
+                    color={row.color}
+                    delay={i * 120}
+                  />
+                ))
+              ) : (
+                <div className="text-center text-sm" style={{ color: '#94a3b8' }}>
+                  All copies upgraded to Lv. {upgraded.newLevel}.
+                </div>
+              )}
+              <button
+                className="w-full py-2.5 mt-1 rounded-lg font-extrabold tracking-widest bg-gradient-to-r from-yellow-600 to-amber-500 text-black"
+                onClick={() => { sfx.tap(); onClose(); }}
+              >
+                DONE
+              </button>
             </div>
           ) : (
-            <div className="text-center text-sm italic" style={{ color: 'var(--sb-gold)' }}>
-              This {equipment ? 'item' : 'card'} has reached its maximum potential.
-            </div>
-          )}
+            <>
+              {!isMax ? (
+                <div className="w-full rounded-lg p-3 flex flex-col gap-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm" style={{ color: 'var(--sb-parchment)' }}>Required Copies</span>
+                    <span className={`text-sm font-bold ${canAffordCopies ? 'text-green-400' : 'text-red-400'}`}>
+                      {ownedCopies} / {copies}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm" style={{ color: 'var(--sb-parchment)' }}>Upgrade Cost</span>
+                    <span className={`text-sm font-bold flex items-center gap-1 ${canAffordGold ? 'text-yellow-400' : 'text-red-400'}`}>
+                      <span>🪙</span> {gold.toLocaleString()} (You have {profile.bankCoins.toLocaleString()})
+                    </span>
+                  </div>
 
-          {!isMax && (
-            <button
-              className={`w-full py-3 rounded-lg font-extrabold tracking-widest ${canUpgrade ? 'bg-gradient-to-r from-yellow-600 to-amber-500 text-black shadow-lg shadow-yellow-600/20' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
-              onClick={handleUpgrade}
-              disabled={!canUpgrade}
-            >
-              UPGRADE NOW
-            </button>
+                  {/* Preview of what will change */}
+                  {action && (
+                    <div className="mt-1 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div className="text-xs mb-1.5" style={{ color: '#64748b', letterSpacing: '0.1em', fontFamily: 'var(--sb-font-mono)' }}>
+                        AFTER UPGRADE:
+                      </div>
+                      {buildActionStatDiff(action, level, level + 1).map(row => (
+                        <div key={row.label} className="flex justify-between text-xs py-0.5">
+                          <span style={{ color: '#64748b' }}>{row.label}</span>
+                          <span style={{ color: row.color, fontFamily: 'var(--sb-font-mono)', fontWeight: 700 }}>
+                            {row.before} → {row.after}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center text-sm italic" style={{ color: 'var(--sb-gold)' }}>
+                  This {equipment ? 'item' : 'card'} has reached its maximum potential.
+                </div>
+              )}
+
+              {!isMax && (
+                <button
+                  className={`w-full py-3 rounded-lg font-extrabold tracking-widest ${canUpgrade ? 'bg-gradient-to-r from-yellow-600 to-amber-500 text-black shadow-lg shadow-yellow-600/20' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+                  onClick={handleUpgrade}
+                  disabled={!canUpgrade}
+                >
+                  UPGRADE NOW
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -116,6 +116,10 @@ function formatEffectTotal(chain: Upgrade[], ownedSet: Set<string>): string {
       return `-${Math.round((1 - compound) * 100)}% ${el.slice(0, 3).toUpperCase()}`;
     }
     case 'all_resist_bonus':      return `+${Math.round(sum('value') * 100)}% ALL RES`;
+    case 'damage_type_bonus': {
+      const el = (owned[0].effect as unknown as Record<string, string>).element ?? '';
+      return `+${Math.round(sum('value') * 100)}% ${el.slice(0, 3).toUpperCase()} DMG`;
+    }
     default:                      return `×${owned.length}`;
   }
 }
@@ -163,7 +167,7 @@ function ChainRow({
 
   return (
     <div
-      onClick={() => next && onInfo(next)}
+      onClick={() => { if (next) { sfx.modalOpen(); onInfo(next); } }}
       style={{
         display: 'grid',
         gridTemplateColumns: '36px 1fr auto',
@@ -337,7 +341,7 @@ function UpgradeInfoPopup({ upg, owned, buyable, locked, accent, onBuy, onClose 
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '0 16px',
       }}
-      onClick={onClose}
+      onClick={() => { sfx.modalClose(); onClose(); }}
     >
       <div
         style={{
@@ -402,7 +406,7 @@ function UpgradeInfoPopup({ upg, owned, buyable, locked, accent, onBuy, onClose 
             }}>✓ FORGED</div>
           )}
           <button
-            onClick={onClose}
+            onClick={() => { sfx.modalClose(); onClose(); }}
             className="sb-btn sb-btn-dark"
             style={{ fontSize: 12, padding: '8px 14px' }}
           >✕</button>
@@ -443,9 +447,10 @@ export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Pr
 
   const activeInfo = infoUpg;
   const infoOwned = activeInfo ? ownedSet.has(activeInfo.id) : false;
-  const infoBuyable = activeInfo ? canBuy(activeInfo, ownedSet, profile.bankCoins) : false;
+  const infoLevelLocked = activeInfo ? levelForUpgrade(activeInfo) > playerLevel : false;
+  const infoBuyable = activeInfo ? !infoLevelLocked && canBuy(activeInfo, ownedSet, profile.bankCoins) : false;
   const infoLocked = activeInfo
-    ? !!(activeInfo.prerequisite && !ownedSet.has(activeInfo.prerequisite))
+    ? infoLevelLocked || !!(activeInfo.prerequisite && !ownedSet.has(activeInfo.prerequisite))
     : false;
 
   return (
@@ -463,7 +468,7 @@ export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Pr
         borderBottom: '1px solid rgba(255,235,180,0.1)',
         zIndex: 10,
       }}>
-        <button onClick={onBack} className="sb-chip" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '11px' }}>
+        <button onClick={() => { sfx.nav(); onBack(); }} className="sb-chip" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '11px' }}>
           ← HOME
         </button>
 
@@ -527,7 +532,7 @@ export default function FarmsteadScreen({ profile, onProfileChange, onBack }: Pr
               key={zone}
               role="tab"
               aria-selected={isActive}
-              onClick={() => setActiveZone(zone)}
+              onClick={() => { sfx.tabSwitch(); setActiveZone(zone); }}
               style={{
                 background: isActive
                   ? `linear-gradient(180deg, ${meta.tintStrong} 0%, ${meta.tint} 100%)`

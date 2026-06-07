@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { sfx } from '@game/sfx';
 import type { Profile } from '@storage/index';
 import type { AuthStatus } from '@firebase-app/auth';
 import {
@@ -71,9 +72,9 @@ export default function SocialScreen({ profile, auth, onProfileChange, onPlayPvp
         <div className="max-w-2xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
           {/* Top bar */}
           <div className="flex items-center justify-between mb-4">
-            <button onClick={onBack} className="pb-btn pb-btn-cream pb-btn-sm">← Home</button>
+            <button onClick={() => { sfx.nav(); onBack(); }} className="pb-btn pb-btn-cream pb-btn-sm">← Home</button>
             <button
-              onClick={refresh}
+              onClick={() => { sfx.tap(); refresh(); }}
               disabled={!cloudReady || loading}
               className="pb-btn pb-btn-blue pb-btn-sm"
             >
@@ -117,14 +118,14 @@ export default function SocialScreen({ profile, auth, onProfileChange, onPlayPvp
           {/* Tab toggle */}
           <div className="flex gap-2 mt-4 mb-3">
             <button
-              onClick={() => setTab('friends')}
+              onClick={() => { sfx.tabSwitch(); setTab('friends'); }}
               className={`pb-btn pb-btn-${tab === 'friends' ? 'blue' : 'cream'} pb-btn-sm flex-1 relative`}
             >
               👥 Friends
               <span className="ml-1 text-[10px] opacity-90 font-bold">({friends.length})</span>
             </button>
             <button
-              onClick={() => setTab('pvp')}
+              onClick={() => { sfx.tabSwitch(); setTab('pvp'); }}
               className={`pb-btn pb-btn-${tab === 'pvp' ? 'pink' : 'cream'} pb-btn-sm flex-1 relative`}
             >
               ⚔️ PvP
@@ -216,7 +217,7 @@ function FarmCodeCard({ profile }: { profile: Profile }) {
           </div>
         </div>
         <button
-          onClick={copy}
+          onClick={() => { sfx.tap(); copy(); }}
           disabled={!profile.farmCode}
           className="pb-btn pb-btn-gold pb-btn-sm flex-shrink-0"
         >
@@ -282,7 +283,7 @@ function FriendsTab(props: {
             maxLength={7}
           />
           <button
-            onClick={handleAdd}
+            onClick={() => { sfx.confirm(); handleAdd(); }}
             disabled={!cloudReady || adding || !code.trim()}
             className="pb-btn pb-btn-md"
           >
@@ -367,7 +368,7 @@ function FriendRow({ rank, friend, onChallenge, onRemove }: { rank: number; frie
           <span className="opacity-75">{friend.pvpWins}W-{friend.pvpLosses}L{friend.pvpDraws > 0 ? `-${friend.pvpDraws}D` : ''}</span>
         </div>
       </div>
-      <button onClick={onChallenge} className="pb-btn pb-btn-pink pb-btn-sm flex-shrink-0">
+      <button onClick={() => { sfx.tap(); onChallenge(); }} className="pb-btn pb-btn-pink pb-btn-sm flex-shrink-0">
         ⚔ Challenge
       </button>
       {!confirmRemove ? (
@@ -384,7 +385,7 @@ function FriendRow({ rank, friend, onChallenge, onRemove }: { rank: number; frie
           ✕
         </button>
       ) : (
-        <button onClick={onRemove} className="pb-btn pb-btn-pink pb-btn-sm !text-[10px] flex-shrink-0">Confirm?</button>
+        <button onClick={() => { sfx.confirm(); onRemove(); }} className="pb-btn pb-btn-pink pb-btn-sm !text-[10px] flex-shrink-0">Confirm?</button>
       )}
     </div>
   );
@@ -500,7 +501,7 @@ function MatchRow({ match, myUid, onPlay }: { match: PvpMatch; myUid: string; on
 
       {cta && (
         <button
-          onClick={() => onPlay(match.matchId, match.sharedSeed)}
+          onClick={() => { sfx.nav(); onPlay(match.matchId, match.sharedSeed); }}
           className="pb-btn pb-btn-pink pb-btn-md w-full mt-2 pb-pulse"
         >
           ⚔ {cta.label}

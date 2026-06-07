@@ -16,6 +16,7 @@ import type { AuthStatus } from '@firebase-app/auth';
 import { buyDailyCard, buyDailyPerk, rerollDailyShop, rolloverDailyShop, type Profile } from '@storage/index';
 import AnimatedBackground from '@ui/components/AnimatedBackground';
 import ShopItemDetailModal from '@ui/modals/ShopItemDetailModal';
+import { sfx } from '@game/sfx';
 
 interface Props {
   profile: Profile;
@@ -125,7 +126,7 @@ export default function ShopScreen({ profile, auth, onProfileChange, onBack }: P
       <div className="relative z-10 h-full overflow-y-auto">
         <div className="max-w-2xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
           <div className="flex items-center justify-between mb-4">
-            <button onClick={onBack} className="pb-btn pb-btn-cream pb-btn-sm">← Home</button>
+            <button onClick={() => { sfx.nav(); onBack(); }} className="pb-btn pb-btn-cream pb-btn-sm">← Home</button>
             <div className="pb-panel-dark px-3 py-1.5 flex items-center gap-3 text-sm">
               <span className="font-extrabold" style={{ color: '#ffd54f' }}>💰 {profile.bankCoins}</span>
               <span className="opacity-40">·</span>
@@ -144,10 +145,10 @@ export default function ShopScreen({ profile, auth, onProfileChange, onBack }: P
 
           {/* Tab toggle */}
           <div className="flex gap-2 mb-4">
-            <button onClick={() => setTab('cards')} className={`pb-btn pb-btn-${tab === 'cards' ? 'gold' : 'cream'} pb-btn-sm flex-1`}>
+            <button onClick={() => { sfx.tabSwitch(); setTab('cards'); }} className={`pb-btn pb-btn-${tab === 'cards' ? 'gold' : 'cream'} pb-btn-sm flex-1`}>
               🃏 Cards (Daily)
             </button>
-            <button onClick={() => setTab('perks')} className={`pb-btn pb-btn-${tab === 'perks' ? 'blue' : 'cream'} pb-btn-sm flex-1`}>
+            <button onClick={() => { sfx.tabSwitch(); setTab('perks'); }} className={`pb-btn pb-btn-${tab === 'perks' ? 'blue' : 'cream'} pb-btn-sm flex-1`}>
               ⚡ Perks
             </button>
           </div>
@@ -222,14 +223,14 @@ export default function ShopScreen({ profile, auth, onProfileChange, onBack }: P
                       ) : (
                         <div className="grid grid-cols-2 gap-1.5 mt-2">
                           <button
-                            onClick={() => buyCard(entry, 'coins')}
+                            onClick={() => { sfx.confirm(); buyCard(entry, 'coins'); }}
                             disabled={!canCoins || busy === `card-coins-${entry.id}`}
                             className="pb-btn pb-btn-gold pb-btn-sm !px-1 !text-[11px]"
                           >
                             💰 {entry.coinPrice}
                           </button>
                           <button
-                            onClick={() => buyCard(entry, 'gems')}
+                            onClick={() => { sfx.confirm(); buyCard(entry, 'gems'); }}
                             disabled={!canGems || busy === `card-gems-${entry.id}`}
                             className="pb-btn pb-btn-blue pb-btn-sm !px-1 !text-[11px]"
                           >
@@ -317,7 +318,7 @@ export default function ShopScreen({ profile, auth, onProfileChange, onBack }: P
                       ) : (
                         <div className="grid grid-cols-2 gap-1.5 mt-2">
                           <button
-                            onClick={() => buyPerkEntry(entry, 'coins')}
+                            onClick={() => { sfx.confirm(); buyPerkEntry(entry, 'coins'); }}
                             disabled={!canCoins || busy === `perk-coins-${entry.id}`}
                             className="pb-btn pb-btn-gold pb-btn-sm !px-1 !text-[11px]"
                             title={entry.coinPrice === null ? 'Too high a rarity for coins' : ''}
@@ -325,7 +326,7 @@ export default function ShopScreen({ profile, auth, onProfileChange, onBack }: P
                             {entry.coinPrice !== null ? `💰 ${entry.coinPrice}` : '💰 —'}
                           </button>
                           <button
-                            onClick={() => buyPerkEntry(entry, 'gems')}
+                            onClick={() => { sfx.confirm(); buyPerkEntry(entry, 'gems'); }}
                             disabled={!canGems || busy === `perk-gems-${entry.id}`}
                             className="pb-btn pb-btn-blue pb-btn-sm !px-1 !text-[11px]"
                           >
@@ -397,7 +398,7 @@ function InfoBadge({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      onClick={(e) => { e.stopPropagation(); sfx.modalOpen(); onClick(); }}
       className="absolute top-1 left-1 w-6 h-6 rounded-full flex items-center justify-center font-extrabold leading-none active:scale-90 transition"
       style={{
         background: 'linear-gradient(180deg, #ffffff 0%, #f5e8c8 100%)',
@@ -517,14 +518,14 @@ function RerollConfirmModal({
         </div>
         <div className="flex gap-2">
           <button
-            onClick={onCancel}
+            onClick={() => { sfx.cancel(); onCancel(); }}
             disabled={busy}
             className="pb-btn pb-btn-cream pb-btn-md flex-1"
           >
             Cancel
           </button>
           <button
-            onClick={onConfirm}
+            onClick={() => { sfx.confirm(); onConfirm(); }}
             disabled={busy}
             className={`pb-btn ${payWith === 'coins' ? 'pb-btn-gold' : 'pb-btn-blue'} pb-btn-md flex-[2]`}
           >
