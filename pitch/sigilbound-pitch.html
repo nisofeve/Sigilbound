@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sigilbound — Investor & Publisher Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0a0604;
+    --bg-soft:#150c08;
+    --panel:#1c120c;
+    --panel-2:#241710;
+    --ink:#f1e8d4;
+    --ink-dim:#bda892;
+    --ink-mute:#7a6754;
+    --rule:#3a261a;
+    --crimson:#b91c1c;
+    --crimson-bright:#ef4444;
+    --gold:#d97706;
+    --gold-light:#f5b13a;
+    --gold-pale:#fde68a;
+    --bronze:#92400e;
+    --emerald:#10b981;
+    --arcane:#a78bfa;
+    --frost:#38bdf8;
+    --shadow-rim:0 0 0 1px rgba(196,146,42,0.20), 0 30px 60px rgba(0,0,0,0.55);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Nunito',system-ui,sans-serif;line-height:1.55;overflow-x:hidden}
+  body{
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(185,28,28,0.18) 0%, rgba(185,28,28,0) 55%),
+      radial-gradient(ellipse at 80% 30%, rgba(217,119,6,0.10) 0%, rgba(0,0,0,0) 55%),
+      radial-gradient(ellipse at 50% 90%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, #0a0604 0%, #14090a 50%, #0a0604 100%);
+    background-attachment:fixed;
+  }
+  a{color:var(--gold-light);text-decoration:none}
+  a:hover{color:var(--gold-pale)}
+  img{display:block;max-width:100%}
+  .sr{position:absolute;left:-9999px}
+
+  /* ─── Top navigation rail ─────────────────────────────────────────── */
+  .topnav{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    backdrop-filter:blur(14px);
+    background:linear-gradient(180deg, rgba(10,6,4,0.85) 0%, rgba(10,6,4,0.55) 100%);
+    border-bottom:1px solid rgba(196,146,42,0.18);
+  }
+  .topnav-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:12px 24px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:'Cinzel',serif;font-weight:900;font-size:18px;letter-spacing:.18em;color:var(--gold-pale)}
+  .brand .sigil{width:22px;height:22px;display:inline-block;background:linear-gradient(135deg, var(--gold) 0%, var(--bronze) 100%);clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0 38%);}
+  .navlinks{display:flex;gap:22px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+  .navlinks a{color:inherit;transition:color .2s}
+  .navlinks a:hover{color:var(--gold-light)}
+  @media(max-width:760px){.navlinks{display:none}}
+
+  /* ─── Layout primitives ──────────────────────────────────────────── */
+  section{padding:120px 24px;position:relative}
+  .wrap{max-width:1180px;margin:0 auto}
+  .wrap-narrow{max-width:880px;margin:0 auto}
+  .eyebrow{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.4em;color:var(--gold);text-transform:uppercase;margin-bottom:18px}
+  h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(48px,7vw,96px);line-height:1;letter-spacing:.06em;color:var(--ink);text-shadow:0 4px 30px rgba(185,28,28,0.35)}
+  h2.heading{font-family:'Cinzel',serif;font-weight:700;font-size:clamp(28px,4vw,46px);line-height:1.1;letter-spacing:.04em;color:var(--gold-pale);margin-bottom:18px}
+  h3{font-family:'Cinzel',serif;font-weight:700;font-size:20px;letter-spacing:.06em;color:var(--gold-pale)}
+  p.lede{font-size:clamp(17px,1.4vw,21px);color:var(--ink-dim);max-width:60ch;line-height:1.65}
+  p{color:var(--ink-dim)}
+  .rule{height:1px;background:linear-gradient(90deg, transparent, var(--rule) 30%, var(--rule) 70%, transparent);margin:40px 0}
+
+  /* Pill */
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid rgba(245,177,58,0.35);background:rgba(217,119,6,0.10);color:var(--gold-light);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
+
+  /* ─── HERO ──────────────────────────────────────────────────────── */
+  .hero{
+    min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding-top:120px;
+    position:relative;overflow:hidden;
+  }
+  .hero-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:60px;align-items:center}
+  @media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:40px}}
+  .hero-art{
+    position:relative;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow: var(--shadow-rim);
+    border:1px solid rgba(196,146,42,0.30);
+    aspect-ratio: 9/16;
+    max-height:78vh;
+    margin-left:auto;
+  }
+  .hero-art img{width:100%;height:100%;object-fit:cover;object-position:top}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+  .hero-bullets{margin-top:34px;display:grid;grid-template-columns:1fr 1fr;gap:18px 28px;max-width:580px}
+  .hero-bullet{display:flex;gap:10px;align-items:flex-start;color:var(--ink-dim);font-size:14px}
+  .hero-bullet .dot{flex-shrink:0;width:8px;height:8px;border-radius:50%;background:var(--crimson-bright);margin-top:7px;box-shadow:0 0 12px rgba(239,68,68,0.6)}
+
+  /* ─── Stat band ─────────────────────────────────────────────────── */
+  .statband{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:20px;
+    padding:36px;border-radius:14px;
+    background:linear-gradient(180deg, rgba(36,23,16,0.6) 0%, rgba(20,12,9,0.4) 100%);
+    border:1px solid rgba(196,146,42,0.22);
+  }
+  @media(max-width:760px){.statband{grid-template-columns:repeat(2,1fr)}}
+  .stat .num{font-family:'Cinzel',serif;font-weight:900;font-size:42px;color:var(--gold-pale);line-height:1}
+  .stat .lbl{margin-top:6px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute)}
+
+  /* ─── Generic two-col ────────────────────────────────────────────── */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+  @media(max-width:900px){.two-col{grid-template-columns:1fr;gap:32px}}
+  .shot{
+    border-radius:14px;overflow:hidden;
+    border:1px solid rgba(196,146,42,0.25);
+    box-shadow:var(--shadow-rim);
+    background:#000;
+  }
+  .shot img{width:100%;height:auto;display:block}
+
+  /* ─── Feature grid ───────────────────────────────────────────────── */
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+  @media(max-width:900px){.features{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.features{grid-template-columns:1fr}}
+  .feature{
+    padding:24px;border-radius:12px;
+    background:linear-gradient(180deg, var(--panel) 0%, var(--bg-soft) 100%);
+    border:1px solid var(--rule);
+    transition:transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+  }
+  .feature:hover{transform:translateY(-3px);border-color:rgba(245,177,58,0.45);box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+  .feature .ico{font-size:30px;margin-bottom:14px;display:block}
+  .feature h4{font-family:'Cinzel',serif;font-size:16px;color:var(--gold-pale);letter-spacing:.05em;margin-bottom:8px}
+  .feature p{font-size:14px;color:var(--ink-dim)}
+
+  /* ─── Pillars (numbered) ─────────────────────────────────────────── */
+  .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:36px}
+  @media(max-width:900px){.pillars{grid-template-columns:1fr}}
+  .pillar{padding:30px;border-radius:14px;background:linear-gradient(180deg, rgba(36,23,16,0.55) 0%, rgba(20,12,9,0.35) 100%);border:1px solid rgba(196,146,42,0.18);position:relative}
+  .pillar .roman{position:absolute;top:18px;right:24px;font-family:'Cinzel',serif;font-size:42px;color:rgba(245,177,58,0.18);font-weight:900}
+  .pillar h4{font-family:'Cinzel',serif;color:var(--gold-pale);font-size:18px;letter-spacing:.05em;margin-bottom:14px}
+  .pillar p{font-size:14px}
+
+  /* ─── Showcase strips ────────────────────────────────────────────── */
+  .showcase-row{display:flex;gap:14px;overflow:hidden;margin-top:34px}
+  .showcase-row.scroll{overflow-x:auto;padding-bottom:8px}
+  .showcase-card{
+    flex:0 0 auto;width:170px;border-radius:10px;overflow:hidden;
+    border:1px solid rgba(196,146,42,0.28);
+    background:#0c0705;
+    transition:transform .3s ease;
+  }
+  .showcase-card:hover{transform:translateY(-4px) scale(1.02)}
+  .showcase-card img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+  .showcase-card .cap{padding:8px 10px;font-size:11px;color:var(--ink-dim);letter-spacing:.08em;text-transform:uppercase;border-top:1px solid rgba(196,146,42,0.18);background:#1a0e09}
+
+  /* Bestiary grid (square thumbs with name) */
+  .besti-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:30px}
+  @media(max-width:900px){.besti-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:560px){.besti-grid{grid-template-columns:repeat(2,1fr)}}
+  .besti{
+    position:relative;border-radius:10px;overflow:hidden;
+    border:1px solid rgba(196,146,42,0.25);
+    aspect-ratio:1/1;
+  }
+  .besti img{width:100%;height:100%;object-fit:cover}
+  .besti .lbl{
+    position:absolute;left:0;right:0;bottom:0;padding:10px 12px 8px;
+    background:linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 100%);
+    color:var(--gold-pale);font-family:'Cinzel',serif;font-size:13px;letter-spacing:.06em;
+  }
+  .besti .tag{
+    position:absolute;top:8px;right:8px;
+    padding:2px 8px;border-radius:999px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    background:rgba(185,28,28,0.85);color:#fff
+  }
+  .besti .tag.boss{background:linear-gradient(135deg,#ea580c,#b91c1c)}
+  .besti .tag.elite{background:rgba(124,58,237,0.85)}
+
+  /* Detail trio (the three bestiary detail screens) */
+  .detail-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px}
+  @media(max-width:900px){.detail-trio{grid-template-columns:1fr}}
+  .detail-trio .shot{aspect-ratio:9/16}
+  .detail-trio .shot img{width:100%;height:100%;object-fit:cover;object-position:top}
+
+  /* ─── Comps table ────────────────────────────────────────────────── */
+  .comps{width:100%;border-collapse:separate;border-spacing:0;margin-top:30px;font-size:14px}
+  .comps th,.comps td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--rule)}
+  .comps th{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);background:rgba(217,119,6,0.06)}
+  .comps tr:hover td{background:rgba(217,119,6,0.04)}
+  .comps td.us{color:var(--gold-pale);font-weight:700}
+  .yes{color:var(--emerald)}.no{color:#9a3a3a}.mid{color:var(--gold-light)}
+
+  /* ─── Roadmap ────────────────────────────────────────────────────── */
+  .roadmap{margin-top:34px;position:relative}
+  .roadmap::before{content:'';position:absolute;left:18px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg, var(--crimson), var(--gold), var(--arcane));border-radius:2px}
+  .milestone{display:flex;gap:24px;padding:16px 0 26px 0;position:relative}
+  .milestone .pin{flex-shrink:0;width:38px;height:38px;border-radius:50%;background:var(--panel);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:var(--gold-pale);font-size:12px;z-index:1}
+  .milestone.done .pin{background:var(--emerald);border-color:var(--emerald);color:#04231a}
+  .milestone.now .pin{background:var(--crimson);border-color:var(--crimson-bright);color:#fff;box-shadow:0 0 0 4px rgba(239,68,68,0.18)}
+  .milestone .body h4{font-family:'Cinzel',serif;color:var(--gold-pale);font-size:16px;letter-spacing:.05em;margin-bottom:6px}
+  .milestone .body p{font-size:14px;max-width:60ch}
+
+  /* ─── Ask panel ──────────────────────────────────────────────────── */
+  .ask-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:32px}
+  @media(max-width:760px){.ask-grid{grid-template-columns:1fr}}
+  .ask{padding:30px;border-radius:14px;background:linear-gradient(180deg, rgba(185,28,28,0.10) 0%, rgba(20,12,9,0.5) 100%);border:1px solid rgba(239,68,68,0.32);position:relative}
+  .ask h4{font-family:'Cinzel',serif;color:var(--crimson-bright);font-size:14px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px}
+  .ask .big{font-family:'Cinzel',serif;font-weight:900;font-size:36px;color:var(--gold-pale);line-height:1.05;margin-bottom:8px}
+  .ask .editable{color:var(--ink-mute);font-size:11px;letter-spacing:.16em;text-transform:uppercase;margin-top:14px;font-style:italic}
+  .use-list{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px}
+  .use-list li{list-style:none;padding:10px 14px;background:rgba(15,8,5,0.6);border-radius:8px;border-left:3px solid var(--gold);font-size:14px;color:var(--ink)}
+
+  /* ─── Animation: reveal on scroll ────────────────────────────────── */
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity .8s ease, transform .8s ease}
+  .reveal.in{opacity:1;transform:translateY(0)}
+
+  /* ─── Floating sigil decoration ──────────────────────────────────── */
+  .sigil-bg{position:absolute;font-family:'Cinzel',serif;font-weight:900;color:rgba(245,177,58,0.04);font-size:18vw;pointer-events:none;line-height:1;z-index:0;letter-spacing:0}
+  section > .wrap{position:relative;z-index:1}
+
+  /* ─── Footer ─────────────────────────────────────────────────────── */
+  footer{padding:60px 24px 80px;border-top:1px solid var(--rule);text-align:center;color:var(--ink-mute);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+
+  /* ─── TOC mini-nav for slide-feel ────────────────────────────────── */
+  .toc{position:fixed;right:18px;top:50%;transform:translateY(-50%);z-index:30;display:flex;flex-direction:column;gap:8px}
+  .toc a{display:block;width:8px;height:8px;border-radius:50%;background:rgba(245,177,58,0.20);transition:transform .2s, background .2s}
+  .toc a:hover{background:var(--gold);transform:scale(1.6)}
+  .toc a.active{background:var(--crimson-bright);transform:scale(1.4)}
+  @media(max-width:900px){.toc{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ─── Top nav ─────────────────────────────────────────────────────── -->
+<nav class="topnav">
+  <div class="topnav-inner">
+    <div class="brand"><span class="sigil"></span> SIGILBOUND</div>
+    <div class="navlinks">
+      <a href="#game">Game</a>
+      <a href="#features">Features</a>
+      <a href="#art">Art</a>
+      <a href="#market">Market</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#ask">Ask</a>
+    </div>
+  </div>
+</nav>
+
+<!-- TOC dots -->
+<nav class="toc" aria-label="Section navigation">
+  <a href="#hero" title="Hero" class="active"></a>
+  <a href="#hook" title="Hook"></a>
+  <a href="#opportunity" title="Market"></a>
+  <a href="#game" title="The Game"></a>
+  <a href="#loop" title="Core Loop"></a>
+  <a href="#pillars" title="Pillars"></a>
+  <a href="#features" title="Features"></a>
+  <a href="#content" title="Content"></a>
+  <a href="#art" title="Art"></a>
+  <a href="#bestiary" title="Bestiary"></a>
+  <a href="#meta" title="Meta Progression"></a>
+  <a href="#liveops" title="Live Ops"></a>
+  <a href="#tech" title="Tech"></a>
+  <a href="#market" title="Market & Comps"></a>
+  <a href="#audience" title="Audience"></a>
+  <a href="#traction" title="Traction"></a>
+  <a href="#roadmap" title="Roadmap"></a>
+  <a href="#ask" title="Ask"></a>
+</nav>
+
+<!-- ═══ 01 · HERO ════════════════════════════════════════════════════ -->
+<section id="hero" class="hero">
+  <span class="sigil-bg" style="top:-40px;left:-60px">S</span>
+  <div class="wrap hero-grid">
+    <div class="reveal">
+      <div class="pill">Roguelike Deckbuilder · Mobile + Web · HTML5</div>
+      <h1 class="title" style="margin-top:22px">SIGIL<br/>BOUND</h1>
+      <p class="lede" style="margin-top:30px">
+        A dark-fantasy roguelike deckbuilder built for the browser and the
+        phone — instant load, byte-identical cloud anti-cheat, and a content
+        engine designed to run live for years.
+      </p>
+      <div class="hero-bullets">
+        <div class="hero-bullet"><span class="dot"></span><span><strong style="color:var(--ink)">60+ combat cards</strong> across Actions, Tactics, Reactions — every card hand-illustrated</span></div>
+        <div class="hero-bullet"><span class="dot"></span><span><strong style="color:var(--ink)">100 stages</strong>, 30 enemies, six themed dungeon arcs</span></div>
+        <div class="hero-bullet"><span class="dot"></span><span><strong style="color:var(--ink)">~600 KB gzipped</strong> — loads in under two seconds on 4G</span></div>
+        <div class="hero-bullet"><span class="dot"></span><span><strong style="color:var(--ink)">312 tests</strong> green — the engine is shipping-ready</span></div>
+      </div>
+    </div>
+    <div class="hero-art reveal">
+      <img src="assets/screens/01-hub.png" alt="Sigilbound hub screen" />
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 02 · HOOK / TAGLINE ══════════════════════════════════════════ -->
+<section id="hook">
+  <div class="wrap-narrow reveal" style="text-align:center">
+    <div class="eyebrow">The Pitch in One Line</div>
+    <h2 class="heading" style="font-size:clamp(34px,5vw,58px);line-height:1.15">
+      "<span style="color:var(--gold-pale)">Slay the Spire</span> meets <span style="color:var(--crimson-bright)">Marvel SNAP</span> —
+      a premium deckbuilder you can play in a browser tab while waiting for the kettle to boil."
+    </h2>
+    <div class="rule"></div>
+    <p class="lede" style="margin:0 auto">
+      Sigilbound combines the deep run-to-run mastery of single-player roguelike deckbuilders
+      with the snackable, web-first delivery of the modern mobile card game. The result is a
+      product that has the retention curve of a roguelike and the install funnel of a web app.
+    </p>
+  </div>
+</section>
+
+<!-- ═══ 03 · OPPORTUNITY ════════════════════════════════════════════ -->
+<section id="opportunity">
+  <span class="sigil-bg" style="top:60px;right:-60px">II</span>
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">Section II · Market Opportunity</div>
+      <h2 class="heading">A genre at peak demand, on the channel with the lowest friction.</h2>
+      <p class="lede">
+        Deckbuilders have moved from a niche to a category. Balatro sold more than five
+        million copies in its first year. Slay the Spire has crossed six million lifetime.
+        Marvel SNAP, the closest mobile analog to Sigilbound's format, has run above
+        nine-figures in annual revenue since launch. Sigilbound is positioned to convert
+        a slice of that demand into a web-first audience that no incumbent currently serves.
+      </p>
+    </div>
+
+    <div class="statband reveal" style="margin-top:48px">
+      <div class="stat"><div class="num">$26B+</div><div class="lbl">Global card &amp; deckbuilder TAM</div></div>
+      <div class="stat"><div class="num">5M+</div><div class="lbl">Balatro units · year one</div></div>
+      <div class="stat"><div class="num">6M+</div><div class="lbl">Slay the Spire lifetime</div></div>
+      <div class="stat"><div class="num">~2s</div><div class="lbl">Cold-start on 4G — no install</div></div>
+    </div>
+
+    <div class="features reveal" style="margin-top:48px">
+      <div class="feature"><span class="ico">🌐</span><h4>Web-first reach</h4><p>No App Store gatekeeping, no APK side-load. A link in a Discord opens the game.</p></div>
+      <div class="feature"><span class="ico">📲</span><h4>Mobile-native UX</h4><p>Designed portrait-up, touch-first. PWA-installable. Wrappable to native when needed.</p></div>
+      <div class="feature"><span class="ico">⚡</span><h4>Zero-cost distribution</h4><p>itch.io, Discord activities, embeddable on partner sites — every channel is free.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 04 · THE GAME ═══════════════════════════════════════════════ -->
+<section id="game">
+  <div class="wrap two-col reveal">
+    <div>
+      <div class="eyebrow">Section III · The Game</div>
+      <h2 class="heading">Build a deck. Bind your cards to slots. Win the round.</h2>
+      <p class="lede">
+        Each run begins with a curated starting deck and a chosen Talent. The player
+        draws a hand of Action and Tactic cards, binds them to one of three enemy
+        slots, and ends the turn. Damage resolves with rich animations, status
+        effects layer on top of one another, and the run advances stage by stage.
+      </p>
+      <p style="margin-top:18px;font-size:14px">
+        The slot-bind mechanic gives every card a positional read — placement matters
+        as much as cost — and produces the kind of tense, one-more-turn loop that
+        defines great roguelikes.
+      </p>
+    </div>
+    <div class="shot"><img src="assets/screens/04-combat-hand.png" alt="In-battle hand of cards"/></div>
+  </div>
+</section>
+
+<!-- ═══ 05 · CORE LOOP ══════════════════════════════════════════════ -->
+<section id="loop">
+  <div class="wrap">
+    <div class="reveal" style="max-width:780px">
+      <div class="eyebrow">Section IV · Core Loop</div>
+      <h2 class="heading">Run · Reward · Refine — the loop that built a billion-dollar genre.</h2>
+    </div>
+    <div class="features reveal" style="grid-template-columns:repeat(4,1fr);margin-top:36px">
+      <div class="feature"><span class="ico">🃏</span><h4>1 · Draft</h4><p>Pick a stage, a Talent, and equipment. Tune your starter deck in the Card Vault.</p></div>
+      <div class="feature"><span class="ico">⚔️</span><h4>2 · Battle</h4><p>Slot cards to enemies, chain elements for combos, manage stamina and reactions.</p></div>
+      <div class="feature"><span class="ico">💎</span><h4>3 · Loot</h4><p>Coins, gems, soul shards, and new cards drop. Lore unlocks every cleared chapter.</p></div>
+      <div class="feature"><span class="ico">🏰</span><h4>4 · Strengthen</h4><p>Spend in the Stronghold's 4×5 upgrade tree. Permanent gains carry into the next run.</p></div>
+    </div>
+    <style>@media(max-width:760px){#loop .features{grid-template-columns:1fr 1fr !important}}</style>
+  </div>
+</section>
+
+<!-- ═══ 06 · DESIGN PILLARS ════════════════════════════════════════ -->
+<section id="pillars">
+  <span class="sigil-bg" style="bottom:-60px;left:-40px">III</span>
+  <div class="wrap">
+    <div class="reveal" style="max-width:780px">
+      <div class="eyebrow">Section V · Design Pillars</div>
+      <h2 class="heading">Three pillars hold the design together.</h2>
+    </div>
+    <div class="pillars reveal">
+      <div class="pillar">
+        <span class="roman">I</span>
+        <h4>Tactile, second-to-second</h4>
+        <p>Every tap, drag, slot-bind, damage number, and resolve flash is animated and tuned.
+        The game feels physical even on a 6-inch screen — the kind of detail that drives D7 retention.</p>
+      </div>
+      <div class="pillar">
+        <span class="roman">II</span>
+        <h4>Mastery, not grind</h4>
+        <p>Wins come from learning interactions, not from time-gates. Every card is in the player's
+        hand by hour ten. Daily rotations, Hardcore mode, and async PvP supply the long tail.</p>
+      </div>
+      <div class="pillar">
+        <span class="roman">III</span>
+        <h4>Live-ops native</h4>
+        <p>Daily Bazaar refresh, daily quests, a 40-tier seasonal Battle Pass, 999 achievements,
+        and lore unlocks were architected from day one — not retrofitted after launch.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 07 · KEY FEATURES ══════════════════════════════════════════ -->
+<section id="features">
+  <div class="wrap">
+    <div class="reveal" style="max-width:780px">
+      <div class="eyebrow">Section VI · Key Features</div>
+      <h2 class="heading">What ships in the box.</h2>
+    </div>
+    <div class="features reveal" style="margin-top:36px">
+      <div class="feature"><span class="ico">🎴</span><h4>60+ combat cards</h4><p>30 Actions, 20 Tactics, 10 Reactions — six elements, six rarities, full hand-illustrated art.</p></div>
+      <div class="feature"><span class="ico">🛡️</span><h4>52 equipment pieces</h4><p>Six slots, six rarities, six mythic sets that unlock identity-defining builds.</p></div>
+      <div class="feature"><span class="ico">💀</span><h4>30 enemies, 100 stages</h4><p>Six themed dungeon arcs — Whispering Forest, Frostpeak, Ashen Vault, and more.</p></div>
+      <div class="feature"><span class="ico">🌟</span><h4>20 Talents</h4><p>Run-defining modifiers — chosen at draft, layered onto deck and equipment for combinatorial depth.</p></div>
+      <div class="feature"><span class="ico">🏰</span><h4>4×5 Stronghold tree</h4><p>Twenty permanent upgrade nodes across five branches — the meta-progression spine.</p></div>
+      <div class="feature"><span class="ico">🏆</span><h4>999 achievements</h4><p>A long-tail discovery system that doubles as a content map for the community to chew through.</p></div>
+      <div class="feature"><span class="ico">🎫</span><h4>40-tier Battle Pass</h4><p>Seasonal — free + premium track — rotates every six weeks.</p></div>
+      <div class="feature"><span class="ico">🃏</span><h4>Daily-rotating Bazaar</h4><p>A new shop every day with a seeded inventory — keeps the daily-login habit alive.</p></div>
+      <div class="feature"><span class="ico">🔥</span><h4>Hardcore + async PvP</h4><p>Permadeath challenge mode shipping; seed-shared duels on the roadmap.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 08 · CONTENT DEPTH ═════════════════════════════════════════ -->
+<section id="content">
+  <div class="wrap two-col reveal">
+    <div class="shot"><img src="assets/screens/11-cards.png" alt="Card Encyclopedia"/></div>
+    <div>
+      <div class="eyebrow">Section VII · Content Depth</div>
+      <h2 class="heading">A library that takes a hundred hours to map.</h2>
+      <p class="lede">
+        The Card Encyclopedia is a built-in collectible system — every card the
+        player owns surfaces here with its art, stats, charge cost, damage type,
+        and lore. Combined with the Bestiary, Talent index, Equipment vault, and
+        Lore Journal, players have five separate collection meta-loops running in
+        parallel — a proven engine for retention and creator-driven content.
+      </p>
+      <p style="margin-top:18px;font-size:14px">
+        Cards rotate in daily through the Bazaar; full library unlock is the
+        prestige goal that drives season-over-season return.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 09 · ART SHOWCASE ══════════════════════════════════════════ -->
+<section id="art">
+  <span class="sigil-bg" style="top:0;right:-100px">IV</span>
+  <div class="wrap">
+    <div class="reveal" style="max-width:820px">
+      <div class="eyebrow">Section VIII · Art Direction</div>
+      <h2 class="heading">A unified, painterly dark-fantasy world.</h2>
+      <p class="lede">
+        Sigilbound's art is hand-painted across cards, enemies, equipment, and
+        lore tableaux. The palette — crimson, bronze, gold on midnight-wood —
+        carries from the home screen into the smallest card border. It's a look
+        designed to be recognisable in a thumbnail and unforgettable on a phone.
+      </p>
+    </div>
+
+    <h3 style="margin-top:40px;font-size:14px;letter-spacing:.18em">Card Illustrations · selection of 15 of 60+</h3>
+    <div class="showcase-row scroll reveal" style="margin-top:14px">
+      <div class="showcase-card"><img src="assets/cards/inferno.png" alt=""/><div class="cap">Inferno · Fire</div></div>
+      <div class="showcase-card"><img src="assets/cards/blizzard.png" alt=""/><div class="cap">Blizzard · Ice</div></div>
+      <div class="showcase-card"><img src="assets/cards/chain-lightning.png" alt=""/><div class="cap">Chain Lightning · Thunder</div></div>
+      <div class="showcase-card"><img src="assets/cards/flame-lance.png" alt=""/><div class="cap">Flame Lance · Fire</div></div>
+      <div class="showcase-card"><img src="assets/cards/execute.png" alt=""/><div class="cap">Execute · Physical</div></div>
+      <div class="showcase-card"><img src="assets/cards/holy-smite.png" alt=""/><div class="cap">Holy Smite · Holy</div></div>
+      <div class="showcase-card"><img src="assets/cards/conflagration.png" alt=""/><div class="cap">Conflagration · Fire</div></div>
+      <div class="showcase-card"><img src="assets/cards/radiant-slash.png" alt=""/><div class="cap">Radiant Slash · Holy</div></div>
+      <div class="showcase-card"><img src="assets/cards/damage-mirror.png" alt=""/><div class="cap">Damage Mirror · Tactic</div></div>
+      <div class="showcase-card"><img src="assets/cards/blade-dance.png" alt=""/><div class="cap">Blade Dance · Physical</div></div>
+      <div class="showcase-card"><img src="assets/cards/shield-bash.png" alt=""/><div class="cap">Shield Bash · Physical</div></div>
+      <div class="showcase-card"><img src="assets/cards/entangle.png" alt=""/><div class="cap">Entangle · Nature</div></div>
+      <div class="showcase-card"><img src="assets/cards/thorn-whip.png" alt=""/><div class="cap">Thorn Whip · Nature</div></div>
+      <div class="showcase-card"><img src="assets/cards/frost-shard.png" alt=""/><div class="cap">Frost Shard · Ice</div></div>
+      <div class="showcase-card"><img src="assets/cards/ice-spear.png" alt=""/><div class="cap">Ice Spear · Ice</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 10 · BESTIARY ══════════════════════════════════════════════ -->
+<section id="bestiary">
+  <div class="wrap">
+    <div class="reveal" style="max-width:820px">
+      <div class="eyebrow">Section IX · The Bestiary</div>
+      <h2 class="heading">Thirty distinct enemies — each one a small fairy tale.</h2>
+      <p class="lede">
+        Every enemy is illustrated, statted, and given a lore page. Players don't
+        just farm them — they collect them. The detail view (below) is one of the
+        game's most-screenshot-tweeted assets.
+      </p>
+    </div>
+
+    <div class="besti-grid reveal">
+      <div class="besti"><img src="assets/enemies/the_antlered_king.png" alt=""/><span class="tag boss">Boss</span><span class="lbl">The Antlered King</span></div>
+      <div class="besti"><img src="assets/enemies/vulkar-the-eternal-flame.png" alt=""/><span class="tag boss">Boss</span><span class="lbl">Vulkar</span></div>
+      <div class="besti"><img src="assets/enemies/ymir-the-glacier-born.png" alt=""/><span class="tag boss">Boss</span><span class="lbl">Ymir</span></div>
+      <div class="besti"><img src="assets/enemies/the-sigilbreaker.png" alt=""/><span class="tag boss">Boss</span><span class="lbl">The Sigilbreaker</span></div>
+      <div class="besti"><img src="assets/enemies/ifrit.png" alt=""/><span class="tag elite">Elite</span><span class="lbl">Ifrit</span></div>
+      <div class="besti"><img src="assets/enemies/ice-drake.png" alt=""/><span class="tag elite">Elite</span><span class="lbl">Ice Drake</span></div>
+      <div class="besti"><img src="assets/enemies/lich.png" alt=""/><span class="tag elite">Elite</span><span class="lbl">Lich</span></div>
+      <div class="besti"><img src="assets/enemies/hexblade.png" alt=""/><span class="tag elite">Elite</span><span class="lbl">Hexblade</span></div>
+      <div class="besti"><img src="assets/enemies/frostpeak-yeti.png" alt=""/><span class="tag elite">Elite</span><span class="lbl">Frostpeak Yeti</span></div>
+      <div class="besti"><img src="assets/enemies/reaper.png" alt=""/><span class="tag elite">Elite</span><span class="lbl">Reaper</span></div>
+      <div class="besti"><img src="assets/enemies/highwayman.png" alt=""/><span class="tag">Swift</span><span class="lbl">Highwayman</span></div>
+      <div class="besti"><img src="assets/enemies/forest_troll.png" alt=""/><span class="tag">Brute</span><span class="lbl">Forest Troll</span></div>
+    </div>
+
+    <div class="detail-trio reveal">
+      <div class="shot"><img src="assets/screens/16-bestiary-detail-forest-troll.png" alt="Forest Troll detail"/></div>
+      <div class="shot"><img src="assets/screens/17-bestiary-detail-highwayman.png" alt="Highwayman detail"/></div>
+      <div class="shot"><img src="assets/screens/18-bestiary-detail-boss.png" alt="The Antlered King detail"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 11 · META PROGRESSION ══════════════════════════════════════ -->
+<section id="meta">
+  <div class="wrap two-col reveal">
+    <div>
+      <div class="eyebrow">Section X · Meta Progression</div>
+      <h2 class="heading">Five parallel meta-loops, all running on Day One.</h2>
+      <p class="lede">
+        Players don't just chase the next stage. They chase the next Stronghold node, the
+        next mythic equipment set, the next missing card in the encyclopedia, the next
+        lore unlock, and the next Battle Pass tier. Each loop has its own currency, its
+        own time horizon, and its own emotional payoff — together they smooth retention
+        from D1 to D90.
+      </p>
+      <p style="margin-top:18px;font-size:14px">
+        The Stronghold houses the 4×5 permanent-upgrade tree. The Card Vault is the
+        deck-builder and inventory. The Bazaar rotates daily. The Lore Journal unlocks
+        chapter by chapter. The Battle Pass refreshes every six weeks.
+      </p>
+    </div>
+    <div class="shot"><img src="assets/screens/10-stronghold.png" alt="Stronghold meta progression"/></div>
+  </div>
+</section>
+
+<!-- ═══ 12 · LIVE OPS + MONETIZATION ═══════════════════════════════ -->
+<section id="liveops">
+  <span class="sigil-bg" style="bottom:0;right:-30px">V</span>
+  <div class="wrap">
+    <div class="reveal" style="max-width:820px">
+      <div class="eyebrow">Section XI · Live-Ops &amp; Monetization</div>
+      <h2 class="heading">A free-to-play model built for trust, not pressure.</h2>
+      <p class="lede">
+        Sigilbound is free-to-play, premium-supported. The base game is fully completable
+        without spending. Monetization comes from a 40-tier seasonal Battle Pass (free +
+        premium track), cosmetic avatar packs, an optional "VIP" sigil that doubles daily
+        quest rewards, and seasonal lore bundles. No pay-to-win. No timer-gates. No
+        loot-box mechanics.
+      </p>
+    </div>
+
+    <div class="two-col reveal" style="margin-top:48px">
+      <div class="shot"><img src="assets/screens/13-battlepass.png" alt="Battle Pass and daily challenges"/></div>
+      <div>
+        <h3 style="margin-bottom:14px">Revenue Streams</h3>
+        <div class="features" style="grid-template-columns:1fr;gap:12px;margin-top:0">
+          <div class="feature" style="padding:18px"><h4 style="font-size:14px">Seasonal Battle Pass</h4><p>Six seasons per year · primary revenue driver · proven 8–14% conversion benchmarks in the category.</p></div>
+          <div class="feature" style="padding:18px"><h4 style="font-size:14px">Cosmetic Sigils &amp; Avatars</h4><p>Visual identity unlocks · permanent purchases · zero gameplay impact.</p></div>
+          <div class="feature" style="padding:18px"><h4 style="font-size:14px">Lore Bundles</h4><p>Premium narrative DLC tied to seasonal events. High margin, strong community signal.</p></div>
+          <div class="feature" style="padding:18px"><h4 style="font-size:14px">Future: Async PvP entry fees</h4><p>Optional gem-staked duels with the engine already supporting shared-seed verification.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 13 · TECH MOAT ═════════════════════════════════════════════ -->
+<section id="tech">
+  <div class="wrap">
+    <div class="reveal" style="max-width:820px">
+      <div class="eyebrow">Section XII · The Technical Moat</div>
+      <h2 class="heading">Built once. Runs everywhere. Cheats nowhere.</h2>
+      <p class="lede">
+        The engine is a pure-TypeScript module that runs byte-identically on the client
+        and inside Firebase Cloud Functions. Every run is signed at start, validated at
+        submit. The same code that powers a player's hand on their phone validates that
+        same hand on the server. This is the architectural backbone for cloud
+        leaderboards, async PvP, and an extremely low marginal cost to scale.
+      </p>
+    </div>
+
+    <div class="features reveal" style="margin-top:40px">
+      <div class="feature"><span class="ico">⚛️</span><h4>HTML5 + React + Phaser 3</h4><p>Battle-tested stack. Hot-reload dev loop. Vite-bundled for instant load.</p></div>
+      <div class="feature"><span class="ico">☁️</span><h4>Firebase backend</h4><p>Anonymous auth, Firestore profile sync, Cloud Functions for anti-cheat. Pennies per DAU.</p></div>
+      <div class="feature"><span class="ico">✅</span><h4>312 automated tests</h4><p>Combat math, combos, daily quests, seasonal logic — all green. Refactor-safe.</p></div>
+      <div class="feature"><span class="ico">📦</span><h4>~600 KB gzipped</h4><p>Loads on a flaky 3G in under five seconds. No download barrier between the link and the player.</p></div>
+      <div class="feature"><span class="ico">🔐</span><h4>Signed seed tokens</h4><p>HMAC-signed run seeds; reasonableness checks today, full replay on the roadmap.</p></div>
+      <div class="feature"><span class="ico">📱</span><h4>PWA-ready, wrap-ready</h4><p>Installable from the browser; wrappable to iOS/Android via Capacitor when the time is right.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 14 · MARKET & COMPS ════════════════════════════════════════ -->
+<section id="market">
+  <div class="wrap">
+    <div class="reveal" style="max-width:820px">
+      <div class="eyebrow">Section XIII · Competitive Landscape</div>
+      <h2 class="heading">Where Sigilbound sits on the board.</h2>
+      <p class="lede">
+        Every successful deckbuilder occupies a clear segment. Sigilbound is the only
+        title in the category that combines a roguelike's single-player depth with a
+        zero-install web-first delivery — and the only one with cloud-validated runs
+        designed for async PvP from day one.
+      </p>
+    </div>
+
+    <div class="reveal" style="margin-top:30px;overflow-x:auto">
+      <table class="comps">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Genre</th>
+            <th>Channel</th>
+            <th>Roguelike Depth</th>
+            <th>Web-First</th>
+            <th>Async PvP</th>
+            <th>Daily Live-Ops</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="us">Sigilbound</td>
+            <td class="us">Roguelike Deckbuilder</td>
+            <td class="us">Web · Mobile · PWA</td>
+            <td class="yes">★★★★★</td>
+            <td class="yes">Yes</td>
+            <td class="yes">Roadmap · engine ready</td>
+            <td class="yes">Yes — built in</td>
+          </tr>
+          <tr>
+            <td>Slay the Spire</td><td>Roguelike Deckbuilder</td><td>Desktop · Console</td>
+            <td class="yes">★★★★★</td><td class="no">No</td><td class="no">No</td><td class="no">No</td>
+          </tr>
+          <tr>
+            <td>Balatro</td><td>Solitaire Roguelike</td><td>Desktop · Mobile · Console</td>
+            <td class="yes">★★★★☆</td><td class="no">No</td><td class="no">No</td><td class="no">No</td>
+          </tr>
+          <tr>
+            <td>Marvel SNAP</td><td>3-Lane Card Battler</td><td>Mobile</td>
+            <td class="no">★☆☆☆☆</td><td class="mid">App-only</td><td class="yes">Yes</td><td class="yes">Yes</td>
+          </tr>
+          <tr>
+            <td>Monster Train</td><td>Roguelike Deckbuilder</td><td>Desktop · Mobile</td>
+            <td class="yes">★★★★☆</td><td class="no">No</td><td class="no">No</td><td class="no">No</td>
+          </tr>
+          <tr>
+            <td>Inscryption</td><td>Narrative Deckbuilder</td><td>Desktop · Console</td>
+            <td class="yes">★★★★☆</td><td class="no">No</td><td class="no">No</td><td class="no">No</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 15 · AUDIENCE ══════════════════════════════════════════════ -->
+<section id="audience">
+  <div class="wrap">
+    <div class="reveal" style="max-width:820px">
+      <div class="eyebrow">Section XIV · Target Audience</div>
+      <h2 class="heading">Who plays Sigilbound.</h2>
+    </div>
+
+    <div class="features reveal" style="margin-top:36px">
+      <div class="feature">
+        <span class="ico">🎯</span>
+        <h4>Primary · The Deckbuilder Devotee</h4>
+        <p>Adults 22–45. Has hundreds of hours in StS, Balatro, Monster Train, Inscryption. Plays nightly. Will buy the season pass on principle if the game earns it.</p>
+      </div>
+      <div class="feature">
+        <span class="ico">📱</span>
+        <h4>Secondary · The Mobile Card Player</h4>
+        <p>Adults 18–35. Plays Marvel SNAP, Hearthstone, Legends of Runeterra in queue, on transit, on lunch. Will install when a friend sends a link.</p>
+      </div>
+      <div class="feature">
+        <span class="ico">🎮</span>
+        <h4>Tertiary · The Web Game Browser</h4>
+        <p>Audiences from itch.io, Crazy Games, Discord activities, Poki. Sigilbound's instant-load loop is purpose-built for this funnel.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 16 · TRACTION / STATUS ═════════════════════════════════════ -->
+<section id="traction">
+  <span class="sigil-bg" style="top:30px;left:-80px">VI</span>
+  <div class="wrap two-col reveal">
+    <div>
+      <div class="eyebrow">Section XV · Build Status</div>
+      <h2 class="heading">Not a deck. A shipping build.</h2>
+      <p class="lede">
+        Sigilbound is not a concept document — it is a fully playable HTML5 build
+        running today. The engine has been refactored from a proven prior product
+        (Plotbound v0.1) and re-themed across seven phases. All seven phases are
+        complete on the engine and UI layer.
+      </p>
+      <div class="statband" style="margin-top:30px;grid-template-columns:1fr 1fr">
+        <div class="stat"><div class="num">7/7</div><div class="lbl">Migration phases complete</div></div>
+        <div class="stat"><div class="num">312</div><div class="lbl">Engine tests green</div></div>
+        <div class="stat"><div class="num">16</div><div class="lbl">Test files</div></div>
+        <div class="stat"><div class="num">~2.5MB</div><div class="lbl">Raw build size</div></div>
+      </div>
+    </div>
+    <div class="shot"><img src="assets/screens/02-combat-home.png" alt="Combat Home — run setup"/></div>
+  </div>
+</section>
+
+<!-- ═══ 17 · ROADMAP ═══════════════════════════════════════════════ -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="reveal" style="max-width:820px">
+      <div class="eyebrow">Section XVI · Roadmap</div>
+      <h2 class="heading">From shipping build to live-service standard.</h2>
+    </div>
+
+    <div class="roadmap reveal">
+      <div class="milestone done">
+        <div class="pin">✓</div>
+        <div class="body">
+          <h4>Phase 1–7 · Engine + Content Complete</h4>
+          <p>Combat core, equipment, content, UI integration, depth systems, and collection — all shipped. The game is playable end-to-end today.</p>
+        </div>
+      </div>
+      <div class="milestone now">
+        <div class="pin">●</div>
+        <div class="body">
+          <h4>Q2 2026 · Open Soft-Launch</h4>
+          <p>Web release on itch.io and partner Discord activities. Telemetry instrumentation, daily/weekly retention dashboards, balance pass driven by real data.</p>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="pin">1</div>
+        <div class="body">
+          <h4>Q3 2026 · Season One Live</h4>
+          <p>First Battle Pass season opens. Twelve new cards, six new enemies, one new dungeon arc. First cosmetic bundle drop.</p>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="pin">2</div>
+        <div class="body">
+          <h4>Q4 2026 · Async PvP Beta</h4>
+          <p>Shared-seed duels, leaderboards, weekly ranked ladder. The engine already supports it — UI and matchmaking come next.</p>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="pin">3</div>
+        <div class="body">
+          <h4>Q1 2027 · Mobile Native Wrappers</h4>
+          <p>iOS and Android via Capacitor. App Store + Play Store launch, push notification re-engagement, IAP through native billing.</p>
+        </div>
+      </div>
+      <div class="milestone">
+        <div class="pin">4</div>
+        <div class="body">
+          <h4>2027+ · Live-Service Cadence</h4>
+          <p>Six seasons per year, themed lore arcs, community-driven balance, official creator program. Steam port evaluation gate at MAU threshold.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 18 · ASK ═══════════════════════════════════════════════════ -->
+<section id="ask">
+  <span class="sigil-bg" style="top:-40px;right:-60px">VII</span>
+  <div class="wrap">
+    <div class="reveal" style="max-width:820px">
+      <div class="eyebrow">Section XVII · The Ask</div>
+      <h2 class="heading">What we're looking for, and what it unlocks.</h2>
+      <p class="lede">
+        Sigilbound is engineered to launch lean — the build is done. The capital we're
+        seeking is for the twelve months of live-ops, marketing, and content cadence
+        that turn a shipping build into a category-defining live service.
+      </p>
+    </div>
+
+    <div class="ask-grid">
+      <div class="ask reveal">
+        <h4>Funding Ask</h4>
+        <div class="big">$<span style="opacity:.5">[ X.X ]</span>M</div>
+        <p style="font-size:14px">Eighteen-month runway covering content, marketing, live-ops infrastructure, and team expansion.</p>
+        <p class="editable">Edit the placeholder amount before sending.</p>
+      </div>
+      <div class="ask reveal">
+        <h4>Team Today</h4>
+        <div class="big"><span style="opacity:.5">[ N ]</span></div>
+        <p style="font-size:14px">Full-stack engineers, illustrators, and a designer shipping out of a focused remote studio.</p>
+        <p class="editable">Edit headcount before sending.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:50px;font-size:14px;letter-spacing:.18em">Use of Capital</h3>
+    <ul class="use-list reveal">
+      <li><strong style="color:var(--gold-pale)">Content engine ·</strong> Two new dungeon arcs per year · 30+ new cards · 12+ new enemies · ongoing illustration commissions.</li>
+      <li><strong style="color:var(--gold-pale)">Marketing &amp; UA ·</strong> Influencer seeds, paid social, web placement on Poki/Crazy Games, Discord activity rollout.</li>
+      <li><strong style="color:var(--gold-pale)">Live-ops infrastructure ·</strong> Analytics build-out, A/B testing harness, customer support tooling, fraud monitoring.</li>
+      <li><strong style="color:var(--gold-pale)">Async PvP launch ·</strong> Matchmaking service, server-side replay validation, ranked ladder dashboards.</li>
+      <li><strong style="color:var(--gold-pale)">Mobile native ·</strong> iOS and Android wrappers, App Store certification, native billing integration.</li>
+    </ul>
+
+    <h3 style="margin-top:50px;font-size:14px;letter-spacing:.18em">Projected Trajectory · placeholder</h3>
+    <div class="statband reveal" style="margin-top:14px">
+      <div class="stat"><div class="num">[ XXX ]K</div><div class="lbl">MAU · end of Year One</div></div>
+      <div class="stat"><div class="num">[ X.X ]%</div><div class="lbl">Conversion to BP holders</div></div>
+      <div class="stat"><div class="num">$[ X.XX ]</div><div class="lbl">ARPDAU benchmark target</div></div>
+      <div class="stat"><div class="num">[ XX ]x</div><div class="lbl">Year-Two revenue multiplier</div></div>
+    </div>
+    <p style="margin-top:16px;font-size:12px;color:var(--ink-mute);font-style:italic;letter-spacing:.06em">All numbers above are placeholders for the studio to fill in per-conversation.</p>
+  </div>
+</section>
+
+<!-- ═══ Footer ═════════════════════════════════════════════════════ -->
+<footer>
+  <div>Sigilbound · A roguelike deckbuilder for the modern web</div>
+  <div style="margin-top:10px;opacity:.6">© 2026 · Pitch document · Confidential</div>
+</footer>
+
+<script>
+  // Reveal-on-scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // TOC active state
+  const sections = Array.from(document.querySelectorAll('section[id]'));
+  const tocLinks = Array.from(document.querySelectorAll('.toc a'));
+  const navIO = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id));
+      }
+    });
+  }, { threshold: 0.5 });
+  sections.forEach(s => navIO.observe(s));
+
+  // Smooth scroll for nav links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', (ev) => {
+      const tgt = document.querySelector(a.getAttribute('href'));
+      if (tgt) { ev.preventDefault(); tgt.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  });
+</script>
+</body>
+</html>
