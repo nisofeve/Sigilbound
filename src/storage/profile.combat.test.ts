@@ -7,7 +7,7 @@
 
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { applyCombatClearToProfile } from './profile';
-import { getStage } from '../engine/stageDef';
+import { getStage, MAX_STAGES } from '../engine/stageDef';
 import type { Profile } from './types';
 
 // Minimal profile factory — only the fields applyCombatClearToProfile reads
@@ -22,6 +22,8 @@ function makeProfile(over: Partial<Profile> = {}): Profile {
     currentStage: 1,
     stageStars: {},
     stageRewardsClaimed: {},
+    perksInventory: {},
+    perksOwned: [],
     upgradesOwned: [],
     combatCardInventory: {},
     combatCardTiers: {},
@@ -124,5 +126,26 @@ describe('applyCombatClearToProfile', () => {
     });
     expect(outcome.rewardsGranted.find(r => r.type === 'gems')).toBeDefined();
     expect(profile.gems).toBeGreaterThan(0);
+  });
+
+  it('successful combat clear updates all-time and weekly competitive scores', () => {
+    const stage = getStage(3);
+    const { profile } = applyCombatClearToProfile(makeProfile(), stage, {
+      cleared: true, currentHp: 50, maxHp: 50,
+      totalDamageDealt: 150, turnsUsed: 4, combosTriggered: 2,
+    });
+    expect(profile.allTimeHighScore).toBeGreaterThan(0);
+    expect(profile.weeklyHighScore).toBe(profile.allTimeHighScore);
+    expect(profile.weeklyScoreISO).toMatch(/^\d{4}-W\d{2}$/);
+  });
+
+  it('final-stage clear stays on final stage instead of unlocking stage 501', () => {
+    const finalStage = getStage(MAX_STAGES);
+    const before = makeProfile({ currentStage: MAX_STAGES });
+    const { profile, outcome } = applyCombatClearToProfile(before, finalStage, {
+      cleared: true, currentHp: 50, maxHp: 50,
+    });
+    expect(profile.currentStage).toBe(MAX_STAGES);
+    expect(outcome.newCurrentStage).toBe(MAX_STAGES);
   });
 });

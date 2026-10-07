@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { allTalents, getTalent, talentsByRarity } from './talents';
 
 describe('Talent data', () => {
-  it('loads exactly 20 talents per the GDD', () => {
-    expect(allTalents()).toHaveLength(20);
+  it('loads exactly 21 talents from the live content catalog', () => {
+    expect(allTalents()).toHaveLength(21);
   });
 
-  it('rarity distribution matches GDD: 5 common, 5 uncommon, 5 rare, 3 epic, 2 legendary', () => {
+  it('rarity distribution matches the live content catalog', () => {
     expect(talentsByRarity('common')).toHaveLength(5);
-    expect(talentsByRarity('uncommon')).toHaveLength(5);
+    expect(talentsByRarity('uncommon')).toHaveLength(6);
     expect(talentsByRarity('rare')).toHaveLength(5);
     expect(talentsByRarity('epic')).toHaveLength(3);
     expect(talentsByRarity('legendary')).toHaveLength(2);

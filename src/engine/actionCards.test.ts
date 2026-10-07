@@ -12,8 +12,8 @@ import { DAMAGE_TYPES } from './damage';
 import { REACTION_LIBRARY } from './reactions';
 
 describe('Action card data', () => {
-  it('loads 30 actions per the GDD', () => {
-    expect(allActions()).toHaveLength(30);
+  it('loads 63 actions from the live content catalog', () => {
+    expect(allActions()).toHaveLength(63);
   });
 
   it('every action has a known damage type', () => {
@@ -47,19 +47,19 @@ describe('Action card data', () => {
   });
 
   it('actionInstanceFor produces a usable ActionInstance', () => {
-    const def = getAction('act_011')!;  // Firebolt
+    const def = getAction('act_011')!;  // Execute
     const inst = actionInstanceFor(def, 'enemy_x');
     expect(inst.cardId).toBe('act_011');
-    expect(inst.damage).toBe(5);
-    expect(inst.damageType).toBe('pyre');
-    expect(inst.charge).toBe(1);
+    expect(inst.damage).toBe(100);
+    expect(inst.damageType).toBe('physical');
+    expect(inst.charge).toBe(2);
     expect(inst.targetEnemyId).toBe('enemy_x');
   });
 });
 
 describe('Tactic card data', () => {
-  it('loads 20 tactics per the GDD', () => {
-    expect(allTactics()).toHaveLength(20);
+  it('loads 22 tactics from the live content catalog', () => {
+    expect(allTactics()).toHaveLength(22);
   });
 
   it('tactic ids are unique', () => {
@@ -69,11 +69,11 @@ describe('Tactic card data', () => {
 
   it('every tactic has an effect with a known kind', () => {
     const kinds = new Set([
-      'block', 'heal', 'draw', 'gain_stamina', 'damage_buff', 'enemy_damage_debuff',
-      'apply_status_self', 'apply_status_all_enemies', 'sigil_advance',
-      'sigil_clear_redraw', 'extra_sigil_temp', 'duplicate_top_discard_action',
-      'instant_resolve_one_sigil', 'reveal_intents_all', 'tutor_pick_one',
-      'extra_turn', 'reflect_next_attack', 'all_cards_buffed_zero_cost',
+      'block', 'heal', 'draw', 'draw_and_buff', 'gain_stamina', 'gain_stamina_and_draw',
+      'damage_buff', 'enemy_damage_debuff', 'apply_status_self', 'apply_status_all_enemies',
+      'sigil_advance', 'sigil_clear_redraw', 'extra_sigil_temp', 'duplicate_top_discard_action',
+      'instant_resolve_one_sigil', 'reveal_intents_all', 'tutor_pick_one', 'extra_turn',
+      'reflect_next_attack', 'all_cards_buffed_zero_cost', 'discard_draw',
     ]);
     for (const t of allTactics()) {
       expect(kinds.has(t.effect.kind)).toBe(true);

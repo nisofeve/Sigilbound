@@ -2,9 +2,12 @@
 
 Roguelike deck-building combat card game. HTML5 client (Phaser 3 + React + Vite), Firebase Cloud Functions for cloud code. **Forked from Plotbound v0.1** — see [GDD/sigilbound_gdd.html](GDD/sigilbound_gdd.html) for the design and the migration playbook.
 
-## Status — Phase 1 of Sigilbound migration in progress
+## Status
 
-Plotbound's engine, vertical slice, content/meta, and cloud sync are all in. The Sigilbound transformation is currently in **Phase 1 (vocabulary + data rename)**. Combat-specific systems (HP, enemies, equipment, damage types) come in Phase 2.
+Sigilbound's combat, collection, progression, deck-building, battle-pass, and
+stronghold UI are playable locally. The older Plotbound Phaser flow remains in
+the repository for compatibility, but the normal entry point is the Sigilbound
+combat hub.
 
 ### Plotbound foundation (still active)
 
@@ -14,12 +17,23 @@ Anonymous Firebase Auth signs the player in transparently on first launch, Cloud
 
 ```sh
 npm install
-npm run dev          # http://localhost:5173
+npm run dev:playtest # http://127.0.0.1:5174
+npm run playtest:check
+npm run playtest:edge # Windows: open Microsoft Edge
+npm run assets:compress # convert new PNG card art to delivery-sized WebP
 npm test             # vitest — engine combo + season tests
 npm run typecheck
 ```
 
+`dev:playtest` uses a fixed port and fails if that port is occupied. Do not run
+multiple Vite servers for the same playtest.
+
 The app boots with cloud sync **off** by default. Drop in Firebase credentials (see below) to enable cloud features.
+
+### Legacy Plotbound route
+
+The retired Plotbound farm flow is available only during local development at
+`http://127.0.0.1:5174/?legacy=1`. Production builds always enter Sigilbound.
 
 ## Project layout
 
@@ -102,11 +116,25 @@ The codebase has been transformed from Plotbound (farming) into Sigilbound
 - **Phase 6 — depth:** draw/discard pile, tactic play, talent runtime wiring, Hardcore mode (25 tests)
 - **Phase 7 — collection:** combat card inventory, deck builder, daily-rotating Bazaar (11 tests)
 
-**Current totals:** 312 tests across 16 files; production build ~2.5 MB raw / ~600 KB gzipped.
+**Current totals:** 343 tests across 19 files. Card art ships as 960px WebP
+files; the current production build is about 41 MB. Lazy loading remains
+future release work.
 
 ## Deferred (post-v1)
 
-- **Cloud schema for combat sessions.** `functions/src/` still validates farming season records. Combat runs are client-only until PvP is wired. Server-side combat replay needs the engine extracted into a workspace package shared by client + cloud (engine is currently duplicated into `functions/src/types.ts`). Plan: ship combat solo first, add cloud validation alongside async PvP.
+- **Release-quality verification.** Tests must be reconciled with current
+  balance and content before a release gate can pass. Several tests still
+  assert superseded values from the original 100-stage design.
+- **Browser playtest delivery.** The local Vite server needs a browser running
+  on the same host, or a hosted preview. The Codex in-app browser cannot reach
+  the local development server.
+- **Asset delivery.** Add responsive variants and lazy-load screens or
+  galleries that do not need every card image.
+
+- **Server-authoritative combat replay.** Signed combat sessions now store
+  authenticated loadout + outcome audit records in `combatRuns`. Rewards stay
+  local until action-log replay can run in Cloud Functions. That requires
+  extracting the deterministic engine into a package shared by client + cloud.
 - **PvP / async duels.** UI not yet built. Engine supports it via shared-seed `BattleConfig`, but social screen still wired to legacy Plotbound flows.
 - **999 achievements.** Engine + storage support is in; UI presentation needs the Sigilbound theme pass.
 - **Battle Pass.** Same situation — engine ready, UI on legacy theme.
@@ -117,5 +145,6 @@ The codebase has been transformed from Plotbound (farming) into Sigilbound
 ## Engine determinism
 
 `src/engine/rng.ts` mulberry32 is byte-identical between client and cloud.
-Cloud verifies the signed seed and applies reasonableness checks for
-farming runs; combat runs aren't yet cloud-validated (see deferred).
+Cloud verifies the signed seed and applies reasonableness checks for farming
+runs. Combat stores a signed session and outcome audit record; it does not yet
+grant server-authoritative rewards.

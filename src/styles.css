@@ -1308,3 +1308,13 @@ html, body, #root {
   animation: sb-reward-pop 0.55s cubic-bezier(0.2, 0.85, 0.2, 1) both;
 }
 
+/* Respect OS/browser reduced-motion preference across combat and menus. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+

@@ -24,7 +24,6 @@ import CombatShopScreen from '@ui/screens/CombatShopScreen';
 import CardEncyclopediaScreen from '@ui/screens/CardEncyclopediaScreen';
 import LeaderboardScreen from '@ui/screens/LeaderboardScreen';
 import LoreCardUnlockModal from '@ui/modals/LoreCardUnlockModal';
-import CardUpgradeScreen from '@ui/screens/CardUpgradeScreen';
 import {
   applyStageOutcomeToProfile,
   applyCombatClearToProfile,
@@ -38,21 +37,41 @@ import {
   type Profile,
   type StageRunOutcome,
 } from '@storage/index';
-import { emptyEquippedSet, type RunResult } from '@engine/index';
+import { emptyEquippedSet, type EquippedSet, type Perk, type RunResult } from '@engine/index';
 import { isCloudEnabled } from '@firebase-app/client';
 import { watchAuth, type AuthStatus } from '@firebase-app/auth';
 import { pullOrSeedProfile, pushProfile } from '@firebase-app/profileSync';
 import { cloudStartRun, cloudSubmitRun } from '@firebase-app/cloudRun';
+import { cloudStartCombatStage, cloudSubmitCombatStage } from '@firebase-app/combatRun';
 import type { CloudRunHandle, Screen } from './types';
 
 const TUTORIAL_DECK = ['tac_001', 'act_001', 'act_001', 'act_032', 'tac_002'];
 
+// Plotbound is retained only for local migration/debug work. It must never
+// become a production player path by accident.
+function legacyFlowEnabled(): boolean {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('legacy') === '1';
+}
+
+function isLegacyScreen(screen: Screen): boolean {
+  return screen.kind === 'home'
+    || screen.kind === 'perks'
+    || screen.kind === 'social'
+    || screen.kind === 'stage_select'
+    || screen.kind === 'order_pick'
+    || screen.kind === 'game'
+    || screen.kind === 'results'
+    || screen.kind === 'achievements';
+}
+
 export default function App() {
   const [profile, setProfileState] = useState<Profile>(() => loadProfile());
-  // Sigilbound default — the heraldic combat hub. The legacy Plotbound
-  // farm home is still reachable as `{ kind: 'home' }` if a screen routes
-  // there explicitly, but no normal flow does anymore.
+  const allowLegacyFlow = legacyFlowEnabled();
+  // Sigilbound default. Plotbound starts only from the explicit local dev
+  // entrypoint (`?legacy=1`) so production players cannot enter it.
   const [screen, setScreen] = useState<Screen>(() => {
+    if (legacyFlowEnabled()) return { kind: 'home' };
     const p = loadProfile();
     if (!p.tutorialCompleted && !p.tutorialSeen) {
       return {
@@ -71,6 +90,14 @@ export default function App() {
   const [auth, setAuth] = useState<AuthStatus>(
     isCloudEnabled() ? { kind: 'signing_in' } : { kind: 'cloud_disabled' },
   );
+
+  // Guard against an old callback or persisted dev state routing a normal
+  // player into the retired Plotbound flow.
+  useEffect(() => {
+    if (!allowLegacyFlow && isLegacyScreen(screen)) {
+      setScreen({ kind: 'sigilbound_hub' });
+    }
+  }, [allowLegacyFlow, screen]);
 
   useEffect(() => {
     return watchAuth(async (status) => {
@@ -118,7 +145,6 @@ export default function App() {
   // through the perk loadout into the game with that stage's fixed orders.
   const [stageInfoOpen, setStageInfoOpen] = useState<number | { stage: number; hardmode?: boolean } | null>(null);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
-  const [cardUpgradeOpen, setCardUpgradeOpen] = useState(false);
   // Stage numbers of lore milestones unlocked by the just-finished combat run.
   // Drives the post-result LoreCardUnlockModal.
   const [pendingLoreUnlocks, setPendingLoreUnlocks] = useState<number[]>([]);
@@ -133,6 +159,30 @@ export default function App() {
       hardmode,
       customDeck: profile.combatDeck,
       ownedUpgradeIds: profile.upgradesOwned,
+    });
+  }
+
+  async function beginCombatStage(
+    stageNumber: number,
+    talents: ReadonlyArray<Perk>,
+    equipment: EquippedSet,
+    hardcore: boolean,
+    hardmode?: boolean,
+  ) {
+    const cloud = auth.kind === 'signed_in'
+      ? await cloudStartCombatStage({
+          stageNumber,
+          hardmode: Boolean(hardmode),
+          talentIds: talents.map(talent => talent.id),
+          equipmentIds: Object.values(equipment).flatMap(item => item ? [item.id] : []),
+          deckCardIds: profile.combatDeck,
+        })
+      : null;
+    setScreen({
+      kind: 'combat', stageNumber, talents, equipment, hardcore, hardmode,
+      customDeck: profile.combatDeck,
+      ownedUpgradeIds: profile.upgradesOwned,
+      cloud,
     });
   }
 
@@ -237,7 +287,7 @@ export default function App() {
           onLeaderboard={() => setLeaderboardOpen(true)}
         />
       )}
-      {screen.kind === 'home' && (
+      {allowLegacyFlow && screen.kind === 'home' && (
         <HomeScreen
           profile={profile}
           auth={auth}
@@ -254,7 +304,7 @@ export default function App() {
           onCombat={() => setScreen({ kind: 'combat_home' })}
         />
       )}
-      {screen.kind === 'stage_select' && (
+      {allowLegacyFlow && screen.kind === 'stage_select' && (
         <StageSelectScreen
           profile={profile}
           onProfileChange={persistProfile}
@@ -287,13 +337,6 @@ export default function App() {
         <LoreCardUnlockModal
           stageNumbers={pendingLoreUnlocks}
           onClose={() => setPendingLoreUnlocks([])}
-        />
-      )}
-      {cardUpgradeOpen && (
-        <CardUpgradeScreen
-          profile={profile}
-          onClose={() => setCardUpgradeOpen(false)}
-          onProfileChange={persistProfile}
         />
       )}
       {screen.kind === 'profile' && (
@@ -333,7 +376,7 @@ export default function App() {
           onBack={() => setScreen({ kind: 'sigilbound_hub' })}
         />
       )}
-      {screen.kind === 'perks' && (
+      {allowLegacyFlow && screen.kind === 'perks' && (
         <PerkLoadoutScreen
           profile={profile}
           onProfileChange={persistProfile}
@@ -361,14 +404,14 @@ export default function App() {
           })}
         />
       )}
-      {screen.kind === 'achievements' && (
+      {allowLegacyFlow && screen.kind === 'achievements' && (
         <AchievementsScreen
           profile={profile}
           onBack={() => setScreen({ kind: 'settings' })}
           onProfileChange={persistProfile}
         />
       )}
-      {screen.kind === 'social' && (
+      {allowLegacyFlow && screen.kind === 'social' && (
         <SocialScreen
           profile={profile}
           auth={auth}
@@ -377,7 +420,7 @@ export default function App() {
           onBack={() => setScreen({ kind: 'home' })}
         />
       )}
-      {screen.kind === 'order_pick' && (
+      {allowLegacyFlow && screen.kind === 'order_pick' && (
         <OrderPickScreen
           runSeed={screen.seed}
           onConfirm={(chosenOrders) => {
@@ -402,7 +445,7 @@ export default function App() {
           onBack={() => setScreen({ kind: 'perks', stage: null })}
         />
       )}
-      {screen.kind === 'game' && (
+      {allowLegacyFlow && screen.kind === 'game' && (
         <GameView
           seed={screen.seed}
           perkIds={screen.perkIds}
@@ -417,7 +460,7 @@ export default function App() {
           onExit={() => setScreen({ kind: 'home' })}
         />
       )}
-      {screen.kind === 'results' && (
+      {allowLegacyFlow && screen.kind === 'results' && (
         <ResultsScreen
           result={screen.result}
           profile={screen.profile}
@@ -458,13 +501,7 @@ export default function App() {
             // `talents` keep the run buffed; charge depletion only affects
             // the next stage selection.
             persistProfile(consumeEquippedPerksForRun(profile));
-            setScreen({
-              kind: 'combat', stageNumber, talents, equipment, hardcore,
-              // Phase 7: forward the player's custom combat deck.
-              customDeck: profile.combatDeck,
-              // Stronghold upgrades — flow into combat as stat mods + buffs.
-              ownedUpgradeIds: profile.upgradesOwned,
-            });
+            void beginCombatStage(stageNumber, talents, equipment, hardcore);
           }}
           onBack={() => setScreen({ kind: 'sigilbound_hub' })}
           onDeck={() => setScreen({ kind: 'deck' })}
@@ -502,6 +539,9 @@ export default function App() {
                 combosTriggered: runner.state.combosTriggeredThisStage.element_chain,
                 damageDealtByType: runner.state.player.damageDealtByType,
                 damageTakenThisStage: runner.state.player.damageTakenThisStage,
+                totalDamageDealt: Object.values(runner.state.player.damageDealtByType)
+                  .reduce((sum, damage) => sum + damage, 0),
+                turnsUsed: runner.state.turn,
               },
             );
             if (nextProfile !== profile) {
@@ -513,6 +553,17 @@ export default function App() {
             if (clearOutcome.loreUnlocked.length > 0) {
               setPendingLoreUnlocks(clearOutcome.loreUnlocked);
             }
+            if (screen.cloud) {
+              void cloudSubmitCombatStage({
+                runId: screen.cloud.runId,
+                token: screen.cloud.token,
+                stageNumber: stage.number,
+                outcome,
+                stars: clearOutcome.stars,
+                currentHp: runner.state.player.currentHp,
+                maxHp: runner.state.player.stats.maxHp,
+              });
+            }
             setScreen({
               kind: 'combat_result',
               outcome,
@@ -521,6 +572,7 @@ export default function App() {
               talents: screen.talents,
               equipment: screen.equipment,
               hardcore: screen.hardcore,
+              hardmode: screen.hardmode,
               customDeck: screen.customDeck,
               ownedUpgradeIds: screen.ownedUpgradeIds,
               clearOutcome,
@@ -545,16 +597,13 @@ export default function App() {
           stage={screen.stage}
           runner={screen.runner}
           clearOutcome={screen.clearOutcome}
-          onReplay={() => setScreen({
-            kind: 'combat',
-            stageNumber: screen.stage.number,
-            talents: screen.talents,
-            equipment: screen.equipment,
-            hardcore: screen.hardcore,
-            customDeck: screen.customDeck,
-            ownedUpgradeIds: screen.ownedUpgradeIds,
-            // Hardcore replays start at full HP — replays reset the arc.
-          })}
+          onReplay={() => void beginCombatStage(
+            screen.stage.number,
+            screen.talents,
+            screen.equipment,
+            screen.hardcore,
+            screen.hardmode,
+          )}
           onNext={() => setScreen({
             kind: 'stage_intro',
             stageNumber: screen.stage.number + 1,
@@ -599,15 +648,7 @@ export default function App() {
             // See combat_home onBegin — burn one consumable-talent charge
             // per equipped slot at run-commit. Starter talents skip.
             persistProfile(consumeEquippedPerksForRun(profile));
-            setScreen({
-              kind: 'combat',
-              stageNumber,
-              talents,
-              equipment,
-              hardcore,
-              customDeck: profile.combatDeck,
-              ownedUpgradeIds: profile.upgradesOwned,
-            });
+            void beginCombatStage(stageNumber, talents, equipment, hardcore);
           }}
           onQuit={() => setScreen({ kind: 'sigilbound_hub' })}
           onDeck={() => navigateTo({ kind: 'deck', from: 'stage_info' })}

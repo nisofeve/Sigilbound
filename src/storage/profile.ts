@@ -30,11 +30,14 @@ import {
   applyActionQuestProgress,
   type QuestAction,
   getStageDef,
+  MAX_STAGES,
   starsFor,
   replayRewardsFor,
   combatStageRewards,
   combatStageReplayRewards,
   combatStarsFor,
+  computeLeaderboardScore,
+  checkWeeklyReset,
   XP_FROM_SEASON_COMPLETE,
   XP_PER_RUN_COIN,
   XP_FROM_ACHIEVEMENT_BY_RARITY,
@@ -624,7 +627,7 @@ function applyStageProgress(p: Profile, result: RunResult): StageRunOutcome {
 
   // 1+ stars unlocks the next stage.
   if (stars >= 1 && p.currentStage < stage + 1) {
-    p.currentStage = stage + 1;
+    p.currentStage = Math.min(MAX_STAGES, stage + 1);
   }
 
   // First-clear payouts: granted once per (stage, star tier) — i.e. clearing
@@ -720,6 +723,9 @@ export function applyCombatClearToProfile(
     /** Total damage taken across the whole stage. 0 → "no-damage clear" used
      *  as proxy for the no_damage_turns quest kind in local mode. */
     damageTakenThisStage?: number;
+    /** Combat telemetry used for local competitive high scores. */
+    totalDamageDealt?: number;
+    turnsUsed?: number;
   },
 ): { profile: Profile; outcome: CombatClearOutcome } {
   const stars = combatStarsFor({
@@ -748,7 +754,7 @@ export function applyCombatClearToProfile(
     next.stageStars = { ...next.stageStars, [stageNum]: stars };
   }
   if (next.currentStage < stageNum + 1) {
-    next.currentStage = stageNum + 1;
+    next.currentStage = Math.min(MAX_STAGES, stageNum + 1);
   }
 
   // Determine reward tier: first-clear at a higher star count than ever
@@ -882,6 +888,23 @@ export function applyCombatClearToProfile(
     result.hardcore ?? false,
   );
   next.bpXp = Math.min(TOTAL_BP_TIERS * XP_PER_TIER, next.bpXp + combatBpXp);
+
+  // Competitive scores use successful clears only. Keep weekly rollover here
+  // so a new week's first clear always starts a fresh personal best.
+  const leaderboard = checkWeeklyReset(next);
+  next.weeklyScoreISO = leaderboard.weeklyScoreISO;
+  next.weeklyHighScore = leaderboard.weeklyHighScore;
+  const competitiveScore = computeLeaderboardScore({
+    stage: stageNum,
+    isHardmode: Boolean(result.hardcore),
+    totalDamageDealt: result.totalDamageDealt ?? 0,
+    turnsUsed: result.turnsUsed ?? 0,
+    combosTriggered: result.combosTriggered ?? 0,
+    endHpPercent: result.maxHp > 0 ? result.currentHp / result.maxHp : 0,
+    stars,
+  });
+  next.allTimeHighScore = Math.max(next.allTimeHighScore ?? 0, competitiveScore);
+  next.weeklyHighScore = Math.max(next.weeklyHighScore ?? 0, competitiveScore);
 
   // BP combat-quest progression (local mode). Daily/weekly/monthly buckets
   // roll over by date key, then increment damage_type / combo_count /

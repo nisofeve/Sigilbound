@@ -26,6 +26,36 @@ export interface StartRunResponse {
   totalRounds: number;
 }
 
+// Sigilbound combat-session audit contract. Rewards are deliberately absent:
+// server-authoritative reward grants wait for deterministic action replay.
+export interface StartCombatStageRequest {
+  stageNumber: number;
+  hardmode: boolean;
+  talentIds: string[];
+  equipmentIds: string[];
+  deckCardIds: string[];
+}
+
+export interface StartCombatStageResponse {
+  runId: string;
+  token: string;
+  startedAt: number;
+}
+
+export interface SubmitCombatStageRequest {
+  runId: string;
+  token: string;
+  stageNumber: number;
+  outcome: 'cleared' | 'defeated';
+  stars: 0 | 1 | 2 | 3;
+  currentHp: number;
+  maxHp: number;
+}
+
+export interface SubmitCombatStageResponse {
+  accepted: boolean;
+}
+
 export interface SubmitRunRequest {
   runId: string;
   token: string;

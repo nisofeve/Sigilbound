@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { priceFor, rollCombatShop, rerollCostFor } from './combatShop';
-import { getAction, getTactic } from './actionCards';
+import { allActions, getAction, getTactic } from './actionCards';
 
 describe('combat shop pricing', () => {
   it('common Action sells for ~150g/10c', () => {
@@ -11,14 +11,14 @@ describe('combat shop pricing', () => {
   });
 
   it('rare Action sells for 800g/60c', () => {
-    const def = getAction('act_005')!; // Blade Dance, rare
+    const def = allActions().find(action => action.rarity === 'rare')!;
     const p = priceFor(def, 'action');
     expect(p.gold).toBe(800);
     expect(p.crystals).toBe(60);
   });
 
   it('legendary Action sells for 5000g/400c', () => {
-    const def = getAction('act_023')!; // Sigil of Ruin, legendary
+    const def = allActions().find(action => action.rarity === 'legendary')!;
     const p = priceFor(def, 'action');
     expect(p.gold).toBe(5000);
     expect(p.crystals).toBe(400);
@@ -52,7 +52,7 @@ describe('rollCombatShop determinism', () => {
 
   it('every entry has a valid def + nonzero price', () => {
     const entries = rollCombatShop('2026-04-28', 0).cards;
-    expect(entries.length).toBe(6);
+    expect(entries.length).toBe(9);
     for (const e of entries) {
       expect(e.def).toBeDefined();
       expect(e.goldPrice).toBeGreaterThan(0);

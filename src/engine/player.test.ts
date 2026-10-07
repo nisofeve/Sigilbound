@@ -15,9 +15,9 @@ import {
 } from './player';
 
 describe('baseStatsForLevel', () => {
-  it('level 1: 50 HP, 0 atk, 5% crit, 3 stamina, 3 sigil slots, 5 hand', () => {
+  it('level 1: 500 HP, 0 atk, 5% crit, 3 stamina, 3 sigil slots, 5 hand', () => {
     const s = baseStatsForLevel(1);
-    expect(s.maxHp).toBe(50);
+    expect(s.maxHp).toBe(500);
     expect(s.atk).toBe(0);
     expect(s.def).toBe(0);
     expect(s.critChance).toBe(0.05);
@@ -28,14 +28,14 @@ describe('baseStatsForLevel', () => {
 
   it('level 50: clamps within GDD ranges', () => {
     const s = baseStatsForLevel(50);
-    expect(s.maxHp).toBe(50 + 49 * 4);   // 246
-    expect(s.atk).toBe(Math.floor(49 * 0.6)); // 29
+    expect(s.maxHp).toBe(500 + 49 * 40);   // 2460
+    expect(s.atk).toBe(Math.floor(49 * 6)); // 294
   });
 
   it('level out-of-range clamps to [1, 50]', () => {
-    expect(baseStatsForLevel(0).maxHp).toBe(50);
+    expect(baseStatsForLevel(0).maxHp).toBe(500);
     expect(baseStatsForLevel(999).maxHp).toBe(baseStatsForLevel(50).maxHp);
-    expect(baseStatsForLevel(-5).maxHp).toBe(50);
+    expect(baseStatsForLevel(-5).maxHp).toBe(500);
   });
 
   it('non-integer levels floor', () => {
@@ -56,7 +56,7 @@ describe('computePlayerStats', () => {
       { critChance: 0.05, atk: 2 },             // ring
     ];
     const s = computePlayerStats({ level: 1, modifiers: mods });
-    expect(s.maxHp).toBe(50 + 15 + 40);
+    expect(s.maxHp).toBe(500 + 15 + 40);
     expect(s.atk).toBe(0 + 4 + 2);
     expect(s.def).toBe(8);
     expect(s.critChance).toBeCloseTo(0.10);
@@ -194,8 +194,8 @@ describe('tickEndOfPlayerTurn', () => {
     c.currentHp = 100;
     c = applyPlayerStatus(c, 'burn', 4, 3);
     const r = tickEndOfPlayerTurn(c);
-    expect(r.dotDamage).toBe(12); // 3 * 4
-    expect(r.combatant.currentHp).toBe(88);
+    expect(r.dotDamage).toBe(60); // 15 * 4
+    expect(r.combatant.currentHp).toBe(40);
     expect(r.combatant.statuses.burn?.stacks).toBe(3);
     expect(r.combatant.statuses.burn?.turnsRemaining).toBe(2); // decay turns by 1
   });
@@ -205,8 +205,8 @@ describe('tickEndOfPlayerTurn', () => {
     c.currentHp = 50;
     c = applyPlayerStatus(c, 'regen', 4, 3);
     const r = tickEndOfPlayerTurn(c);
-    expect(r.regenHeal).toBe(12);
-    expect(r.combatant.currentHp).toBe(62);
+    expect(r.regenHeal).toBe(120);
+    expect(r.combatant.currentHp).toBe(100);
   });
 
   it('Burn + Regen tick same turn', () => {
@@ -215,10 +215,10 @@ describe('tickEndOfPlayerTurn', () => {
     c = applyPlayerStatus(c, 'burn', 2, 3);
     c = applyPlayerStatus(c, 'regen', 1, 3);
     const r = tickEndOfPlayerTurn(c);
-    // 50 - 6 burn + 3 regen = 47
-    expect(r.dotDamage).toBe(6);
-    expect(r.regenHeal).toBe(3);
-    expect(r.combatant.currentHp).toBe(47);
+    // 50 - 30 burn + 30 regen = 50
+    expect(r.dotDamage).toBe(30);
+    expect(r.regenHeal).toBe(30);
+    expect(r.combatant.currentHp).toBe(50);
   });
 
   it('cleanTurn flag is true with no DoT damage', () => {

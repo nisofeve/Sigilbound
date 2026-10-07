@@ -13,6 +13,12 @@ export interface CloudRunHandle {
   pvpMatchId?: string;
 }
 
+export interface CloudCombatRunHandle {
+  runId: string;
+  token: string;
+  startedAt: number;
+}
+
 export type Screen =
   // Sigilbound primary entry. Replaces the old farming home as the default
   // app screen. The legacy `'home'` kind below routes to the (now-hidden)
@@ -37,7 +43,7 @@ export type Screen =
   | { kind: 'combat_home' }
   | { kind: 'stage_intro'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string> }
   | { kind: 'stage_info'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string> }
-  | { kind: 'combat'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; hardmode?: boolean; carryHp?: number; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string>; isTutorial?: boolean }
+  | { kind: 'combat'; stageNumber: number; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; hardmode?: boolean; carryHp?: number; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string>; isTutorial?: boolean; cloud?: CloudCombatRunHandle | null }
   | { kind: 'combat_result'; outcome: 'cleared' | 'defeated'; stage: CombatStageDef; runner: BattleRunner; talents: ReadonlyArray<Perk>; equipment: EquippedSet; hardcore: boolean; hardmode?: boolean; customDeck?: ReadonlyArray<string>; ownedUpgradeIds?: ReadonlyArray<string>; clearOutcome?: CombatClearOutcome }
   | { kind: 'bestiary' }
   | { kind: 'encyclopedia'; initialTab?: 'battle' | 'equipment' | 'talent' | 'lore' | 'bestiary' };

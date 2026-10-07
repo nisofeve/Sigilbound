@@ -10,15 +10,16 @@ export default function LeaderboardScreen({ profile, onClose }: Props) {
   const weeklyScore = profile.weeklyHighScore ?? 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-3" style={{ background: 'rgba(0,0,0,0.8)' }}>
+    <div className="fixed inset-0 z-50 sb-bg sb-bg-stone flex items-center justify-center px-3" style={{ backgroundColor: 'rgba(0,0,0,0.88)' }}>
       <div
-        className="w-full max-w-md rounded-lg overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1a3a3a 0%, #0f2e2e 100%)', padding: 24 }}
+        className="w-full max-w-md sb-parchment overflow-hidden"
+        style={{ padding: 20, border: '2px solid var(--sb-bronze)', boxShadow: '0 12px 40px rgba(0,0,0,0.65)' }}
       >
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="pb-title text-2xl mb-1">🏆 Leaderboards</h1>
-          <p className="text-[12px] opacity-70">Personal Bests</p>
+          <div className="text-4xl mb-2">🏆</div>
+          <h1 className="sb-display text-xl mb-1" style={{ color: 'var(--sb-gold-dark)', letterSpacing: '0.18em' }}>SCORES</h1>
+          <p className="sb-mono text-[10px]" style={{ color: '#6b4f31' }}>PERSONAL BESTS</p>
         </div>
 
         {/* All-Time Score */}
@@ -29,11 +30,11 @@ export default function LeaderboardScreen({ profile, onClose }: Props) {
             border: '1.5px solid rgba(255,215,0,0.3)',
           }}
         >
-          <div className="text-[10px] uppercase tracking-widest font-extrabold opacity-75 mb-1">⭐ All-Time Best</div>
-          <div className="text-3xl font-extrabold" style={{ color: '#ffd54f' }}>
+          <div className="sb-display text-[10px] tracking-widest mb-1" style={{ color: 'var(--sb-gold-dark)' }}>⭐ ALL-TIME BEST</div>
+          <div className="sb-mono text-3xl font-extrabold" style={{ color: '#b45309' }}>
             {allTimeScore.toLocaleString()}
           </div>
-          <div className="text-[11px] opacity-60 mt-1">Points</div>
+          <div className="sb-mono text-[10px] opacity-60 mt-1">POINTS</div>
         </div>
 
         {/* Weekly Score */}
@@ -44,26 +45,26 @@ export default function LeaderboardScreen({ profile, onClose }: Props) {
             border: '1.5px solid rgba(165,214,167,0.3)',
           }}
         >
-          <div className="text-[10px] uppercase tracking-widest font-extrabold opacity-75 mb-1">📅 This Week</div>
-          <div className="text-3xl font-extrabold" style={{ color: '#a5d6a7' }}>
+          <div className="sb-display text-[10px] tracking-widest mb-1" style={{ color: '#166534' }}>📅 THIS WEEK</div>
+          <div className="sb-mono text-3xl font-extrabold" style={{ color: '#15803d' }}>
             {weeklyScore.toLocaleString()}
           </div>
-          <div className="text-[11px] opacity-60 mt-1">Points</div>
+          <div className="sb-mono text-[10px] opacity-60 mt-1">POINTS</div>
         </div>
 
         {/* Placeholder for future global leaderboard */}
         <div
           className="rounded-lg p-4 mb-6 text-center"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+          style={{ background: 'rgba(91,62,32,0.08)', border: '1px solid rgba(91,62,32,0.2)' }}
         >
-          <div className="text-[12px] opacity-60">🌐 Global Leaderboard</div>
-          <div className="text-[11px] opacity-40 mt-2">Coming in a future update</div>
+          <div className="sb-display text-[10px]" style={{ color: '#6b4f31', letterSpacing: '0.12em' }}>🌐 GLOBAL SCORES</div>
+          <div className="sb-mono text-[10px] opacity-50 mt-2">COMING IN A FUTURE UPDATE</div>
         </div>
 
         {/* Scoring Info */}
-        <div className="rounded-lg p-3 mb-4" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          <div className="text-[10px] uppercase tracking-widest font-extrabold opacity-65 mb-2">Score Factors</div>
-          <div className="text-[11px] opacity-60 space-y-1">
+        <div className="rounded-lg p-3 mb-4" style={{ background: 'rgba(91,62,32,0.08)' }}>
+          <div className="sb-display text-[9px] tracking-widest mb-2" style={{ color: '#6b4f31' }}>SCORE FACTORS</div>
+          <div className="sb-mono text-[10px] opacity-70 space-y-1" style={{ color: '#4b3520' }}>
             <div>⚔ Stage cleared</div>
             <div>💥 Damage dealt</div>
             <div>⚡ Combo chains</div>
@@ -72,7 +73,7 @@ export default function LeaderboardScreen({ profile, onClose }: Props) {
           </div>
         </div>
 
-        <button onClick={onClose} className="pb-btn pb-btn-cream pb-btn-md w-full">
+        <button onClick={onClose} className="sb-btn sb-btn-steel w-full" style={{ fontSize: '12px', padding: '11px' }}>
           ← Back
         </button>
       </div>

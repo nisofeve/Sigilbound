@@ -119,7 +119,7 @@ const STEPS: TutStep[] = [
     body: [
       'Bind 2 or more cards of the SAME element in one turn to trigger an ELEMENT CHAIN.',
       'Each matching card in the chain deals bonus damage — the longer the chain, the bigger the boost!',
-      'Watch for the element icons on your cards (🔥 Pyre, ❄️ Frost, ⚡ Thunder, etc.) and plan chains for maximum impact.',
+      'Watch for element icons on cards (🔥 Fire, ❄️ Ice, ⚡ Thunder, etc.) and plan chains for maximum impact.',
     ],
   },
   {

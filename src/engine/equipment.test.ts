@@ -162,7 +162,7 @@ describe('compileEquipment', () => {
     const c = compileEquipment(set);
     const stats = computePlayerStats({ level: 1, modifiers: c.modifiers });
     expect(stats.atk).toBe(2);
-    expect(stats.maxHp).toBe(50 + 40);
+    expect(stats.maxHp).toBe(500 + 40);
     expect(stats.def).toBe(8);
     expect(stats.sigilSlots).toBe(4); // base 3 + amulet 1
     expect(stats.resistances.pyre).toBe(0.5);

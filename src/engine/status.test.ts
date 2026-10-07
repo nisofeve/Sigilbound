@@ -45,17 +45,17 @@ describe('applyStatus / clearStatus / hasStatus', () => {
 });
 
 describe('tickDamageOverTime', () => {
-  it('Burn deals 3 per stack and decays by 1', () => {
+  it('Burn deals 15 per stack and decays by 1', () => {
     const bag = applyStatus({}, 'burn', 4, 3);
     const r = tickDamageOverTime(bag);
-    expect(r.damage).toBe(12); // 3 * 4
+    expect(r.damage).toBe(60); // 15 * 4
     expect(r.bag.burn?.stacks).toBe(3);
   });
 
-  it('Bleed deals 4 per stack and decays by 1', () => {
+  it('Bleed deals 20 per stack and decays by 1', () => {
     const bag = applyStatus({}, 'bleed', 2, 2);
     const r = tickDamageOverTime(bag);
-    expect(r.damage).toBe(8); // 4 * 2
+    expect(r.damage).toBe(40); // 20 * 2
     expect(r.bag.bleed?.stacks).toBe(1);
   });
 
@@ -63,7 +63,7 @@ describe('tickDamageOverTime', () => {
     let bag: StatusBag = applyStatus({}, 'burn', 2, 3);
     bag = applyStatus(bag, 'bleed', 1, 2);
     const r = tickDamageOverTime(bag);
-    expect(r.damage).toBe(2 * 3 + 1 * 4); // 6 + 4
+    expect(r.damage).toBe(2 * 15 + 1 * 20); // 30 + 20
   });
 
   it('returns 0 damage when no DoTs present', () => {
@@ -74,16 +74,16 @@ describe('tickDamageOverTime', () => {
   it('Burn at 1 stack ticks once then disappears', () => {
     const bag = applyStatus({}, 'burn', 1, 5);
     const r = tickDamageOverTime(bag);
-    expect(r.damage).toBe(3);
+    expect(r.damage).toBe(15);
     expect(r.bag.burn).toBeUndefined(); // 0 stacks → cleared
   });
 });
 
 describe('tickHealOverTime', () => {
-  it('Regen heals 3 per stack', () => {
+  it('Regen heals 30 per stack', () => {
     const bag = applyStatus({}, 'regen', 4, 3);
     const r = tickHealOverTime(bag);
-    expect(r.heal).toBe(12);
+    expect(r.heal).toBe(120);
   });
 
   it('returns 0 with no regen', () => {
@@ -133,9 +133,9 @@ describe('outgoingDamageMult', () => {
     expect(outgoingDamageMult({})).toBe(1);
   });
 
-  it('Weakened reduces damage to 0.75', () => {
+  it('Weakened reduces damage by 1% per stack', () => {
     const bag = applyStatus({}, 'weakened', 1, 2);
-    expect(outgoingDamageMult(bag)).toBe(0.75);
+    expect(outgoingDamageMult(bag)).toBe(0.99);
   });
 
   it('Burn does NOT reduce outgoing damage', () => {
@@ -183,9 +183,9 @@ describe('incomingDamageMult', () => {
 });
 
 describe('STATUS_DEFS', () => {
-  it('covers all 11 status ids', () => {
+  it('covers all 17 status ids', () => {
     const ids = Object.keys(STATUS_DEFS);
-    expect(ids).toHaveLength(11);
+    expect(ids).toHaveLength(17);
     expect(ids).toContain('burn');
     expect(ids).toContain('hasted');
   });

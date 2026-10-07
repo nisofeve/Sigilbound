@@ -44,6 +44,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Sigilbound combat audit records. Only their owner can inspect a run;
+    // all writes remain Cloud-Functions-only.
+    match /combatRuns/{runId} {
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.uid;
+      allow write: if false;
+    }
+
     // === PvP matches ===
     match /pvpMatches/{matchId} {
       allow read: if request.auth != null
@@ -56,11 +64,10 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if false;
     }
+    // Allow only fields in `keys` to differ between resource.data and
+    // request.resource.data. Used to whitelist client-mutable fields.
+    function onlyMutates(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
   }
-}
-
-// Allow only fields in `keys` to differ between resource.data and request.resource.data.
-// Used to whitelist client-mutable fields.
-function onlyMutates(keys) {
-  return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
 }

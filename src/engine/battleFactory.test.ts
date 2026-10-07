@@ -17,8 +17,8 @@ describe('buildStageRun', () => {
     expect(runner.state.enemies).toHaveLength(1);
   });
 
-  it('boss stage 5 spawns boss + minions', () => {
-    const { runner } = buildStageRun({ stageNumber: 5, playerLevel: 1 });
+  it('boss stage 10 spawns boss + minions', () => {
+    const { runner } = buildStageRun({ stageNumber: 10, playerLevel: 1 });
     expect(runner.state.enemies.length).toBeGreaterThanOrEqual(2);
     const isBoss = runner.state.enemies.some(e => e.archetype === 'boss');
     expect(isBoss).toBe(true);
@@ -64,14 +64,14 @@ describe('buildStageRun', () => {
     expect(runner.state.slots).toHaveLength(5); // base 3 + 1 amulet + 1 talent
   });
 
-  it('talent: Vigorous (max_hp_bonus) grants +10 max HP', () => {
+  it('talent: Vigorous (max_hp_bonus) grants +100 max HP', () => {
     const vig = getTalent('talent.vigorous')!;
     const { runner } = buildStageRun({
       stageNumber: 1,
       playerLevel: 1,
       talents: [vig],
     });
-    expect(runner.state.player.stats.maxHp).toBe(50 + 10);
+    expect(runner.state.player.stats.maxHp).toBe(500 + 100);
   });
 
   it('seeded runs are deterministic', () => {
@@ -90,7 +90,7 @@ describe('buildStageRun', () => {
       talents: [battlecry],
     });
     // Stats are untouched (Battlecry is a runtime damage modifier, not a stat).
-    expect(runner.state.player.stats.maxHp).toBe(50);
+    expect(runner.state.player.stats.maxHp).toBe(500);
     // But the talent's runtime field is populated for the resolve hot path.
     expect(runner.state.talents.firstActionDamageBonus).toBe(0.25);
   });

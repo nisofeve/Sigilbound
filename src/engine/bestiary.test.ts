@@ -66,7 +66,7 @@ describe('Bestiary data', () => {
     expect(biomeForStage(80)).toBe('volcano');
     expect(biomeForStage(81)).toBe('ashen');
     expect(biomeForStage(100)).toBe('ashen');
-    expect(biomeForStage(150)).toBe('ashen'); // plateau
+    expect(biomeForStage(150)).toBe('frostpeak'); // repeating cycle
   });
 
   it('BIOME_RANGES cover stages 1-100 contiguously', () => {

@@ -15,8 +15,8 @@
 //   └────────────────────────────────────┘
 
 import { useEffect, useRef, useState } from 'react';
-import type { BattleRunner, CombatStageDef, ItemDrop } from '@engine/index';
-import { allActions, allTactics, allEquipment, allTalents } from '@engine/index';
+import type { BattleRunner, CombatStageDef, DamageType, ItemDrop } from '@engine/index';
+import { allActions, allTactics, allEquipment, allTalents, DAMAGE_TYPES, ELEMENT_LABELS } from '@engine/index';
 import type { CombatClearOutcome } from '@storage/index';
 import { CombatCard } from '@ui/components/CombatCard';
 import { EquipmentCard } from '@ui/components/EquipmentCard';
@@ -155,14 +155,14 @@ export default function CombatResultScreen({ outcome, stage, runner, clearOutcom
               ✦ DAMAGE BY TYPE ✦
             </div>
             <div className="space-y-1.5">
-              {(['steel', 'pierce', 'pyre', 'frost', 'arcane'] as const).map(t => {
+              {DAMAGE_TYPES.map(t => {
                 const v = damageByType[t] ?? 0;
                 if (v === 0) return null;
                 const pct = (v / totalDmg) * 100;
                 return (
                   <div key={t} className="flex items-center gap-2 text-[11px]">
-                    <div className="sb-display w-14 capitalize" style={{ color: typeColor(t), letterSpacing: '0.08em' }}>
-                      {t}
+                    <div className="sb-display w-14" style={{ color: typeColor(t), letterSpacing: '0.08em' }}>
+                      {ELEMENT_LABELS[t] ?? t}
                     </div>
                     <div
                       className="flex-1 h-3.5 overflow-hidden relative"
@@ -613,24 +613,28 @@ function ComboCount({ icon, label, value, accent }: { icon: string; label: strin
   );
 }
 
-function typeColor(t: string): string {
+function typeColor(t: DamageType): string {
   switch (t) {
-    case 'steel':  return '#94a3b8';
-    case 'pierce': return '#fbbf24';
-    case 'pyre':   return '#fca5a5';
-    case 'frost':  return '#93c5fd';
-    case 'arcane': return '#c4b5fd';
-    default:       return '#888';
+    case 'physical': return '#e2e8f0';
+    case 'fire':     return '#ff6b35';
+    case 'ice':      return '#7ec4ff';
+    case 'thunder':  return '#facc15';
+    case 'nature':   return '#4ade80';
+    case 'holy':     return '#fde68a';
+    case 'dark':     return '#a78bfa';
+    default:         return '#888';
   }
 }
 
-function typeColorDk(t: string): string {
+function typeColorDk(t: DamageType): string {
   switch (t) {
-    case 'steel':  return '#475569';
-    case 'pierce': return '#92400e';
-    case 'pyre':   return '#7f1d1d';
-    case 'frost':  return '#1e40af';
-    case 'arcane': return '#5b21b6';
-    default:       return '#444';
+    case 'physical': return '#64748b';
+    case 'fire':     return '#9a3412';
+    case 'ice':      return '#1d4ed8';
+    case 'thunder':  return '#a16207';
+    case 'nature':   return '#166534';
+    case 'holy':     return '#a16207';
+    case 'dark':     return '#5b21b6';
+    default:         return '#444';
   }
 }

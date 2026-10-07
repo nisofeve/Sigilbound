@@ -25,6 +25,7 @@ Plotbound_v0.1.zip
 dist-standalone/
 dist-itch/
 *.zip
+playtest-server.log
 
 # Claude Code workspace metadata.
 .claude/

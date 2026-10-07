@@ -61,7 +61,7 @@ function defaultConfig(over: Partial<BattleConfig> = {}): BattleConfig {
 describe('BattleRunner — construction', () => {
   it('starts with player at full HP and slot count from stats', () => {
     const runner = new BattleRunner(defaultConfig());
-    expect(runner.state.player.currentHp).toBe(50);
+    expect(runner.state.player.currentHp).toBe(500);
     expect(runner.state.slots).toHaveLength(3);
     expect(runner.state.slots.every(s => s.bound === null)).toBe(true);
     expect(runner.state.outcome).toBe('in_progress');
@@ -140,11 +140,7 @@ describe('BattleRunner — slot binding', () => {
 
   it('returnSlotToHand: card from a previous turn is locked', () => {
     const runner = new BattleRunner(defaultConfig());
-    const def = getActionDef('act_003')!; // Heavy Swing — charge: 2
-    runner.bindToSlot(0, {
-      cardId: def.id, damage: def.damage, damageType: def.damageType,
-      charge: def.charge,
-    });
+    runner.bindToSlot(0, strike(1, 'steel', 2));
     expect(runner.canReturnSlotToHand(0)).toBe(true);
 
     runner.endTurn();
@@ -508,7 +504,7 @@ describe('BattleRunner — equipment integration', () => {
       level: 5,
       enemyDefs: [passiveTarget],
     });
-    expect(runner.state.player.stats.maxHp).toBe(50 + 4 * 4); // base + 4 levels
+    expect(runner.state.player.stats.maxHp).toBe(500 + 4 * 40); // base + 4 levels
     expect(runner.state.slots).toHaveLength(3);              // base sigilSlots
   });
 
@@ -582,7 +578,7 @@ describe('BattleRunner — Phase 6 deck system', () => {
     expect(runner.state.slots[0].bound).toBeNull();
   });
 
-  it('end of turn discards remaining hand and draws a fresh hand', () => {
+  it('end of turn keeps unspent hand cards and draws two cards', () => {
     const runner = new BattleRunner({
       seed: 1,
       playerStats: baseStatsForLevel(1),
@@ -591,8 +587,8 @@ describe('BattleRunner — Phase 6 deck system', () => {
     });
     const handBefore = runner.state.hand.length;
     runner.endTurn();
-    expect(runner.state.hand.length).toBe(handBefore); // re-drawn to handSize
-    expect(runner.state.discard.length).toBeGreaterThan(0);
+    expect(runner.state.hand.length).toBe(handBefore + 2);
+    expect(runner.state.discard).toHaveLength(0);
   });
 
   it('reshuffles discard into deck when deck runs dry', () => {
@@ -660,9 +656,8 @@ describe('BattleRunner — Phase 6 tactic play', () => {
     expect(idx).toBeGreaterThanOrEqual(0);
     const blockBefore = runner.state.player.block;
     expect(runner.playTactic(idx)).toBe('played');
-    // Block tactic authored amount = 8. Card-level system applies the
-    // level-1 baseline multiplier (0.6×) → round(8 × 0.6) = 5.
-    expect(runner.state.player.block).toBe(blockBefore + 5);
+    // Block tactic authored amount = 80. Level 1 applies 0.6×.
+    expect(runner.state.player.block).toBe(blockBefore + 48);
     expect(runner.state.staminaThisTurn).toBe(4); // 5 - 1
     expect(runner.state.hand).toHaveLength(4);
     expect(runner.state.discard).toContain('tac_001');
@@ -678,11 +673,11 @@ describe('BattleRunner — Phase 6 tactic play', () => {
     runner.state.player.currentHp = 50;
     const idx = findInHand(runner, 'tac_004');
     expect(runner.playTactic(idx)).toBe('played');
-    // Heal tactic authored amount = 10. Level-1 baseline = round(10 × 0.6) = 6.
-    expect(runner.state.player.currentHp).toBe(56);
+    // Heal Potion restores 60 at level 1, then caps at max HP.
+    expect(runner.state.player.currentHp).toBe(100);
   });
 
-  it('Inspire draws 2 cards', () => {
+  it('Inspire draws 1 card', () => {
     // Force the entire deck into hand on construction (initialHandSize = full
     // deck size), then there are still cards left in the deck for Inspire's
     // draw 2 only if we keep extras. Solution: set initialHandSize to small,
@@ -704,7 +699,7 @@ describe('BattleRunner — Phase 6 tactic play', () => {
     expect(idx).toBeGreaterThanOrEqual(0);
     const handBefore = runner.state.hand.length;
     expect(runner.playTactic(idx)).toBe('played');
-    expect(runner.state.hand.length).toBe(handBefore + 1); // -1 played + 2 drawn
+    expect(runner.state.hand.length).toBe(handBefore); // -1 played + 1 drawn
   });
 
   it('returns cant_afford when stamina is too low', () => {

@@ -45,6 +45,10 @@ import type {
   RemoveFriendResponse,
   StartRunRequest,
   StartRunResponse,
+  StartCombatStageRequest,
+  StartCombatStageResponse,
+  SubmitCombatStageRequest,
+  SubmitCombatStageResponse,
   SubmitRunRequest,
   SubmitRunResponse,
 } from './types';
@@ -154,6 +158,8 @@ const TOTAL_ROUNDS = 12;
 const HR_START = 1000;
 const HR_DELTA = 25;       // ±25 per match (Phase 5 will use Elo-style scaling)
 const PVP_TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_COMBAT_STAGE = 500;
+const MAX_COMBAT_DECK_SIZE = 30;
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -321,6 +327,91 @@ export const startRun = onCall<StartRunRequest, Promise<StartRunResponse>>(
       startedAt,
       totalRounds: TOTAL_ROUNDS,
     };
+  },
+);
+
+// ============================================================================
+// Sigilbound combat-session audit
+// ============================================================================
+
+function assertCombatStageRequest(data: StartCombatStageRequest): void {
+  if (!Number.isInteger(data.stageNumber) || data.stageNumber < 1 || data.stageNumber > MAX_COMBAT_STAGE) {
+    throw new HttpsError('invalid-argument', 'stageNumber must be between 1 and 500');
+  }
+  if (typeof data.hardmode !== 'boolean') {
+    throw new HttpsError('invalid-argument', 'hardmode must be boolean');
+  }
+  for (const ids of [data.talentIds, data.equipmentIds, data.deckCardIds]) {
+    if (!Array.isArray(ids) || ids.some(id => typeof id !== 'string' || id.length > 100)) {
+      throw new HttpsError('invalid-argument', 'Combat loadout must contain valid ids');
+    }
+  }
+  if (data.deckCardIds.length > MAX_COMBAT_DECK_SIZE) {
+    throw new HttpsError('invalid-argument', 'Combat deck exceeds 30 cards');
+  }
+}
+
+export const startCombatStage = onCall<StartCombatStageRequest, Promise<StartCombatStageResponse>>(
+  { enforceAppCheck: false },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', 'Sign-in required');
+    assertCombatStageRequest(request.data);
+
+    const startedAt = Date.now();
+    const runId = `combat_${newRunId()}`;
+    const seed = newSeed();
+    await getFirestore().collection('combatRuns').doc(runId).create({
+      uid,
+      seed,
+      startedAt,
+      status: 'pending',
+      stageNumber: request.data.stageNumber,
+      hardmode: request.data.hardmode,
+      talentIds: request.data.talentIds,
+      equipmentIds: request.data.equipmentIds,
+      deckCardIds: request.data.deckCardIds,
+    });
+    return { runId, token: signRunToken(runId, seed, uid), startedAt };
+  },
+);
+
+export const submitCombatStage = onCall<SubmitCombatStageRequest, Promise<SubmitCombatStageResponse>>(
+  { enforceAppCheck: false },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', 'Sign-in required');
+    const data = request.data;
+    if (!Number.isInteger(data.stageNumber) || !['cleared', 'defeated'].includes(data.outcome)
+      || !Number.isInteger(data.stars) || data.stars < 0 || data.stars > 3
+      || !Number.isFinite(data.currentHp) || !Number.isFinite(data.maxHp) || data.maxHp <= 0) {
+      throw new HttpsError('invalid-argument', 'Invalid combat outcome');
+    }
+
+    const runRef = getFirestore().collection('combatRuns').doc(data.runId);
+    const accepted = await getFirestore().runTransaction(async (tx) => {
+      const snap = await tx.get(runRef);
+      if (!snap.exists) throw new HttpsError('not-found', 'Unknown combat run');
+      const run = snap.data()!;
+      if (run.uid !== uid || !verifyRunToken(data.runId, run.seed, uid, data.token)) {
+        throw new HttpsError('permission-denied', 'Invalid combat session');
+      }
+      if (run.status !== 'pending') throw new HttpsError('failed-precondition', 'Combat run already submitted');
+      if (run.stageNumber !== data.stageNumber) throw new HttpsError('invalid-argument', 'Stage mismatch');
+      if ((data.outcome === 'cleared') !== (data.stars > 0) || data.currentHp < 0 || data.currentHp > data.maxHp) {
+        throw new HttpsError('invalid-argument', 'Outcome values inconsistent');
+      }
+      tx.update(runRef, {
+        status: 'submitted',
+        finishedAt: Date.now(),
+        outcome: data.outcome,
+        stars: data.stars,
+        currentHp: data.currentHp,
+        maxHp: data.maxHp,
+      });
+      return true;
+    });
+    return { accepted };
   },
 );
 

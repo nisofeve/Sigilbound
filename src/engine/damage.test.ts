@@ -194,8 +194,8 @@ describe('resistanceFor + DAMAGE_TYPES', () => {
     expect(resistanceFor({ frost: 0.25 }, 'frost')).toBe(0.25);
   });
 
-  it('DAMAGE_TYPES enumerates exactly the 5 GDD types', () => {
-    expect(DAMAGE_TYPES).toEqual(['steel', 'pierce', 'pyre', 'frost', 'arcane']);
-    expect(DAMAGE_TYPES).toHaveLength(5);
+  it('DAMAGE_TYPES enumerates the 7 live elemental types', () => {
+    expect(DAMAGE_TYPES).toEqual(['physical', 'fire', 'ice', 'thunder', 'nature', 'holy', 'dark']);
+    expect(DAMAGE_TYPES).toHaveLength(7);
   });
 });

@@ -6,9 +6,9 @@ import {
 import { biomeForStage } from './bestiary';
 
 describe('Stage generator', () => {
-  it('isBossStage fires every 5th stage', () => {
+  it('isBossStage fires every 10th stage', () => {
     for (let i = 1; i <= 100; i++) {
-      expect(isBossStage(i)).toBe(i % 5 === 0);
+      expect(isBossStage(i)).toBe(i % 10 === 0);
     }
   });
 
@@ -31,7 +31,7 @@ describe('Stage generator', () => {
     expect(getStage(21).biome).toBe('crypts');
     expect(getStage(60).biome).toBe('frostpeak');
     expect(getStage(100).biome).toBe('ashen');
-    expect(getStage(150).biome).toBe('ashen'); // plateau
+    expect(getStage(150).biome).toBe('frostpeak'); // repeating cycle
   });
 
   it('all stage enemies belong to the matching biome (non-boss)', () => {
@@ -54,12 +54,12 @@ describe('Stage generator', () => {
     expect(getStage(100).enemyIds).toContain('boss_sigilbreaker');
   });
 
-  it('stage 1-5 has only 1 enemy (tutorial band)', () => {
-    for (let i = 1; i <= 4; i++) {
+  it('stage 1-5 has only 1 enemy; stage 10 is first boss', () => {
+    for (let i = 1; i <= 5; i++) {
       expect(getStage(i).enemyIds).toHaveLength(1);
     }
-    // Stage 5 is a boss → 1 boss + 2 minions = 3
-    expect(getStage(5).enemyIds.length).toBeGreaterThanOrEqual(3);
+    // Boss = 1 boss + 2 minions.
+    expect(getStage(10).enemyIds.length).toBeGreaterThanOrEqual(3);
   });
 
   it('reward chest scales with stage', () => {
@@ -68,7 +68,7 @@ describe('Stage generator', () => {
   });
 
   it('boss stages have richer reward chests than adjacent non-boss', () => {
-    expect(getStage(5).rewardChest.baseGold).toBeGreaterThan(getStage(4).rewardChest.baseGold);
+    expect(getStage(10).rewardChest.baseGold).toBeGreaterThan(getStage(9).rewardChest.baseGold);
   });
 
   it('every stage has at least one bonus objective', () => {
@@ -78,13 +78,21 @@ describe('Stage generator', () => {
   });
 
   it('boss stages have 3 bonus objectives', () => {
-    expect(getStage(5).bonusObjectives).toHaveLength(3);
+    expect(getStage(10).bonusObjectives).toHaveLength(3);
     expect(getStage(50).bonusObjectives).toHaveLength(3);
     expect(getStage(100).bonusObjectives).toHaveLength(3);
   });
 
-  it('allStages returns 100 entries', () => {
-    expect(allStages()).toHaveLength(100);
+  it('allStages returns 500 entries', () => {
+    expect(allStages()).toHaveLength(500);
+  });
+
+  it('every campaign stage has a playable roster and at least one objective', () => {
+    for (const stage of allStages()) {
+      expect(stage.enemyIds.length).toBeGreaterThan(0);
+      expect(stage.bonusObjectives.length).toBeGreaterThan(0);
+      expect(stage.rewardChest.baseGold).toBeGreaterThan(0);
+    }
   });
 
   it('hand-tuned overrides apply (stage 1 has its custom title)', () => {
@@ -131,7 +139,7 @@ describe('Combat clear rewards', () => {
   });
 
   it('combatStageRewards: boss stages drop gems', () => {
-    const boss = getStage(5);
+    const boss = getStage(10);
     const rewards = combatStageRewards(boss, 3);
     const gems = rewards.find(r => r.type === 'gems');
     expect(gems).toBeDefined();
